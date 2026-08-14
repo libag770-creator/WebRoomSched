@@ -1,0 +1,170 @@
+/* Reset */
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,
+body{
+    height:100%;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f4f6f9;
+}
+
+/* Whole Page */
+.wrapper{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+/* ================= HEADER ================= */
+
+.top-header{
+    height:70px;
+    background:#2e7d32;
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    padding:0 25px;
+
+    color:#fff;
+
+    box-shadow:0 2px 10px rgba(0,0,0,.15);
+
+    flex-shrink:0;
+}
+
+.header-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.logo{
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    background:white;
+}
+
+.header-left small{
+    font-size:11px;
+}
+
+.header-left h3{
+    font-size:18px;
+    font-weight:600;
+}
+
+.header-right{
+    display:flex;
+    gap:12px;
+}
+
+.header-right button{
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:50%;
+    cursor:pointer;
+    color:white;
+    background:rgba(255,255,255,.15);
+    transition:.3s;
+}
+
+.header-right button:hover{
+    background:#f9a825;
+    transform:translateY(-2px);
+}
+
+/* ================= BODY ================= */
+
+.main-layout{
+    flex:1;
+    display:flex;
+    min-height:0;
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar{
+    width:260px;
+    background:#f8f9fa;
+    border-right:1px solid #dcdfe3;
+    overflow-y:auto;
+    flex-shrink:0;
+}
+
+.sidebar ul{
+    list-style:none;
+    padding:15px;
+}
+
+.sidebar li{
+    margin-bottom:8px;
+}
+
+.sidebar a{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    padding:14px 18px;
+    color:#495057;
+    text-decoration:none;
+    border-radius:10px;
+    font-size:15px;
+    font-weight:500;
+    transition:all .25s ease;
+}
+
+.sidebar a i{
+    width:22px;
+    text-align:center;
+    font-size:17px;
+    color:#6c757d;
+    transition:.25s;
+}
+
+.sidebar a:hover{
+    background:#e9ecef;
+    color:#2e7d32;
+}
+
+.sidebar a:hover i{
+    color:#2e7d32;
+}
+
+.sidebar li.active a{
+    background:#2e7d32;
+    color:#fff;
+    font-weight:600;
+    box-shadow:0 2px 6px rgba(46,125,50,.2);
+}
+
+.sidebar li.active a i{
+    color:#fff;
+}
+
+/* ================= CONTENT ================= */
+
+.content{
+    flex:1;
+    background:#f5f7fb;
+    padding:25px;
+    overflow-y:auto;
+}
+
+/* ================= FOOTER ================= */
+
+.footer{
+    background:#2e7d32;
+    color:white;
+    text-align:center;
+    padding:14px;
+    font-size:13px;
+    flex-shrink:0;
+}
