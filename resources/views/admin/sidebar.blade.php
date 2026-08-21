@@ -30,6 +30,19 @@
     </a>
 </li>
 
+ <li class="{{ request()->routeIs('admin.schedules') ? 'active' : '' }}">
+    <a href="{{ route('admin.schedules') }}">
+        <i class="fa-solid fa-calendar"></i>
+        View Schedules
+    </a>
+</li>
+
+ <li class="{{ request()->routeIs('admin.overriderequest') ? 'active' : '' }}">
+    <a href="{{ route('admin.overriderequest') }}">
+        <i class="fa-solid fa-calendar"></i>
+        Override Requests
+    </a>
+</li>
     </ul>
 
 </aside>

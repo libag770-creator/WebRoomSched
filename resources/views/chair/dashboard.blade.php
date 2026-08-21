@@ -198,123 +198,181 @@ use Illuminate\Support\Facades\Auth;
 
             </div>
 
-            <!-- Reservation Section -->
+           <!-- Reserved -->
 
-            <div class="reservation-section">
+<div id="reserved" class="tab-content active">
 
-                <div class="reservation-tabs">
+    @if($reservations->count() > 0)
 
-                    <button class="tab-btn active" onclick="showTab('reserved',this)">
-                        Room Requests
-                    </button>
+        @foreach($reservations as $reservation)
 
-                    <button class="tab-btn" onclick="showTab('swapped',this)">
-                        Room Swaps
-                    </button>
+            <div class="reservation-card">
 
-                </div>
-
-                <!-- Reserved -->
-
-                <div id="reserved" class="tab-content active">
-
-                  @if($reservations->count() > 0)
-
-    @foreach($reservations as $reservation)
-
-        <div class="reservation-card">
-
-            <h3>
-                {{ $reservation->room->room_name }}
-            </h3>
-
-            <p>
-                <strong>Building:</strong>
-                {{ $reservation->room->building }}
-            </p>
-
-            <p>
-                <strong>Reserved by:</strong>
-                {{ $reservation->user->name }}
-            </p>
-
-            <p>
-                <strong>Date:</strong>
-                {{ $reservation->date }}
-            </p>
-
-            <p>
-                <strong>Day:</strong>
-                {{ $reservation->day }}
-            </p>
-
-            <p>
-                <strong>Time:</strong>
-                {{ $reservation->time }}
-            </p>
-
-            <p>
-                <strong>Purpose:</strong>
-                {{ $reservation->purpose }}
-            </p>
-
-            <p>
-                <strong>Status:</strong>
-                <span style="color:orange;">
-                    {{ $reservation->status }}
-                </span>
-            </p>
-
-            <div>
-
-                <form
-                    action="{{ route('chair.reservation.approve', $reservation->id) }}"
-                    method="POST"
-                    style="display:inline;"
-                >
-
-                    @csrf
-
-                    <button type="submit"
-                        style="background:green;color:white;padding:8px 15px;border:0;border-radius:5px;">
-                        Approve
-                    </button>
-
-                </form>
+                <h3>
+                    {{ $reservation->room->room_name }}
+                </h3>
 
 
-                <form
-                    action="{{ route('chair.reservation.decline', $reservation->id) }}"
-                    method="POST"
-                    style="display:inline;"
-                >
+                <p>
+                    <strong>Building:</strong>
+                    {{ $reservation->room->building }}
+                </p>
 
-                    @csrf
 
-                    <button type="submit"
-                        style="background:red;color:white;padding:8px 15px;border:0;border-radius:5px;">
-                        Decline
-                    </button>
+                <p>
+                    <strong>Reserved by:</strong>
+                    {{ $reservation->user->name }}
+                </p>
 
-                </form>
+
+                <p>
+                    <strong>Date:</strong>
+                    {{ \Carbon\Carbon::parse($reservation->date)->format('F d, Y') }}
+                </p>
+
+
+                <p>
+                    <strong>Day:</strong>
+                    {{ $reservation->day }}
+                </p>
+
+
+                <p>
+                    <strong>Time:</strong>
+
+                    @if($reservation->start_time && $reservation->end_time)
+
+                        {{ \Carbon\Carbon::parse($reservation->start_time)->format('g:i A') }}
+
+                        -
+
+                        {{ \Carbon\Carbon::parse($reservation->end_time)->format('g:i A') }}
+
+                    @else
+
+                        {{ $reservation->time }}
+
+                    @endif
+
+                </p>
+
+
+                <p>
+                    <strong>Purpose:</strong>
+                    {{ $reservation->purpose }}
+                </p>
+
+
+                <p>
+                    <strong>Status:</strong>
+
+                    @if($reservation->status === 'Approved')
+
+                        <span style="
+                            color:green;
+                            font-weight:bold;
+                        ">
+                            Approved
+                        </span>
+
+                    @elseif($reservation->status === 'Pending')
+
+                        <span style="
+                            color:orange;
+                            font-weight:bold;
+                        ">
+                            Pending
+                        </span>
+
+                    @else
+
+                        <span style="
+                            color:red;
+                            font-weight:bold;
+                        ">
+                            Declined
+                        </span>
+
+                    @endif
+
+                </p>
+
+
+                {{-- APPROVE / DECLINE BUTTONS --}}
+
+                @if($reservation->status === 'Pending')
+
+                    <div style="margin-top:15px;">
+
+                        <form
+                            action="{{ route('chair.reservation.approve', $reservation->id) }}"
+                            method="POST"
+                            style="display:inline;"
+                        >
+
+                            @csrf
+
+                            <button
+                                type="submit"
+                                style="
+                                    background:green;
+                                    color:white;
+                                    padding:8px 15px;
+                                    border:0;
+                                    border-radius:5px;
+                                    cursor:pointer;
+                                "
+                            >
+                                Approve
+                            </button>
+
+                        </form>
+
+
+                        <form
+                            action="{{ route('chair.reservation.decline', $reservation->id) }}"
+                            method="POST"
+                            style="display:inline;"
+                        >
+
+                            @csrf
+
+                            <button
+                                type="submit"
+                                style="
+                                    background:red;
+                                    color:white;
+                                    padding:8px 15px;
+                                    border:0;
+                                    border-radius:5px;
+                                    cursor:pointer;
+                                "
+                            >
+                                Decline
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                @endif
 
             </div>
 
+        @endforeach
+
+    @else
+
+        <div class="empty-room">
+
+            <i class="fas fa-calendar-times"></i>
+
+            <h3>No Room Reservations yet</h3>
+
         </div>
 
-    @endforeach
+    @endif
 
-@else
-
-    <div class="empty-room">
-
-        <i class="fas fa-calendar-times"></i>
-
-        <h3>No Room Reservations yet</h3>
-
-    </div>
-
-@endif
 
                 </div>
 

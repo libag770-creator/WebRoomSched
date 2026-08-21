@@ -9,55 +9,42 @@
         <main class="content">
 
             <style>
+                * {
+                    box-sizing: border-box;
+                }
 
-                /* =========================
-                   PAGE TITLE
-                ========================= */
+                body {
+                    background: #f5f5f5;
+                }
+
+                .edit-page {
+                    min-height: calc(100vh - 120px);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 30px;
+                }
+
+                .form-card {
+                    background: white;
+                    width: 100%;
+                    max-width: 550px;
+                    padding: 30px;
+                    border-radius: 12px;
+                    box-shadow: 0 3px 12px rgba(0, 0, 0, .12);
+                }
 
                 .page-title {
-                    font-size: 24px;
+                    text-align: center;
+                    font-size: 26px;
                     font-weight: bold;
                     margin-bottom: 5px;
                 }
 
                 .page-subtitle {
+                    text-align: center;
                     color: #777;
-                    margin-bottom: 20px;
-                }
-
-
-                /* =========================
-                   PANEL
-                ========================= */
-
-                .edit-panel {
-                    background: #fff;
-                    border: 1px solid #ccc;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    max-width: 800px;
-                }
-
-
-                /* =========================
-                   PANEL HEADER
-                ========================= */
-
-                .panel-header {
-                    padding: 15px 20px;
-                    border-bottom: 1px solid #ddd;
-                    background: #fff;
-                    font-size: 18px;
-                    font-weight: bold;
-                }
-
-
-                /* =========================
-                   FORM
-                ========================= */
-
-                .form-container {
-                    padding: 20px;
+                    margin-bottom: 25px;
                 }
 
                 .form-group {
@@ -73,12 +60,10 @@
                 .form-group input,
                 .form-group select {
                     width: 100%;
-                    padding: 10px 12px;
+                    padding: 11px;
                     border: 1px solid #ccc;
-                    border-radius: 5px;
-                    box-sizing: border-box;
+                    border-radius: 6px;
                     font-size: 14px;
-                    background: #fff;
                 }
 
                 .form-group input:focus,
@@ -87,107 +72,89 @@
                     border-color: #2e7d32;
                 }
 
-
-                /* =========================
-                   BUTTONS
-                ========================= */
-
-                .form-buttons {
+                .buttons {
                     display: flex;
-                    justify-content: flex-end;
-                    gap: 8px;
-                    margin-top: 20px;
-                    padding-top: 15px;
-                    border-top: 1px solid #eee;
+                    justify-content: space-between;
+                    gap: 10px;
+                    margin-top: 25px;
                 }
 
                 .btn {
-                    padding: 9px 16px;
+                    flex: 1;
+                    padding: 11px;
                     border: none;
-                    border-radius: 5px;
+                    border-radius: 6px;
                     cursor: pointer;
                     font-size: 14px;
                     font-weight: bold;
+                    text-align: center;
                     text-decoration: none;
-                    display: inline-block;
                 }
 
-
-                /* CANCEL */
-
-                .cancel-btn {
+                .btn-back {
                     background: #777;
                     color: white;
                 }
 
-                .cancel-btn:hover {
-                    background: #666;
+                .btn-back:hover {
+                    background: #5f5f5f;
                 }
 
-
-                /* UPDATE */
-
-                .update-btn {
+                .btn-update {
                     background: #2e7d32;
                     color: white;
                 }
 
-                .update-btn:hover {
+                .btn-update:hover {
                     background: #256628;
                 }
 
-
-                /* =========================
-                   MOBILE
-                ========================= */
-
-                @media (max-width: 700px) {
-
-                    .edit-panel {
-                        width: 100%;
-                    }
-
-                    .form-buttons {
-                        flex-direction: column;
-                    }
-
-                    .btn {
-                        width: 100%;
-                        text-align: center;
-                        box-sizing: border-box;
-                    }
-
+                .error-box {
+                    background: #f8d7da;
+                    color: #842029;
+                    padding: 12px;
+                    border-radius: 6px;
+                    margin-bottom: 20px;
                 }
 
+                .error-box ul {
+                    margin: 0;
+                    padding-left: 20px;
+                }
             </style>
 
 
-            <!-- PAGE TITLE -->
+            <div class="edit-page">
 
-            <div class="page-title">
-                Edit User
-            </div>
+                <div class="form-card">
 
-            <div class="page-subtitle">
-                Update the user's information and role.
-            </div>
+                    <div class="page-title">
+                        Edit User
+                    </div>
 
-
-            <!-- EDIT PANEL -->
-
-            <div class="edit-panel">
+                    <div class="page-subtitle">
+                        Update the user's account information.
+                    </div>
 
 
-                <!-- PANEL HEADER -->
+                    @if ($errors->any())
 
-                <div class="panel-header">
-                    User Information
-                </div>
+                        <div class="error-box">
 
+                            <ul>
 
-                <!-- FORM -->
+                                @foreach ($errors->all() as $error)
 
-                <div class="form-container">
+                                    <li>{{ $error }}</li>
+
+                                @endforeach
+
+                            </ul>
+
+                        </div>
+
+                    @endif
+
 
                     <form
                         action="{{ route('admin.manageusers.update', $user->id) }}"
@@ -195,20 +162,18 @@
                     >
 
                         @csrf
+
                         @method('PUT')
 
 
-                        <!-- NAME -->
+                        <!-- Name -->
 
                         <div class="form-group">
 
-                            <label for="name">
-                                Name
-                            </label>
+                            <label>Name</label>
 
                             <input
                                 type="text"
-                                id="name"
                                 name="name"
                                 value="{{ $user->name }}"
                                 required
@@ -217,17 +182,14 @@
                         </div>
 
 
-                        <!-- USERNAME -->
+                        <!-- Username -->
 
                         <div class="form-group">
 
-                            <label for="username">
-                                Username
-                            </label>
+                            <label>Username</label>
 
                             <input
                                 type="text"
-                                id="username"
                                 name="username"
                                 value="{{ $user->username }}"
                                 required
@@ -236,17 +198,14 @@
                         </div>
 
 
-                        <!-- EMAIL -->
+                        <!-- Email -->
 
                         <div class="form-group">
 
-                            <label for="email">
-                                Email
-                            </label>
+                            <label>Email</label>
 
                             <input
                                 type="email"
-                                id="email"
                                 name="email"
                                 value="{{ $user->email }}"
                                 required
@@ -255,19 +214,13 @@
                         </div>
 
 
-                        <!-- ROLE -->
+                        <!-- Role -->
 
                         <div class="form-group">
 
-                            <label for="role">
-                                Role
-                            </label>
+                            <label>Role</label>
 
-                            <select
-                                id="role"
-                                name="role"
-                                required
-                            >
+                            <select name="role" required>
 
                                 <option
                                     value="admin"
@@ -280,7 +233,7 @@
                                     value="chair"
                                     {{ $user->role == 'chair' ? 'selected' : '' }}
                                 >
-                                    Chair
+                                    Department Chair
                                 </option>
 
                                 <option
@@ -295,20 +248,20 @@
                         </div>
 
 
-                        <!-- BUTTONS -->
+                        <!-- Buttons -->
 
-                        <div class="form-buttons">
+                        <div class="buttons">
 
                             <a
-                                href="{{ route('admin.manageusers.index') }}"
-                                class="btn cancel-btn"
+                                href="{{ route('admin.manageusers') }}"
+                                class="btn btn-back"
                             >
-                                Cancel
+                                Back
                             </a>
 
                             <button
                                 type="submit"
-                                class="btn update-btn"
+                                class="btn btn-update"
                             >
                                 Update User
                             </button>
@@ -324,5 +277,7 @@
         </main>
 
     </div>
+
+    @include('footerheader.footer')
 
 </div>

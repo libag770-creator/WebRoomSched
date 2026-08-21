@@ -304,17 +304,29 @@
     >
 
     <input
-        type="hidden"
-        name="time"
-        value="{{ request('time') }}"
-    >
+    type="hidden"
+    name="time"
+    value="{{ request('time') }}"
+>
 
-    <input
-        type="text"
-        name="purpose"
-        placeholder="Purpose"
-        required
-    >
+<input
+    type="hidden"
+    name="start_time"
+    value="{{ trim(explode('-', request('time'))[0]) }}"
+>
+
+<input
+    type="hidden"
+    name="end_time"
+    value="{{ trim(explode('-', request('time'))[1]) }}"
+>
+
+<input
+    type="text"
+    name="purpose"
+    placeholder="Purpose"
+    required
+>
 
     <button type="submit">
         Reserve

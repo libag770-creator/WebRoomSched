@@ -7,7 +7,7 @@
         @include('admin.sidebar')
 
         <main class="content">
-            <h2>Dashboard</h2>
+            <h2>Override Requests</h2>
         </main>
 
     </div>

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\RoomSwapRequest;
 
 class Schedule extends Model
 {
@@ -19,5 +20,21 @@ class Schedule extends Model
     public function room()
 {
     return $this->belongsTo(Room::class);
+}
+
+public function requesterRoomSwapRequests()
+{
+    return $this->hasMany(
+        RoomSwapRequest::class,
+        'requester_schedule_id'
+    );
+}
+
+public function targetRoomSwapRequests()
+{
+    return $this->hasMany(
+        RoomSwapRequest::class,
+        'target_schedule_id'
+    );
 }
 }

@@ -23,8 +23,8 @@
             </a>
         </li>
 
-        <li class="{{ request()->routeIs('faculty.swap') ? 'active' : '' }}">
-            <a href="{{ route('faculty.swap') }}">
+        <li class="{{ request()->routeIs('faculty.room-swap') ? 'active' : '' }}">
+            <a href="{{ route('faculty.room-swap') }}">
                 <i class="fa-solid fa-right-left"></i>
                 Room Swap
             </a>

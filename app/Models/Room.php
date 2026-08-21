@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\RoomSwapRequest;
 
 class Room extends Model
 {
@@ -43,5 +44,19 @@ class Room extends Model
     public function buildingRelation()
 {
     return $this->belongsTo(Building::class, 'building_id');
+}
+public function roomSwapRequests()
+{
+    return $this->hasMany(
+        RoomSwapRequest::class,
+        'requester_room_id'
+    );
+}
+public function receivedRoomSwapRequests()
+{
+    return $this->hasMany(
+        RoomSwapRequest::class,
+        'target_room_id'
+    );
 }
 }

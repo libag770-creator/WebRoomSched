@@ -251,36 +251,53 @@ use Illuminate\Support\Facades\Auth;
                 {{ $reservation->purpose }}
             </p>
 
-            <p>
-                Status:
+            
+       <p>
+    Status:
 
-                @if($reservation->status == 'Pending')
+    @php
+        $isExpired = false;
 
-                    <span style="color:orange;font-weight:bold;">
-                        Pending
-                    </span>
+        if (
+            $reservation->status === 'Approved' &&
+            $reservation->date &&
+            $reservation->end_time
+        ) {
+            $reservationEnd = \Carbon\Carbon::parse(
+                $reservation->date . ' ' . $reservation->end_time
+            );
 
-                @elseif($reservation->status == 'Approved')
+            $isExpired = now()->greaterThanOrEqualTo($reservationEnd);
+        }
+    @endphp
 
-                    <span style="color:green;font-weight:bold;">
-                        Approved
-                    </span>
+    @if($isExpired)
 
-                @elseif($reservation->status == 'Declined')
+        <span style="color:#6c757d;font-weight:bold;">
+            Expired
+        </span>
 
-                    <span style="color:red;font-weight:bold;">
-                        Declined
-                    </span>
+    @elseif($reservation->status == 'Pending')
 
-                @endif
+        <span style="color:orange;font-weight:bold;">
+            Pending
+        </span>
 
-            </p>
+    @elseif($reservation->status == 'Approved')
 
-        </div>
+        <span style="color:green;font-weight:bold;">
+            Approved
+        </span>
 
-        <hr>
+    @elseif($reservation->status == 'Declined')
 
-    @endforeach
+        <span style="color:red;font-weight:bold;">
+            Declined
+        </span>
+
+    @endif
+
+</p>
 
 @else
 

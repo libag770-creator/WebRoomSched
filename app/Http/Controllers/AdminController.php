@@ -7,6 +7,7 @@ use App\Models\Building;
 use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Schedule;
 
 class AdminController extends Controller
 {
@@ -84,11 +85,11 @@ class AdminController extends Controller
 
 
 // Add Room
-public function storeRoom(Request $request)
-{
-    if (!Auth::check() || Auth::user()->role !== 'admin') {
-        abort(403, 'Unauthorized.');
-    }
+    public function storeRoom(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized.');
+        }
 
     $request->validate([
         'department_id' => 'required|exists:departments,id',
@@ -169,5 +170,35 @@ public function destroyRoom($id)
     $room->delete();
 
     return back()->with('success', 'Room deleted successfully.');
+
+}
+
+public function schedules()
+{
+    $rooms = Room::with('schedules')->get();
+
+    return view('admin.schedules', compact('rooms'));
+}
+
+public function viewSchedule(Room $room)
+{
+    if (!Auth::check() || Auth::user()->role !== 'admin') {
+        abort(403, 'Unauthorized.');
+    }
+
+    $schedules = Schedule::where('room_id', $room->id)
+        ->orderBy('day')
+        ->orderBy('time')
+        ->get();
+
+    return view('admin.view-schedule', compact('room', 'schedules'));
+}
+public function overrideRequest()
+{
+    if (!Auth::check() || Auth::user()->role !== 'admin') {
+        abort(403, 'Unauthorized.');
+    }
+
+    return view('admin.overriderequest');
 }
 }

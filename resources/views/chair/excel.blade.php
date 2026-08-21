@@ -115,12 +115,27 @@
         </td>
     </tr>
 
-    <tr>
-        <td>Instructor</td>
-        <td>
-            <input type="text" id="instructor">
-        </td>
-    </tr>
+   <tr>
+    <td>Instructor</td>
+    <td>
+        <select id="instructor">
+            <option value="">-- Select Instructor --</option>
+
+            @foreach($users as $user)
+                <option
+                    value="{{ $user->id }}"
+                    data-name="{{ $user->name }}">
+                    {{ $user->name }}
+                </option>
+            @endforeach
+        </select>
+
+        <small id="instructorError"
+               style="display:none; color:red;">
+            User not found.
+        </small>
+    </td>
+</tr>
 
     <tr>
         <td>Description</td>
