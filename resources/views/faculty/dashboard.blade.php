@@ -149,192 +149,394 @@ use Illuminate\Support\Facades\Auth;
         }
     </style>
 
-    <div class="main-layout">
+  <div class="main-layout">
 
-        @include('faculty.sidebar')
+    @include('faculty.sidebar')
 
-        <main class="content">
+    <main class="content">
 
-           <div class="dashboard-header">
 
-    <h2>Faculty Dashboard</h2>
+        <!-- DASHBOARD HEADER -->
 
-    <p>Welcome, {{ Auth::user()->name }}!</p>
+        <div class="dashboard-header">
 
-</div>
+            <h2>
+                Faculty Dashboard
+            </h2>
 
-            <!-- Cards -->
+            <p>
+                Welcome, {{ Auth::user()->name }}!
+            </p>
 
-            <div class="dashboard-cards">
+        </div>
 
-                <div class="summary-card">
-                    <div class="card-header">
-                        <span>Total of Rooms</span>
-                        <i class="fas fa-building"></i>
-                    </div>
 
-                    <div class="card-number">0</div>
+        <!-- DASHBOARD CARDS -->
+
+        <div class="dashboard-cards">
+
+
+            <!-- TOTAL ROOMS -->
+
+            <div class="summary-card">
+
+                <div class="card-header">
+
+                    <span>
+                        Total of Rooms
+                    </span>
+
+                    <i class="fas fa-building"></i>
+
                 </div>
 
-                <div class="summary-card">
-                    <div class="card-header">
-                        <span>Room Reserved</span>
-                        <i class="fas fa-check-circle" style="color:green"></i>
-                    </div>
-
-                    <div class="card-number">0</div>
-                </div>
-
-                <div class="summary-card">
-                    <div class="card-header">
-                        <span>Room Swapped</span>
-                        <i class="fas fa-sync-alt" style="color:orange"></i>
-                    </div>
-
-                    <div class="card-number">0</div>
+                <div class="card-number">
+                    0
                 </div>
 
             </div>
 
-            <!-- Reservation Section -->
 
-            <div class="reservation-section">
+            <!-- ROOM RESERVED -->
 
-                <div class="reservation-tabs">
+            <div class="summary-card">
 
-                    <button class="tab-btn active" onclick="showTab('reserved',this)">
+                <div class="card-header">
+
+                    <span>
                         Room Reserved
-                    </button>
+                    </span>
 
-                    <button class="tab-btn" onclick="showTab('swapped',this)">
+                    <i
+                        class="fas fa-check-circle"
+                        style="color:green"
+                    ></i>
+
+                </div>
+
+                <div class="card-number">
+                    0
+                </div>
+
+            </div>
+
+
+            <!-- ROOM SWAPPED -->
+
+            <div class="summary-card">
+
+                <div class="card-header">
+
+                    <span>
                         Room Swapped
-                    </button>
+                    </span>
+
+                    <i
+                        class="fas fa-sync-alt"
+                        style="color:orange"
+                    ></i>
 
                 </div>
 
-                <!-- Reserved -->
-
-                <div id="reserved" class="tab-content active">
-
-                   @if($reservations->count() > 0)
-
-    @foreach($reservations as $reservation)
-
-        <div class="reservation-card">
-
-            <h3>
-                {{ $reservation->room->room_name }}
-            </h3>
-
-            <p>
-                Building:
-                {{ $reservation->room->building }}
-            </p>
-
-            <p>
-                Date:
-                {{ $reservation->date }}
-            </p>
-
-            <p>
-                Day:
-                {{ $reservation->day }}
-            </p>
-
-            <p>
-                Time:
-                {{ $reservation->time }}
-            </p>
-
-            <p>
-                Purpose:
-                {{ $reservation->purpose }}
-            </p>
-
-            
-       <p>
-    Status:
-
-    @php
-        $isExpired = false;
-
-        if (
-            $reservation->status === 'Approved' &&
-            $reservation->date &&
-            $reservation->end_time
-        ) {
-            $reservationEnd = \Carbon\Carbon::parse(
-                $reservation->date . ' ' . $reservation->end_time
-            );
-
-            $isExpired = now()->greaterThanOrEqualTo($reservationEnd);
-        }
-    @endphp
-
-    @if($isExpired)
-
-        <span style="color:#6c757d;font-weight:bold;">
-            Expired
-        </span>
-
-    @elseif($reservation->status == 'Pending')
-
-        <span style="color:orange;font-weight:bold;">
-            Pending
-        </span>
-
-    @elseif($reservation->status == 'Approved')
-
-        <span style="color:green;font-weight:bold;">
-            Approved
-        </span>
-
-    @elseif($reservation->status == 'Declined')
-
-        <span style="color:red;font-weight:bold;">
-            Declined
-        </span>
-
-    @endif
-
-</p>
-
-@else
-
-    <div class="empty-room">
-
-        <i class="fas fa-calendar-times"></i>
-
-        <h3>No Room Reservations yet</h3>
-
-    </div>
-
-@endif
-
+                <div class="card-number">
+                    0
                 </div>
 
-                <!-- Swapped -->
+            </div>
 
-                <div id="swapped" class="tab-content">
+
+        </div>
+
+
+        <!-- RESERVATION SECTION -->
+
+        <div class="reservation-section">
+
+
+            <!-- TABS -->
+
+            <div class="reservation-tabs">
+
+                <button
+                    class="tab-btn active"
+                    onclick="showTab('reserved', this)"
+                >
+                    Room Reserved
+                </button>
+
+
+                <button
+                    class="tab-btn"
+                    onclick="showTab('swapped', this)"
+                >
+                    Room Swapped
+                </button>
+
+            </div>
+
+
+
+            <!-- ================================================= -->
+            <!-- RESERVED ROOMS -->
+            <!-- ================================================= -->
+
+            <div
+                id="reserved"
+                class="tab-content active"
+            >
+
+
+                @if($reservations->count() > 0)
+
+
+                    @foreach($reservations as $reservation)
+
+
+                        <div class="reservation-card">
+
+
+                            <!-- ROOM -->
+
+                            <h3>
+
+                                {{ $reservation->room->room_name }}
+
+                            </h3>
+
+
+                            <!-- BUILDING -->
+
+                            <p>
+
+                                <strong>
+                                    Building:
+                                </strong>
+
+                                {{ $reservation->room->building }}
+
+                            </p>
+
+
+                            <!-- DATE -->
+
+                            <p>
+
+                                <strong>
+                                    Date:
+                                </strong>
+
+                                {{ $reservation->date }}
+
+                            </p>
+
+
+                            <!-- DAY -->
+
+                            <p>
+
+                                <strong>
+                                    Day:
+                                </strong>
+
+                                {{ $reservation->day }}
+
+                            </p>
+
+
+                            <!-- TIME -->
+
+                            <p>
+
+                                <strong>
+                                    Time:
+                                </strong>
+
+                                {{ $reservation->time }}
+
+                            </p>
+
+
+                            <!-- PURPOSE -->
+
+                            <p>
+
+                                <strong>
+                                    Purpose:
+                                </strong>
+
+                                {{ $reservation->purpose }}
+
+                            </p>
+
+
+                            <!-- STATUS -->
+
+                            <p>
+
+                                <strong>
+                                    Status:
+                                </strong>
+
+
+                                @php
+
+                                    $isExpired = false;
+
+
+                                    if (
+                                        $reservation->status === 'Approved'
+                                        &&
+                                        $reservation->date
+                                        &&
+                                        $reservation->end_time
+                                    ) {
+
+                                        $reservationEnd =
+                                            \Carbon\Carbon::parse(
+                                                $reservation->date
+                                                . ' '
+                                                . $reservation->end_time
+                                            );
+
+
+                                        $isExpired =
+                                            now()->greaterThanOrEqualTo(
+                                                $reservationEnd
+                                            );
+
+                                    }
+
+                                @endphp
+
+
+
+                                @if($isExpired)
+
+
+                                    <span
+                                        style="
+                                            color:#6c757d;
+                                            font-weight:bold;
+                                        "
+                                    >
+                                        Expired
+                                    </span>
+
+
+                                @elseif($reservation->status === 'Pending')
+
+
+                                    <span
+                                        style="
+                                            color:orange;
+                                            font-weight:bold;
+                                        "
+                                    >
+                                        Pending
+                                    </span>
+
+
+                                @elseif($reservation->status === 'Approved')
+
+
+                                    <span
+                                        style="
+                                            color:green;
+                                            font-weight:bold;
+                                        "
+                                    >
+                                        Approved
+                                    </span>
+
+
+                                @elseif($reservation->status === 'Declined')
+
+
+                                    <span
+                                        style="
+                                            color:red;
+                                            font-weight:bold;
+                                        "
+                                    >
+                                        Declined
+                                    </span>
+
+
+                                @endif
+
+
+                            </p>
+
+
+                        </div>
+
+
+                        <hr>
+
+
+                    @endforeach
+
+
+                @else
+
+
+                    <!-- NO RESERVATIONS -->
 
                     <div class="empty-room">
-                        <i class="fas fa-exchange-alt"></i>
-                        <h3>No Room Swapped</h3>
-                        <p>You don't have any swapped rooms yet.</p>
+
+                        <i class="fas fa-calendar-times"></i>
+
+                        <h3>
+                            No Room Reservations yet
+                        </h3>
+
                     </div>
+
+
+                @endif
+
+
+            </div>
+
+
+
+            <!-- ================================================= -->
+            <!-- SWAPPED ROOMS -->
+            <!-- ================================================= -->
+
+            <div
+                id="swapped"
+                class="tab-content"
+            >
+
+                <div class="empty-room">
+
+                    <i class="fas fa-exchange-alt"></i>
+
+                    <h3>
+                        No Room Swapped
+                    </h3>
+
+                    <p>
+                        You don't have any swapped rooms yet.
+                    </p>
 
                 </div>
 
             </div>
 
-        </main>
 
-    </div>
+        </div>
 
-    @include('footerheader.footer')
+
+    </main>
 
 </div>
 
+
+@include('footerheader.footer')
+
+</div>
 <script>
 
 function showTab(tabId, button){

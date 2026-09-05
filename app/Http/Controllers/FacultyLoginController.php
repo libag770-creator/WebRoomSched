@@ -10,67 +10,101 @@ class FacultyLoginController extends Controller
 {
     public function showLogin()
     {
-        return view('faculty.login');
+        return view('login');
     }
 
     public function login(Request $request)
 {
     $request->validate([
-        'username' => 'required',
-        'password' => 'required',
-        'role' => 'required'
+        'username' => 'required|string',
+        'password' => 'required|string',
     ]);
+
+
+    /*
+    | Attempt Login
+    */
 
     $credentials = [
         'username' => $request->username,
         'password' => $request->password,
     ];
 
-    if (Auth::attempt($credentials)) {
 
-        $user = Auth::user();
-
-        // Check if selected role matches account role
-        if ($user->role !== $request->role) {
-
-            Auth::logout();
-
-            return back()
-                ->withInput()
-                ->with('error', 'Wrong role selected for this account.');
-        }
-
-        $request->session()->regenerate();
-
-        // Redirect according to role
-
-        if ($user->role === 'faculty') {
-
-            return redirect()->route('faculty.dashboard');
-
-        }
-
-        if ($user->role === 'chair') {
-
-            return redirect()->route('chair.dashboard');
-
-        }
-
-        if ($user->role === 'admin') {
-
-            return redirect()->route('admin.dashboard');
-
-        }
-
-        Auth::logout();
+    if (!Auth::attempt($credentials)) {
 
         return back()
-            ->with('error', 'Invalid account role.');
+            ->withInput($request->only('username'))
+            ->with(
+                'error',
+                'Invalid username or password.'
+            );
     }
 
-    return back()
-        ->withInput()
-        ->with('error', 'Invalid username or password.');
+
+    /*
+    | Regenerate Session
+    */
+
+    $request->session()->regenerate();
+
+
+    /*
+    | Get User Role From Database
+    */
+
+    $user = Auth::user();
+
+
+    /*
+    | ADMIN
+    */
+
+    if ($user->role === 'admin') {
+
+        return redirect()
+            ->route('admin.dashboard');
+    }
+
+
+    /*
+    | DEPARTMENT CHAIR
+    */
+
+    if ($user->role === 'chair') {
+
+        return redirect()
+            ->route('chair.dashboard');
+    }
+
+
+    /*
+    | FACULTY
+    */
+
+    if ($user->role === 'faculty') {
+
+        return redirect()
+            ->route('faculty.dashboard');
+    }
+
+
+    /*
+    | Invalid / Missing Role
+    */
+
+    Auth::logout();
+
+    $request->session()->invalidate();
+
+    $request->session()->regenerateToken();
+
+    return redirect()
+        ->route('login')
+        ->with(
+            'error',
+            'Your account does not have a valid role. Please contact the administrator.'
+        );
 }
 
     public function dashboard()
@@ -87,6 +121,6 @@ class FacultyLoginController extends Controller
     {
         Auth::logout();
 
-        return redirect()->route('faculty.login');
+        return redirect()->route('login');
     }
 }

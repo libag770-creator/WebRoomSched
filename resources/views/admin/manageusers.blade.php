@@ -245,6 +245,8 @@
 
                                 <th>Role</th>
 
+                                <th>Department</th>
+
                                 <th>Actions</th>
 
                             </tr>
@@ -277,7 +279,23 @@
                                         </span>
 
                                     </td>
+                                    <td>
 
+    @if($user->department)
+
+        <span class="role-badge">
+            {{ $user->department->code }}
+        </span>
+
+    @else
+
+        <span style="color:#999;">
+            Not Assigned
+        </span>
+
+    @endif
+
+</td>
                                     <td>
 
 
@@ -341,5 +359,5 @@
         </main>
 
     </div>
-
+ @include('footerheader.footer')
 </div>

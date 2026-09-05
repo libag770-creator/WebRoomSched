@@ -7,434 +7,468 @@
         @include('chair.sidebar')
 
         <main class="content">
+
             <style>
-body{
-    background:#f5f5f5;
-}
 
-.schedule-container{
-    max-width:1200px;
-    margin:auto;
-}
+                * {
+                    box-sizing: border-box;
+                }
 
-.title{
-    font-size:18px;
-    font-weight:bold;
-}
+                body {
+                    background: #f5f5f5;
+                }
 
-.subtitle{
-    color:#777;
-    font-size:12px;
-}
+                .page {
+                    max-width: 1200px;
+                    margin: auto;
+                }
 
-.departments{
-    display:flex;
-    gap:10px;
-    margin-top:10px;
-}
+                .title {
+                    font-size: 28px;
+                    font-weight: bold;
+                    color: #2e7d32;
+                    margin-bottom: 5px;
+                }
 
-.department{
-    width:150px;
-    background:#fff;
-    border-radius:6px;
-    box-shadow:0 1px 5px rgba(0,0,0,.1);
-    cursor:pointer;
-    border:2px solid transparent;
-    transition:.3s;
-}
+                .subtitle {
+                    color: #777;
+                    margin-bottom: 25px;
+                }
 
-.department.active{
-    border-color:#28a745;
-}
+                .section {
+                    background: white;
+                    padding: 25px;
+                    border-radius: 12px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,.07);
+                }
 
-.department h3{
-    margin:15px 15px 0;
-    font-size:30px;
-}
+                /* DEPARTMENT */
 
-.department p{
-    margin:0 15px 15px;
-    font-size:18px;
-    color:#555;
-}
+                .department-display {
+                    background: #e8f5e9;
+                    border-left: 5px solid #2e7d32;
+                    padding: 15px 18px;
+                    border-radius: 8px;
+                    margin-bottom: 25px;
+                }
 
-.content{
-    margin-top:15px;
-    background:#fff;
-    border:1px solid #ccc;
-    border-radius:6px;
-    min-height:550px;
-    padding:20px;
-}
+                .department-label {
+                    font-size: 12px;
+                    color: #777;
+                    margin-bottom: 3px;
+                }
+
+                .department-name {
+                    font-size: 20px;
+                    font-weight: bold;
+                    color: #2e7d32;
+                }
+
+                /* BUILDINGS */
+
+                .building {
+                    margin-top: 20px;
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    overflow: hidden;
+                }
+
+                .building-title {
+                    padding: 13px 15px;
+                    background: #e8f5e9;
+                    color: #2e7d32;
+                    font-weight: bold;
+                }
+
+                /* ROOMS */
+
+                .room-grid {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                    padding: 15px;
+                }
+
+                .room-card {
+                    width: 220px;
+                    background: #fafafa;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    padding: 15px;
+                }
+
+                .room-name {
+                    font-weight: bold;
+                    margin-bottom: 12px;
+                    color: #333;
+                }
+
+                /* BUTTON */
+
+                .btn {
+                    border: none;
+                    border-radius: 6px;
+                    padding: 9px 14px;
+                    cursor: pointer;
+                    font-weight: bold;
+                    text-decoration: none;
+                    display: inline-block;
+                }
+
+                .green {
+                    background: #2e7d32;
+                    color: white;
+                }
+
+                .green:hover {
+                    background: #1b5e20;
+                }
+
+                /* PERMISSION */
+
+                .permission-box {
+                    margin-top: 12px;
+                    padding-top: 12px;
+                    border-top: 1px solid #ddd;
+                }
+
+                .permission-label {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    color: #555;
+                    line-height: 1.4;
+                }
+
+                .permission-label input {
+                    width: 16px;
+                    height: 16px;
+                    cursor: pointer;
+                    accent-color: #2e7d32;
+                }
+
+                .permission-status {
+                    margin-top: 5px;
+                    margin-left: 24px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+
+                .status-on {
+                    color: #2e7d32;
+                }
+
+                .status-off {
+                    color: #999;
+                }
+
+                /* MESSAGES */
+
+                .message {
+                    padding: 12px;
+                    border-radius: 6px;
+                    margin-bottom: 20px;
+                }
+
+                .success {
+                    background: #e8f5e9;
+                    color: #2e7d32;
+                }
+
+                .error {
+                    background: #ffebee;
+                    color: #b71c1c;
+                }
+
+                .empty {
+                    padding: 20px;
+                    text-align: center;
+                    color: #777;
+                    background: #fafafa;
+                    border-radius: 8px;
+                }
+
+            </style>
 
 
-.building{
-    border:1px solid #bbb;
-    margin-bottom:15px;
-}
+            <div class="page">
 
-.building-title{
-    background:#efefef;
-    padding:8px 10px;
-    font-weight:bold;
-}
-
-.rooms{
-    display:flex;
-    flex-wrap:wrap;
-    gap:15px;
-    padding:15px;
-    align-items:flex-start;
-}
-
-.room{
-    width:100%;
-    height:140px;
-    border:1px solid #ccc;
-    border-radius:4px;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:#fff;
-    color:#888;
-    box-sizing:border-box;
-}
-
-.room img{
-    width:100%;
-    height:100%;
-    object-fit:contain;
-}
-
-.room-container{
-    width:220px;
-}
-
-.room-label{
-    font-size:16px;
-    font-weight:bold;
-    margin-bottom:5px;
-    text-align:left; 
-}
-</style>
-
-<div class="schedule-container">
-
-    <div class="title">Classroom Schedule</div>
-    <div class="subtitle">View classroom schedules by department</div>
-
-    <div class="departments">
-
-        <div class="department active" onclick="showDept('cat',this)">
-            <h3>CAT</h3>
-            <p>3</p>
-        </div>
-
-        <div class="department" onclick="showDept('ccjepa',this)">
-            <h3>CCJEPA</h3>
-            <p>3</p>
-        </div>
-
-        <div class="department" onclick="showDept('ced',this)">
-            <h3>CED</h3>
-            <p>3</p>
-        </div>
-
-    </div>
-
-
-    <div class="content">
-
-    <div class="schedule-content">
-
-
-
-
-
-
-
-
-
-
-
-   <!-- CAT -->
-<div id="cat" class="dept" style="display:block">
-
-    @foreach($rooms->where('department_id',1)->groupBy('building') as $building => $buildingRooms)
-
-    <div class="building">
-
-        <div class="building-title">
-            {{ $building }}
-        </div>
-
-        <div class="rooms">
-
-            @foreach($buildingRooms as $room)
-
-            <div class="room-container">
-
-                <div class="room-label">
-                    {{ $room->room_name }}
+                <div class="title">
+                    Set Schedule
                 </div>
 
-                <a href="{{ route('chair.excel', $room->id) }}">
-
-                    <div class="room">
-
-@if($room->schedules->count())
-
-    <strong>✓ Schedule Available</strong>
-
-    <br><br>
-
-    <a href="{{ route('chair.excel', $room->id) }}">
-        Edit
-    </a>
-
-    |
-
-    <form action="{{ route('chair.schedule.delete', $room->id) }}"
-          method="POST"
-          style="display:inline">
-
-        @csrf
-        @method('DELETE')
-
-        <button type="submit"
-                onclick="return confirm('Delete this schedule?')">
-            Delete
-        </button>
-
-    </form>
-
-@else
-
-    <a href="{{ route('chair.excel', $room->id) }}">
-        Set Schedule
-    </a>
-
-@endif
-
-</div>
-
-                </a>
-
-            </div>
-
-            @endforeach
-
-        </div>
-
-    </div>
-
-    @endforeach
-
-</div>
-
-
-
-<!-- CCJEPA -->
-<div id="ccjepa" class="dept" style="display:none">
-
-    @foreach($rooms->where('department_id',2)->groupBy('building') as $building => $buildingRooms)
-
-    <div class="building">
-
-        <div class="building-title">
-            {{ $building }}
-        </div>
-
-
-        <div class="rooms">
-
-            @foreach($buildingRooms as $room)
-
-            <div class="room-container">
-
-                <div class="room-label">
-                    {{ $room->room_name }}
+                <div class="subtitle">
+                    Set schedules for your department's classrooms.
                 </div>
 
 
-                <a href="{{ route('chair.excel', $room->id) }}">
+                {{-- SUCCESS MESSAGE --}}
 
-                    <div class="room">
+                @if(session('success'))
 
-@if($room->schedules->count())
+                    <div class="message success">
+                        {{ session('success') }}
+                    </div>
 
-    <strong>✓ Schedule Available</strong>
-
-    <br><br>
-
-    <a href="{{ route('chair.excel', $room->id) }}">
-        Edit
-    </a>
-
-    |
-
-    <form action="{{ route('chair.schedule.delete', $room->id) }}"
-          method="POST"
-          style="display:inline">
-
-        @csrf
-        @method('DELETE')
-
-        <button type="submit"
-                onclick="return confirm('Delete this schedule?')">
-            Delete
-        </button>
-
-    </form>
-
-@else
-
-    <a href="{{ route('chair.excel', $room->id) }}">
-        Set Schedule
-    </a>
-
-@endif
-
-</div>
-
-                </a>
+                @endif
 
 
-            </div>
+                {{-- ERROR MESSAGE --}}
 
-            @endforeach
+                @if(session('error'))
 
+                    <div class="message error">
+                        {{ session('error') }}
+                    </div>
 
-        </div>
-
-    </div>
-
-
-    @endforeach
-
-</div>
+                @endif
 
 
+                <div class="section">
 
 
-<!-- CED -->
-<div id="ced" class="dept" style="display:none">
+                    {{-- =====================================================
+                         DEPARTMENT
+                    ====================================================== --}}
+
+                    <div class="department-display">
+
+                        <div class="department-label">
+                            Your Department
+                        </div>
+
+                        <div class="department-name">
+                            {{ $department->name }}
+                        </div>
+
+                    </div>
 
 
-    @foreach($rooms->where('department_id',3)->groupBy('building') as $building => $buildingRooms)
+                    {{-- =====================================================
+                         BUILDINGS AND ROOMS
+                    ====================================================== --}}
 
-    
-
-    <div class="building">
-
-
-        <div class="building-title">
-
-            {{ $building }}
-
-        </div>
+                    <h3 style="color:#2e7d32; margin-top:0;">
+                        Buildings and Rooms
+                    </h3>
 
 
-        <div class="rooms">
+                    @forelse($buildings as $building)
+
+                        <div class="building">
+
+                            <div class="building-title">
+
+                                {{ $building->name }}
+
+                            </div>
 
 
-            @foreach($buildingRooms as $room)
+                            <div class="room-grid">
 
 
-            <div class="room-container">
+                                @forelse($building->rooms as $room)
+
+                                    <div class="room-card">
+
+                                        <div class="room-name">
+
+                                            {{ $room->room_name }}
+
+                                        </div>
 
 
-                <div class="room-label">
+                                        {{-- SET SCHEDULE BUTTON --}}
 
-                    {{ $room->room_name }}
+                                        <a
+                                            href="{{ route(
+                                                'chair.excel',
+                                                $room->id
+                                            ) }}"
+                                            class="btn green"
+                                        >
+
+                                            Set Schedule
+
+                                        </a>
+
+
+                                        {{-- =================================================
+                                             CROSS-DEPARTMENT PERMISSION
+                                        ================================================== --}}
+
+                                        <div class="permission-box">
+
+                                            <label
+                                                class="permission-label"
+                                                for="permission-{{ $room->id }}"
+                                            >
+
+                                                <input
+                                                    type="checkbox"
+                                                    id="permission-{{ $room->id }}"
+                                                    {{ $room->allow_other_departments ? 'checked' : '' }}
+                                                    onchange="updateRoomPermission(
+                                                        {{ $room->id }},
+                                                        this
+                                                    )"
+                                                >
+
+                                                <span>
+                                                    Allow other departments
+                                                    to add to empty slots
+                                                </span>
+
+                                            </label>
+
+
+                                            <div
+                                                id="status-{{ $room->id }}"
+                                                class="permission-status
+                                                {{
+                                                    $room->allow_other_departments
+                                                        ? 'status-on'
+                                                        : 'status-off'
+                                                }}"
+                                            >
+
+                                                {{
+                                                    $room->allow_other_departments
+                                                        ? 'ON'
+                                                        : 'OFF'
+                                                }}
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                @empty
+
+                                    <div class="empty">
+
+                                        No rooms in this building.
+
+                                    </div>
+
+                                @endforelse
+
+
+                            </div>
+
+                        </div>
+
+                    @empty
+
+                        <div class="empty">
+
+                            No buildings are assigned
+                            to your department.
+
+                        </div>
+
+                    @endforelse
+
 
                 </div>
-
-
-
-                <a href="{{ route('chair.excel', $room->id) }}">
-
-
-                    <div class="room">
-
-@if($room->schedules->count())
-
-    <strong>✓ Schedule Available</strong>
-
-    <br><br>
-
-    <a href="{{ route('chair.excel', $room->id) }}">
-        Edit
-    </a>
-
-    |
-
-   <form action="{{ route('chair.schedule.delete', $room->id) }}"
-      method="POST"
-      onsubmit="return confirm('Delete all schedules for this room?')">
-
-    @csrf
-    @method('DELETE')
-
-    <button type="submit">
-        Delete Schedule
-    </button>
-
-</form>
-
-@else
-
-    <a href="{{ route('chair.excel', $room->id) }}">
-        Set Schedule
-    </a>
-
-@endif
-
-</div>
-
-
-                </a>
-
-
 
             </div>
 
 
-            @endforeach
+            {{-- =============================================================
+                 PERMISSION JAVASCRIPT
+            ============================================================== --}}
 
+            <script>
 
+               function updateRoomPermission(roomId, checkbox)
+{
+    const allowed = checkbox.checked;
 
-        </div>
+    fetch(
+        "{{ url('/chair/room') }}/" + roomId + "/permission",
+        {
+            method: "PUT",
 
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
 
-    </div>
+                "X-CSRF-TOKEN":
+                    document.querySelector(
+                        'meta[name="csrf-token"]'
+                    ).getAttribute('content')
+            },
 
+            body: JSON.stringify({
+                allow_other_departments: allowed ? 1 : 0
+            })
+        }
+    )
+    .then(response => {
 
-    @endforeach
+        if (!response.ok) {
+            throw new Error(
+                "HTTP Error: " + response.status
+            );
+        }
 
+        return response.json();
+    })
+    .then(data => {
 
-</div>
+        if (!data.success) {
+            throw new Error(
+                data.message ||
+                "Permission was not saved."
+            );
+        }
 
-<script>
-function showDept(id, element){
+        const saved =
+            Number(data.allow_other_departments) === 1;
 
-    // Hide all department contents
-    document.querySelectorAll('.dept').forEach(function(div){
-        div.style.display = 'none';
+        checkbox.checked = saved;
+
+        const status =
+            document.getElementById(
+                "status-" + roomId
+            );
+
+        if (saved) {
+
+            status.textContent = "ON";
+
+            status.className =
+                "permission-status status-on";
+
+        } else {
+
+            status.textContent = "OFF";
+
+            status.className =
+                "permission-status status-off";
+        }
+
+    })
+    .catch(error => {
+
+        console.error(error);
+
+        checkbox.checked = !allowed;
+
+        alert(
+            "Unable to save permission.\n\n" +
+            error.message
+        );
     });
 
-    // Show selected department
-    document.getElementById(id).style.display = 'block';
-
-    // Remove active state from all department cards
-    document.querySelectorAll('.department').forEach(function(card){
-        card.classList.remove('active');
-    });
-
-    // Highlight selected department
-    element.classList.add('active');
 }
-</script>
+
+                
+            </script>
 
         </main>
 

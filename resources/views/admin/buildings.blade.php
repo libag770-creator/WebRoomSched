@@ -199,7 +199,53 @@
                     width: auto;
                     margin: 0;
                 }
+/* =========================================
+   MOVE ROOM BUTTON
+   ========================================= */
 
+.move-btn {
+    background: #f9a825;
+    color: #1b5e20;
+}
+
+.move-btn:hover {
+    background: #e89a00;
+    color: white;
+}
+
+/* =========================================
+   MOVE ROOM MODAL
+   ========================================= */
+
+.move-description {
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+
+.move-description strong {
+    color: #2e7d32;
+}
+
+
+.move-warning {
+    background: #fff8e1;
+    border-left: 4px solid #f9a825;
+
+    color: #6d4c00;
+
+    padding: 12px;
+
+    margin-top: 5px;
+    margin-bottom: 15px;
+
+    border-radius: 5px;
+
+    font-size: 14px;
+
+    line-height: 1.5;
+}
                 /* BUTTONS */
 
                 .btn {
@@ -257,6 +303,64 @@
                 .modal-content h3 {
                     margin-top: 0;
                 }
+                /* BUILDING NAME + ARROW */
+
+.building-name-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.building-name-area h3 {
+    margin: 0;
+}
+
+
+/* BUILDING ARROW */
+
+.building-toggle {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #e9ecef;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.building-toggle:hover {
+    background: #d5d5d5;
+}
+
+.building-toggle .arrow {
+    transition: transform 0.2s ease;
+}
+
+
+/* ROOMS ARE HIDDEN BY DEFAULT */
+
+.building-rooms {
+    display: none;
+    margin-top: 20px;
+}
+
+
+/* WHEN BUILDING IS OPEN */
+
+.building-rooms.open {
+    display: block;
+}
+
+
+/* ROTATE ARROW */
+
+.building-toggle.open .arrow {
+    transform: rotate(180deg);
+}
 
                 .modal-buttons {
                     display: flex;
@@ -406,218 +510,234 @@
                     class="dept-content {{ $index == 0 ? 'active' : '' }}"
                 >
 
-                    @forelse($dept->buildings as $building)
+                   @forelse($dept->buildings as $building)
 
-                        <!-- BUILDING CARD -->
+    <div class="building-card">
 
-                        <div class="building-card">
+        <!-- BUILDING HEADER -->
+        <div class="building-header">
 
-                            <div class="building-header">
+            <div class="building-name-area">
 
-                                <h3>
-                                    {{ $building->name }}
-                                </h3>
+                <button
+                    type="button"
+                    class="building-toggle"
+                    onclick="toggleBuilding({{ $building->id }}, this)"
+                    aria-expanded="false"
+                    aria-controls="rooms-{{ $building->id }}"
+                >
+                    <span class="arrow">▼</span>
+                </button>
 
-                                <div class="building-actions">
+                <h3>
+                    {{ $building->name }}
+                </h3>
+
+            </div>
+
+
+            <div class="building-actions">
 
-                                    <!-- EDIT BUILDING -->
-
-                                    <button
-                                        type="button"
-                                        class="btn blue"
-                                        onclick="openEditBuilding(
-                                            {{ $building->id }},
-                                            {{ $dept->id }},
-                                            @js($building->name)
-                                        )"
-                                    >
-                                        Edit
-                                    </button>
-
-
-                                    <!-- DELETE BUILDING -->
-
-                                    <form
-                                        action="{{ route('admin.buildings.delete', $building->id) }}"
-                                        method="POST"
-                                    >
-
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button
-                                            type="submit"
-                                            class="btn red"
-                                            onclick="return confirm(
-                                                'Delete this building and its rooms?'
-                                            )"
-                                        >
-                                            Delete
-                                        </button>
-
-                                    </form>
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- ROOMS -->
-
-                            <div class="room-section">
-
-                                <div class="room-title">
-                                    Rooms
-                                </div>
-
-
-                                @forelse($building->rooms as $room)
-
-                                    <div class="room-card">
-
-                                        <div class="room-header">
-
-                                            <strong>
-                                                {{ $room->room_name }}
-                                            </strong>
-
-                                            <div class="room-actions">
-
-                                                <!-- EDIT ROOM -->
-
-                                                <button
-                                                    type="button"
-                                                    class="btn blue"
-                                                    onclick="openEditRoom(
-                                                        {{ $room->id }},
-                                                        {{ $dept->id }},
-                                                        {{ $building->id }},
-                                                        @js($room->room_name),
-                                                        @js($room->capacity),
-                                                        {{ $room->has_tv ? 'true' : 'false' }},
-                                                        {{ $room->has_projector ? 'true' : 'false' }},
-                                                        @js($room->computers),
-                                                        @js($room->purpose),
-                                                        @js($room->description)
-                                                    )"
-                                                >
-                                                    Edit
-                                                </button>
-
-
-                                                <!-- DELETE ROOM -->
-
-                                                <form
-                                                    action="{{ route('admin.rooms.delete', $room->id) }}"
-                                                    method="POST"
-                                                >
-
-                                                    @csrf
-                                                    @method('DELETE')
-
-                                                    <button
-                                                        type="submit"
-                                                        class="btn red"
-                                                        onclick="return confirm(
-                                                            'Delete this room?'
-                                                        )"
-                                                    >
-                                                        Delete
-                                                    </button>
-
-                                                </form>
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <!-- ROOM DETAILS -->
-
-                                        <div class="room-details">
-
-                                            <div>
-                                                <strong>Capacity:</strong>
-
-                                                {{ $room->capacity ?? 'Not specified' }}
-                                            </div>
-
-
-                                            <div>
-                                                <strong>TV:</strong>
-
-                                                {{ $room->has_tv ? 'Yes' : 'No' }}
-                                            </div>
-
-
-                                            <div>
-                                                <strong>Projector:</strong>
-
-                                                {{ $room->has_projector ? 'Yes' : 'No' }}
-                                            </div>
-
-
-                                            <div>
-                                                <strong>Computers:</strong>
-
-                                                {{ $room->computers ?? 0 }}
-                                            </div>
-
-
-                                            <div>
-                                                <strong>Purpose:</strong>
-
-                                                {{ $room->purpose ?? 'Not specified' }}
-                                            </div>
-
-
-                                            @if($room->description)
-
-                                                <div>
-                                                    <strong>Description:</strong>
-
-                                                    {{ $room->description }}
-                                                </div>
-
-                                            @endif
-
-                                        </div>
-
-                                    </div>
-
-                                @empty
-
-                                    <div class="no-rooms">
-                                        No rooms yet.
-                                    </div>
-
-                                @endforelse
-
-
-                                <!-- ADD ROOM BUTTON -->
-
-                                <button
-                                    type="button"
-                                    class="btn green"
-                                    onclick="openAddRoom(
-                                        {{ $dept->id }},
-                                        {{ $building->id }}
-                                    )"
-                                >
-                                    + Add Room
-                                </button>
-
-                            </div>
+                <!-- EDIT BUILDING -->
+                <button
+                    type="button"
+                    class="btn blue"
+                    onclick="openEditBuilding(
+                        {{ $building->id }},
+                        {{ $dept->id }},
+                        @js($building->name)
+                    )"
+                >
+                    Edit
+                </button>
+
+
+                <!-- DELETE BUILDING -->
+                <form
+                    action="{{ route('admin.buildings.delete', $building->id) }}"
+                    method="POST"
+                >
+
+                    @csrf
+                    @method('DELETE')
+
+                    <button
+                        type="submit"
+                        class="btn red"
+                        onclick="return confirm(
+                            'Delete this building and its rooms?'
+                        )"
+                    >
+                        Delete
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+
+
+        <!-- ROOMS - HIDDEN INITIALLY -->
+        <div
+            id="rooms-{{ $building->id }}"
+            class="building-rooms"
+        >
+
+            <div class="room-section">
+
+                <div class="room-title">
+                    Rooms
+                </div>
+
+
+                @forelse($building->rooms as $room)
+
+                    <div class="room-card">
+
+                        <div class="room-header">
+
+                            <strong>
+                                {{ $room->room_name }}
+                            </strong>
+
+
+                           <div class="room-actions">
+
+    <!-- EDIT ROOM -->
+    <button
+        type="button"
+        class="btn blue"
+        onclick="openEditRoom(
+            {{ $room->id }},
+            {{ $dept->id }},
+            {{ $building->id }},
+            @js($room->room_name),
+            @js($room->capacity),
+            {{ $room->has_tv ? 'true' : 'false' }},
+            {{ $room->has_projector ? 'true' : 'false' }},
+            @js($room->computers),
+            @js($room->purpose),
+            @js($room->description)
+        )"
+    >
+        Edit
+    </button>
+
+
+    <!-- MOVE ROOM -->
+  <button
+    type="button"
+    class="btn move-btn"
+    data-room-id="{{ $room->id }}"
+    data-room-name="{{ $room->room_name }}"
+    onclick="openMoveRoom(this)"
+>
+    Reassign Room
+</button>
+
+
+    <!-- DELETE ROOM -->
+    <form
+        action="{{ route('admin.rooms.delete', $room->id) }}"
+        method="POST"
+    >
+
+        @csrf
+        @method('DELETE')
+
+        <button
+            type="submit"
+            class="btn red"
+            onclick="return confirm(
+                'Delete this room?'
+            )"
+        >
+            Delete
+        </button>
+
+    </form>
+
+</div>
 
                         </div>
 
-                    @empty
 
-                        <div class="building-card">
-                            No buildings for this department yet.
+                        <!-- ROOM DETAILS -->
+                        <div class="room-details">
+
+                            <div>
+                                <strong>Capacity:</strong>
+                                {{ $room->capacity ?? 'Not specified' }}
+                            </div>
+
+                            <div>
+                                <strong>TV:</strong>
+                                {{ $room->has_tv ? 'Yes' : 'No' }}
+                            </div>
+
+                            <div>
+                                <strong>Projector:</strong>
+                                {{ $room->has_projector ? 'Yes' : 'No' }}
+                            </div>
+
+                            <div>
+                                <strong>Computers:</strong>
+                                {{ $room->computers ?? 0 }}
+                            </div>
+
+                            <div>
+                                <strong>Purpose:</strong>
+                                {{ $room->purpose ?? 'Not specified' }}
+                            </div>
+
+                            @if($room->description)
+
+                                <div>
+                                    <strong>Description:</strong>
+                                    {{ $room->description }}
+                                </div>
+
+                            @endif
+
                         </div>
 
-                    @endforelse
+                    </div>
+
+                @empty
+
+                    <div class="no-rooms">
+                        No rooms yet.
+                    </div>
+
+                @endforelse
+
+
+                <!-- ADD ROOM -->
+                <button
+                    type="button"
+                    class="btn green"
+                    onclick="openAddRoom(
+                        {{ $dept->id }},
+                        {{ $building->id }}
+                    )"
+                >
+                    + Add Room
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+@empty
+
+    <div class="building-card">
+        No buildings for this department yet.
+    </div>
+
+@endforelse
 
                 </div>
 
@@ -1005,14 +1125,156 @@
 
 
         </main>
+<!-- ========================================= -->
+<!-- MOVE ROOM MODAL -->
+<!-- ========================================= -->
+
+<div id="moveRoomModal" class="modal">
+
+    <div class="modal-content">
+
+        <h3>Move Room</h3>
+
+        <p class="move-description">
+            You are moving:
+
+            <strong id="moveRoomName"></strong>
+        </p>
+
+
+        <form
+            action="{{ route('admin.rooms.move') }}"
+            method="POST"
+            id="moveRoomForm"
+        >
+
+            @csrf
+
+
+            <!-- ROOM ID -->
+
+            <input
+                type="hidden"
+                name="room_id"
+                id="moveRoomId"
+            >
+
+
+            <!-- DEPARTMENT -->
+
+            <label>
+                Destination Department
+            </label>
+
+            <select
+                name="department_id"
+                id="moveDepartment"
+                required
+            >
+
+                <option value="">
+                    -- Select Department --
+                </option>
+
+                @foreach($departments as $dept)
+
+                    <option value="{{ $dept->id }}">
+                        {{ $dept->name }}
+                    </option>
+
+                @endforeach
+
+            </select>
+
+
+            <!-- BUILDING -->
+
+            <label>
+                Destination Building
+            </label>
+
+            <select
+                name="building_id"
+                id="moveBuilding"
+                required
+                disabled
+            >
+
+                <option value="">
+                    -- Select Department First --
+                </option>
+
+            </select>
+
+
+            <!-- WARNING -->
+
+            <div class="move-warning">
+
+                The room will be moved to the
+                selected department and building.
+
+            </div>
+
+
+            <!-- BUTTONS -->
+
+            <div class="modal-buttons">
+
+                <button
+                    type="button"
+                    class="btn gray"
+                    onclick="closeMoveRoom()"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="submit"
+                    class="btn green"
+                >
+                    Confirm Reassign
+                </button>
+
+            </div>
+
+        </form>
 
     </div>
 
+</div>
+    </div>
+ @include('footerheader.footer')
 </div>
 
 
 
 <script>
+
+/*
+|--------------------------------------------------------------------------
+| DEPARTMENT BUILDINGS DATA
+|--------------------------------------------------------------------------
+*/
+
+const departmentBuildings = @json(
+    $departments->mapWithKeys(function ($department) {
+
+        return [
+            $department->id => $department->buildings->map(function ($building) {
+
+                return [
+                    'id' => $building->id,
+                    'name' => $building->name
+                ];
+
+            })->values()
+        ];
+
+    })
+);
+
 
 /*
 |--------------------------------------------------------------------------
@@ -1040,9 +1302,15 @@ function showDept(id, btn)
         });
 
 
-    document
-        .getElementById('dept' + id)
-        .classList.add('active');
+    const department =
+        document.getElementById('dept' + id);
+
+
+    if (department) {
+
+        department.classList.add('active');
+
+    }
 
 
     btn.classList.add('active');
@@ -1058,32 +1326,51 @@ function showDept(id, btn)
 
 function openEditBuilding(id, dept, name)
 {
-    document
-        .getElementById('editBuildingModal')
-        .style.display = 'block';
+    const modal =
+        document.getElementById('editBuildingModal');
+
+    const nameInput =
+        document.getElementById('editBuildingName');
+
+    const deptInput =
+        document.getElementById('editBuildingDept');
+
+    const form =
+        document.getElementById('editBuildingForm');
 
 
-    document
-        .getElementById('editBuildingName')
-        .value = name;
+    if (!modal || !nameInput || !deptInput || !form) {
+
+        console.error(
+            'Edit Building elements not found.'
+        );
+
+        return;
+    }
 
 
-    document
-        .getElementById('editBuildingDept')
-        .value = dept;
+    modal.style.display = 'block';
 
+    nameInput.value = name;
 
-    document
-        .getElementById('editBuildingForm')
-        .action = '/admin/buildings/' + id;
+    deptInput.value = dept;
+
+    form.action =
+        '/admin/buildings/' + id;
 }
 
 
 function closeEditBuilding()
 {
-    document
-        .getElementById('editBuildingModal')
-        .style.display = 'none';
+    const modal =
+        document.getElementById('editBuildingModal');
+
+
+    if (modal) {
+
+        modal.style.display = 'none';
+
+    }
 }
 
 
@@ -1096,27 +1383,45 @@ function closeEditBuilding()
 
 function openAddRoom(dept, building)
 {
-    document
-        .getElementById('addRoomModal')
-        .style.display = 'block';
+    const modal =
+        document.getElementById('addRoomModal');
+
+    const deptInput =
+        document.getElementById('addRoomDept');
+
+    const buildingInput =
+        document.getElementById('addRoomBuilding');
 
 
-    document
-        .getElementById('addRoomDept')
-        .value = dept;
+    if (!modal || !deptInput || !buildingInput) {
+
+        console.error(
+            'Add Room elements not found.'
+        );
+
+        return;
+    }
 
 
-    document
-        .getElementById('addRoomBuilding')
-        .value = building;
+    modal.style.display = 'block';
+
+    deptInput.value = dept;
+
+    buildingInput.value = building;
 }
 
 
 function closeAddRoom()
 {
-    document
-        .getElementById('addRoomModal')
-        .style.display = 'none';
+    const modal =
+        document.getElementById('addRoomModal');
+
+
+    if (modal) {
+
+        modal.style.display = 'none';
+
+    }
 }
 
 
@@ -1140,9 +1445,21 @@ function openEditRoom(
     description
 )
 {
-    document
-        .getElementById('editRoomModal')
-        .style.display = 'block';
+    const modal =
+        document.getElementById('editRoomModal');
+
+
+    if (!modal) {
+
+        console.error(
+            'Edit Room modal not found.'
+        );
+
+        return;
+    }
+
+
+    modal.style.display = 'block';
 
 
     document
@@ -1187,58 +1504,487 @@ function openEditRoom(
 
     document
         .getElementById('editRoomDescription')
-        .value = description ?? '';
+        .value =
+            description ?? '';
 
 
     document
         .getElementById('editRoomForm')
-        .action = '/admin/rooms/' + id;
+        .action =
+            '/admin/rooms/' + id;
 }
 
 
 function closeEditRoom()
 {
-    document
-        .getElementById('editRoomModal')
-        .style.display = 'none';
+    const modal =
+        document.getElementById('editRoomModal');
+
+
+    if (modal) {
+
+        modal.style.display = 'none';
+
+    }
 }
 
 
 
 /*
 |--------------------------------------------------------------------------
-| CLOSE MODAL WHEN CLICKING OUTSIDE
+| BUILDING OPEN / CLOSE
+|--------------------------------------------------------------------------
+*/
+
+function toggleBuilding(buildingId, button)
+{
+    const rooms =
+        document.getElementById(
+            'rooms-' + buildingId
+        );
+
+
+    if (!rooms) {
+
+        console.error(
+            'Building rooms container not found.'
+        );
+
+        return;
+    }
+
+
+    const isOpen =
+        rooms.classList.contains('open');
+
+
+    if (isOpen) {
+
+        rooms.classList.remove('open');
+
+        button.classList.remove('open');
+
+        button.setAttribute(
+            'aria-expanded',
+            'false'
+        );
+
+    }
+
+    else {
+
+        rooms.classList.add('open');
+
+        button.classList.add('open');
+
+        button.setAttribute(
+            'aria-expanded',
+            'true'
+        );
+
+    }
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| MOVE ROOM
+|--------------------------------------------------------------------------
+*/
+
+function openMoveRoom(button)
+{
+    const modal =
+        document.getElementById('moveRoomModal');
+
+    const roomId =
+        document.getElementById('moveRoomId');
+
+    const roomName =
+        document.getElementById('moveRoomName');
+
+    const department =
+        document.getElementById('moveDepartment');
+
+    const building =
+        document.getElementById('moveBuilding');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK ELEMENTS
+    |--------------------------------------------------------------------------
+    */
+
+    if (!modal) {
+
+        console.error(
+            'moveRoomModal was not found.'
+        );
+
+        alert(
+            'Move window could not be opened.'
+        );
+
+        return;
+    }
+
+
+    if (!roomId ||
+        !roomName ||
+        !department ||
+        !building) {
+
+        console.error(
+            'Move Room modal elements are missing.'
+        );
+
+        alert(
+            'Move Room form is incomplete.'
+        );
+
+        return;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET ROOM INFORMATION
+    |--------------------------------------------------------------------------
+    */
+
+    const id =
+        button.getAttribute(
+            'data-room-id'
+        );
+
+
+    const name =
+        button.getAttribute(
+            'data-room-name'
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SET ROOM INFORMATION
+    |--------------------------------------------------------------------------
+    */
+
+    roomId.value = id;
+
+    roomName.textContent = name;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESET DEPARTMENT
+    |--------------------------------------------------------------------------
+    */
+
+    department.value = '';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESET BUILDING
+    |--------------------------------------------------------------------------
+    */
+
+    building.innerHTML =
+        '<option value="">-- Select Department First --</option>';
+
+    building.disabled = true;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SHOW MODAL
+    |--------------------------------------------------------------------------
+    */
+
+    modal.style.display = 'block';
+
+
+    console.log(
+        'Move Room opened:',
+        id,
+        name
+    );
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| CLOSE MOVE ROOM
+|--------------------------------------------------------------------------
+*/
+
+function closeMoveRoom()
+{
+    const modal =
+        document.getElementById('moveRoomModal');
+
+
+    if (modal) {
+
+        modal.style.display = 'none';
+
+    }
+}
+
+
+
+/*
+|--------------------------------------------------------------------------
+| LOAD BUILDINGS WHEN DEPARTMENT CHANGES
+|--------------------------------------------------------------------------
+*/
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function()
+    {
+
+        const department =
+            document.getElementById(
+                'moveDepartment'
+            );
+
+
+        const building =
+            document.getElementById(
+                'moveBuilding'
+            );
+
+
+        if (!department || !building) {
+
+            console.error(
+                'Move Department or Move Building select not found.'
+            );
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DEPARTMENT CHANGE
+        |--------------------------------------------------------------------------
+        */
+
+        department.addEventListener(
+            'change',
+            function()
+            {
+
+                const departmentId =
+                    this.value;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | RESET BUILDING
+                |--------------------------------------------------------------------------
+                */
+
+                building.innerHTML =
+                    '<option value="">-- Select Building --</option>';
+
+                building.disabled = true;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | NO DEPARTMENT
+                |--------------------------------------------------------------------------
+                */
+
+                if (!departmentId) {
+
+                    building.innerHTML =
+                        '<option value="">-- Select Department First --</option>';
+
+                    return;
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | GET BUILDINGS
+                |--------------------------------------------------------------------------
+                */
+
+                const buildings =
+                    departmentBuildings[departmentId] || [];
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | NO BUILDINGS
+                |--------------------------------------------------------------------------
+                */
+
+                if (buildings.length === 0) {
+
+                    building.innerHTML =
+                        '<option value="">No buildings available</option>';
+
+                    return;
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | ADD BUILDINGS
+                |--------------------------------------------------------------------------
+                */
+
+                buildings.forEach(
+                    function(item)
+                    {
+
+                        const option =
+                            document.createElement(
+                                'option'
+                            );
+
+
+                        option.value =
+                            item.id;
+
+
+                        option.textContent =
+                            item.name;
+
+
+                        building.appendChild(
+                            option
+                        );
+
+                    }
+                );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | ENABLE BUILDING SELECT
+                |--------------------------------------------------------------------------
+                */
+
+                building.disabled = false;
+
+            }
+        );
+
+    }
+);
+
+
+
+/*
+|--------------------------------------------------------------------------
+| CLOSE MODALS WHEN CLICKING OUTSIDE
 |--------------------------------------------------------------------------
 */
 
 window.onclick = function(event)
 {
+
     const editBuildingModal =
-        document.getElementById('editBuildingModal');
+        document.getElementById(
+            'editBuildingModal'
+        );
+
 
     const addRoomModal =
-        document.getElementById('addRoomModal');
+        document.getElementById(
+            'addRoomModal'
+        );
+
 
     const editRoomModal =
-        document.getElementById('editRoomModal');
+        document.getElementById(
+            'editRoomModal'
+        );
 
 
-    if (event.target === editBuildingModal)
-    {
-        editBuildingModal.style.display = 'none';
+    const moveRoomModal =
+        document.getElementById(
+            'moveRoomModal'
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | EDIT BUILDING
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        editBuildingModal &&
+        event.target === editBuildingModal
+    ) {
+
+        editBuildingModal.style.display =
+            'none';
+
     }
 
 
-    if (event.target === addRoomModal)
-    {
-        addRoomModal.style.display = 'none';
+    /*
+    |--------------------------------------------------------------------------
+    | ADD ROOM
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        addRoomModal &&
+        event.target === addRoomModal
+    ) {
+
+        addRoomModal.style.display =
+            'none';
+
     }
 
 
-    if (event.target === editRoomModal)
-    {
-        editRoomModal.style.display = 'none';
+    /*
+    |--------------------------------------------------------------------------
+    | EDIT ROOM
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        editRoomModal &&
+        event.target === editRoomModal
+    ) {
+
+        editRoomModal.style.display =
+            'none';
+
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MOVE ROOM
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        moveRoomModal &&
+        event.target === moveRoomModal
+    ) {
+
+        moveRoomModal.style.display =
+            'none';
+
+    }
+
 };
 
 </script>

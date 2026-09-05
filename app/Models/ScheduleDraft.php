@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\RoomSwapRequest;
+use App\Models\Room;
+use App\Models\User;
+use App\Models\Department;
 
-class Schedule extends Model
+class ScheduleDraft extends Model
 {
     protected $fillable = [
         'room_id',
@@ -16,15 +18,19 @@ class Schedule extends Model
         'semester',
         'academic_year',
 
+        'created_by',
+
         'day',
         'time',
 
         'course_code',
         'subject',
         'year_level',
-        'subject_type',
-        'instructor',
 
+        // Optional: Major / Non-major
+        'subject_type',
+
+        'instructor',
         'description',
         'color',
     ];
@@ -77,24 +83,15 @@ class Schedule extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | ROOM SWAP REQUESTS
+    | CREATOR
     |--------------------------------------------------------------------------
     */
 
-    public function requesterRoomSwapRequests()
+    public function creator()
     {
-        return $this->hasMany(
-            RoomSwapRequest::class,
-            'requester_schedule_id'
-        );
-    }
-
-
-    public function targetRoomSwapRequests()
-    {
-        return $this->hasMany(
-            RoomSwapRequest::class,
-            'target_schedule_id'
+        return $this->belongsTo(
+            User::class,
+            'created_by'
         );
     }
 }

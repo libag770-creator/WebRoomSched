@@ -8,7 +8,6 @@ use App\Http\Controllers\FacultyLoginController;
 use App\Http\Controllers\ManageUserController;
 use App\Http\Controllers\FacultyController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\RoomReassignmentController;
 use App\Http\Controllers\RoomSwapRequestController;
 
 
@@ -32,6 +31,29 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
 
 
+Route::post(
+    '/admin/rooms/move',
+    [AdminController::class, 'moveRoom']
+)->name('admin.rooms.move');
+
+// View room reservation requests
+Route::get('/admin/reservations', [
+    AdminController::class,
+    'reservations'
+])->name('admin.reservations');
+
+// Approve reservation
+Route::post('/admin/reservations/{reservation}/approve', [
+    AdminController::class,
+    'approveReservation'
+])->name('admin.reservation.approve');
+
+// Decline reservation
+Route::post('/admin/reservations/{reservation}/decline', [
+    AdminController::class,
+    'declineReservation'
+])->name('admin.reservation.decline');
+
     Route::get('/admin/view-schedule/{room}', [AdminController::class, 'viewSchedule'])
     ->name('admin.view.schedule');
 
@@ -39,13 +61,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/schedules', [AdminController::class, 'schedules'])
     ->name('admin.schedules');
 
-    Route::get('/admin/overriderequest', [AdminController::class, 'overrideRequest'])
-    ->name('admin.overriderequest');
 
     // dashboard
-    Route::get('/admin', function () {
-        return view('admin.dashboard');
-    })->name('admin.dashboard');
+    Route::get('/admin/dashboard', [
+        AdminController::class,
+        'dashboard'
+    ])->name('admin.dashboard');
 
     // manage buildings
     Route::get('/admin/buildings', [AdminController::class, 'buildings'])
@@ -70,17 +91,45 @@ Route::middleware('auth')->group(function () {
     Route::delete('/admin/rooms/{id}', [AdminController::class, 'destroyRoom'])
         ->name('admin.rooms.delete');
 
-    // Show Room Reassignment page
-    Route::get('/admin/room-reassignment', [
-        RoomReassignmentController::class,
-        'index'
-    ])->name('admin.roomreassignment');
+    /*
 
-    // Process Room Reassignment
-    Route::post('/admin/room-reassignment/update', [
-        RoomReassignmentController::class,
-        'update'
-    ])->name('roomreassignment.update');
+
+|--------------------------------------------------------------------------
+| DEPARTMENT MANAGEMENT
+|--------------------------------------------------------------------------
+*/
+
+Route::get(
+    '/admin/room-reassignment',
+    function () {
+        return view('admin.roomreassignment');
+    }
+)->name('admin.roomreassignment');
+
+Route::get(
+    '/admin/departments',
+    [AdminController::class, 'departments']
+)->name('admin.departments');
+
+
+Route::post(
+    '/admin/departments',
+    [AdminController::class, 'storeDepartment']
+)->name('admin.departments.store');
+
+
+Route::put(
+    '/admin/departments/{id}',
+    [AdminController::class, 'updateDepartment']
+)->name('admin.departments.update');
+
+
+Route::delete(
+    '/admin/departments/{id}',
+    [AdminController::class, 'destroyDepartment']
+)->name('admin.departments.delete');
+
+
 
     // manage users
     Route::get('/admin/manageusers', [
@@ -122,7 +171,6 @@ Route::middleware('auth')->group(function () {
         ManageUserController::class,
         'resetPassword'
     ])->name('admin.manageusers.reset.save');
-
 });
 
 
@@ -132,6 +180,10 @@ Route::middleware('auth')->group(function () {
 | STUDENT
 |--------------------------------------------------------------------------
 */
+    // student dashboard
+    Route::get('/student/dashboard', function () {
+    return view('student.dashboard');
+    })->name('student.dashboard');
 
     Route::get('/student', function () {
         return view('student.choosedep');
@@ -162,35 +214,42 @@ Route::middleware('auth')->group(function () {
         'reserveRoom'
     ])->name('faculty.reserve.room');
 
-    // Faculty redirect
-    Route::get('/faculty', function () {
-        return redirect()->route('faculty.login');
-    });
+/*
+|--------------------------------------------------------------------------
+|  LOGIN
+|--------------------------------------------------------------------------
+*/
 
-    // Faculty Login Page
-    Route::get('/faculty/login', [
-        FacultyLoginController::class,
-        'showLogin'
-    ])->name('faculty.login');
-
-    // Login redirect
-    Route::get('/login', function () {
-        return redirect()->route('faculty.login');
-    })->name('login');
-
-    // Process Faculty Login
-    Route::post('/faculty/login', [
-        FacultyLoginController::class,
-        'login'
-    ])->name('faculty.login.submit');
-
-    // Faculty Logout
-    Route::post('/faculty/logout', [
-        FacultyLoginController::class,
-        'logout'
-    ])->name('faculty.logout');
+// Faculty redirect
+Route::get('/faculty', function () {
+    return redirect()->route('login');
+});
 
 
+// Main Login Page
+Route::get('/login', [
+    FacultyLoginController::class,
+    'showLogin'
+])->name('login');
+
+
+// Process Login
+Route::post('/login', [
+    FacultyLoginController::class,
+    'login'
+])->name('login.submit');
+
+
+// Faculty Logout
+Route::post('/faculty/logout', [
+    FacultyLoginController::class,
+    'logout'
+])->name('faculty.logout');
+
+// back
+Route::get('/', function () {
+    return view('welcome');
+})->name('welcome');
 
 /*
 |--------------------------------------------------------------------------
@@ -262,7 +321,6 @@ Route::middleware('auth')->group(function () {
 });
 
 
-
 /*
 |--------------------------------------------------------------------------
 | CHAIR
@@ -271,7 +329,12 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
 
-    // Chair Dashboard
+    /*
+    |--------------------------------------------------------------------------
+    | CHAIR DASHBOARD
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/chair', [
         ChairController::class,
         'dashboard'
@@ -280,58 +343,193 @@ Route::middleware('auth')->group(function () {
     Route::get('/chair/dashboard', [
         ChairController::class,
         'dashboard'
-    ]);
+    ])->name('chair.dashboard.page');
 
-    // Room Reservations
+ Route::put('/chair/room/{room}/permission', [
+    ChairController::class,
+    'updateRoomPermission'
+])->name('chair.room.permission');
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROOM RESERVATIONS
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/chair/reservations', [
         ChairController::class,
         'reservations'
     ])->name('chair.reservations');
 
-    // Approve Reservation
+
     Route::post('/chair/reservations/{reservation}/approve', [
         ChairController::class,
         'approveReservation'
     ])->name('chair.reservation.approve');
 
-    // Decline Reservation
+
     Route::post('/chair/reservations/{reservation}/decline', [
         ChairController::class,
         'declineReservation'
     ])->name('chair.reservation.decline');
 
-    // Set Schedule
+
+    /*
+    |--------------------------------------------------------------------------
+    | FACULTY SETUP
+    | setFaculty.blade.php
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/chair/set-faculty', [
+        ChairController::class,
+        'setFaculty'
+    ])->name('chair.setFaculty');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FACULTY SUBJECT MANAGEMENT
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/chair/faculty/{faculty}/subjects', [
+        ChairController::class,
+        'facultySubjects'
+    ])->name('chair.faculty.subjects');
+
+
+    Route::post('/chair/faculty/subjects', [
+        ChairController::class,
+        'storeFacultySubject'
+    ])->name('chair.faculty.subjects.store');
+
+
+    Route::put('/chair/faculty/subjects/{id}', [
+        ChairController::class,
+        'updateFacultySubject'
+    ])->name('chair.faculty.subjects.update');
+
+
+    Route::delete('/chair/faculty/subjects/{id}', [
+        ChairController::class,
+        'deleteFacultySubject'
+    ])->name('chair.faculty.subjects.delete');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SET SCHEDULE
+    | setSchedule.blade.php
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/chair/setschedule', [
         ChairController::class,
         'setschedule'
     ])->name('chair.setschedule');
 
-    // Schedule Editor
+
+    /*
+    |--------------------------------------------------------------------------
+    | EXCEL SCHEDULE EDITOR
+    | excel.blade.php
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/chair/excel/{room}', [
         ChairController::class,
         'index'
     ])->name('chair.excel');
 
-    // Save Schedule
+
+    /*
+    |--------------------------------------------------------------------------
+    | SAVE / UPLOAD SCHEDULE
+    |--------------------------------------------------------------------------
+    */
+
     Route::post('/chair/save-schedule', [
         ChairController::class,
         'saveSchedule'
     ])->name('chair.save.schedule');
 
-    // Delete Schedule
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE SCHEDULE
+    |--------------------------------------------------------------------------
+    */
+
     Route::delete('/chair/schedule/{room}', [
         ChairController::class,
         'deleteSchedule'
     ])->name('chair.schedule.delete');
 
-    // Drafts
-    Route::get('/chair/drafts', function () {
-        return view('chair.drafts');
-    })->name('chair.drafts');
 
-    // Modify Schedules
+    /*
+    |--------------------------------------------------------------------------
+    | SAVE SCHEDULE AS DRAFT
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post('/chair/save-draft', [
+        ChairController::class,
+        'saveDraft'
+    ])->name('chair.save.draft');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VIEW DRAFTS
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/chair/drafts', [
+        ChairController::class,
+        'drafts'
+    ])->name('chair.drafts');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | EDIT DRAFT
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/chair/drafts/{room}/edit', [
+        ChairController::class,
+        'editDraft'
+    ])->name('chair.drafts.edit');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MODIFY SCHEDULES
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/chair/modifyschedule', function () {
+
         return view('chair.modifyschedule');
+
     })->name('chair.modifyschedule');
 
+   
+/*
+|--------------------------------------------------------------------------
+| MODIFY SCHEDULE
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/chair/modifyschedule', [
+    ChairController::class,
+    'modifySchedule'
+])->name('chair.modifyschedule');
+
+
+Route::post('/chair/modifyschedule/store', [
+    ChairController::class,
+    'storeModifiedSchedule'
+])->name('chair.modify.schedule.store');
 });

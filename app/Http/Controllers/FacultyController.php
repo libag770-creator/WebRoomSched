@@ -88,9 +88,7 @@ public function vacantRooms(Request $request)
         foreach ($rooms as $room) {
 
             /*
-            |--------------------------------------------------------------------------
             | Check regular class schedule
-            |--------------------------------------------------------------------------
             */
 
             $occupied = Schedule::where('room_id', $room->id)
@@ -100,9 +98,7 @@ public function vacantRooms(Request $request)
 
 
             /*
-            |--------------------------------------------------------------------------
             | Check approved reservation
-            |--------------------------------------------------------------------------
             */
 
             $reserved = false;
@@ -113,12 +109,6 @@ public function vacantRooms(Request $request)
                 ->get();
 
             foreach ($reservations as $reservation) {
-
-                /*
-                | Reservation time
-                | Example:
-                | 10:00 - 11:00
-                */
 
                 $reservationStart = Carbon::parse(
                     $reservation->date . ' ' . $reservation->start_time
@@ -145,9 +135,7 @@ public function vacantRooms(Request $request)
 
 
                 /*
-                |--------------------------------------------------------------------------
                 | Check whether the requested time overlaps
-                |--------------------------------------------------------------------------
                 */
 
                 if (
@@ -163,9 +151,7 @@ public function vacantRooms(Request $request)
 
 
             /*
-            |--------------------------------------------------------------------------
             | Determine room status
-            |--------------------------------------------------------------------------
             */
 
             if ($occupied) {

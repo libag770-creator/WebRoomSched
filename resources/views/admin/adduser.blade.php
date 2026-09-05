@@ -259,7 +259,42 @@
                             </select>
 
                         </div>
+<!-- Department -->
 
+<div
+    class="form-group"
+    id="department-group"
+>
+
+    <label>
+        Department
+    </label>
+
+    <select
+        name="department_id"
+        id="department_id"
+    >
+
+        <option value="">
+            Select Department
+        </option>
+
+        @foreach($departments as $department)
+
+            <option
+                value="{{ $department->id }}"
+                {{ old('department_id') == $department->id ? 'selected' : '' }}
+            >
+                {{ $department->code }}
+                -
+                {{ $department->name }}
+            </option>
+
+        @endforeach
+
+    </select>
+
+</div>
 
                         <!-- Buttons -->
 
@@ -294,3 +329,70 @@
     @include('footerheader.footer')
 
 </div>
+<script>
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function()
+    {
+
+        const role =
+            document.querySelector(
+                'select[name="role"]'
+            );
+
+        const departmentGroup =
+            document.getElementById(
+                'department-group'
+            );
+
+        const department =
+            document.getElementById(
+                'department_id'
+            );
+
+
+        function updateDepartment()
+        {
+
+            if (
+                role.value === 'faculty' ||
+                role.value === 'chair'
+            ) {
+
+                departmentGroup.style.display =
+                    'block';
+
+                department.required =
+                    true;
+
+            }
+
+            else {
+
+                departmentGroup.style.display =
+                    'none';
+
+                department.required =
+                    false;
+
+                department.value =
+                    '';
+
+            }
+
+        }
+
+
+        role.addEventListener(
+            'change',
+            updateDepartment
+        );
+
+
+        updateDepartment();
+
+    }
+);
+
+</script> 

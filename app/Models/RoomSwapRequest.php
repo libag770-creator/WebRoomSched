@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
+use App\Models\User;
 class RoomSwapRequest extends Model
 {
     use HasFactory;
@@ -34,7 +34,13 @@ class RoomSwapRequest extends Model
     | Faculty A - Requester
     |--------------------------------------------------------------------------
     */
-
+public function user()
+{
+    return $this->belongsTo(
+        User::class,
+        'requester_id'
+    );
+}
     public function requester()
     {
         return $this->belongsTo(User::class, 'requester_id');

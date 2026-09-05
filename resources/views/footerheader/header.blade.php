@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <title>@yield('title')</title>
 
     <link rel="stylesheet" href="{{ asset('css/faculty.css') }}">
@@ -48,10 +50,10 @@
 
     
 
-        <form action="{{ route('faculty.logout') }}" method="POST">
+       <form action="{{ route('faculty.logout') }}" method="POST">
     @csrf
-    <button type="submit">
-        Logout
+    <button type="submit" title="Logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
     </button>
 </form>
 

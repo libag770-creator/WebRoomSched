@@ -210,9 +210,7 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | Prevent Faculty A From Requesting Themselves
-    |--------------------------------------------------------------------------
     */
 
     if ($request->target_user_id == $user->id) {
@@ -225,9 +223,7 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | Prevent Swapping The Same Room
-    |--------------------------------------------------------------------------
     */
 
     if ($request->requester_room_id == $request->target_room_id) {
@@ -240,17 +236,13 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | FACULTY A'S BOOKING
-    |--------------------------------------------------------------------------
     */
 
     if ($request->requester_type === 'schedule') {
 
         /*
-        |--------------------------------------------------------------------------
         | Faculty A Selected A Schedule
-        |--------------------------------------------------------------------------
         */
 
         if (!$request->requester_schedule_id) {
@@ -288,9 +280,7 @@ class RoomSwapRequestController extends Controller
     } else {
 
         /*
-        |--------------------------------------------------------------------------
         | Faculty A Selected A Reservation
-        |--------------------------------------------------------------------------
         */
 
         if (!$request->requester_reservation_id) {
@@ -336,10 +326,8 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | STEP 5
     | Determine Faculty A's Booking Time
-    |--------------------------------------------------------------------------
     */
 
     $requesterStart = null;
@@ -374,17 +362,13 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | FACULTY B'S BOOKING
-    |--------------------------------------------------------------------------
     */
 
     if ($request->target_type === 'schedule') {
 
         /*
-        |--------------------------------------------------------------------------
         | Faculty B Selected A Schedule
-        |--------------------------------------------------------------------------
         */
 
         if (!$request->target_schedule_id) {
@@ -422,9 +406,7 @@ class RoomSwapRequestController extends Controller
 
 
         /*
-        |--------------------------------------------------------------------------
         | Make Sure Target User Owns The Schedule
-        |--------------------------------------------------------------------------
         */
 
         $targetFaculty = \App\Models\User::where(
@@ -453,9 +435,7 @@ class RoomSwapRequestController extends Controller
     } else {
 
         /*
-        |--------------------------------------------------------------------------
         | Faculty B Selected A Reservation
-        |--------------------------------------------------------------------------
         */
 
         if (!$request->target_reservation_id) {
@@ -501,10 +481,8 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | STEP 6
     | Determine Faculty B's Booking Time
-    |--------------------------------------------------------------------------
     */
 
     $targetStart = null;
@@ -539,10 +517,8 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | STEP 7
     | Check If Faculty A and Faculty B Times Overlap
-    |--------------------------------------------------------------------------
     */
 
     if (!$this->timesOverlap(
@@ -560,9 +536,7 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | Make Sure Target Faculty Exists
-    |--------------------------------------------------------------------------
     */
 
     $targetUser = \App\Models\User::find(
@@ -580,9 +554,7 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | Create Room Swap Request
-    |--------------------------------------------------------------------------
     */
 
     RoomSwapRequest::create([
@@ -626,12 +598,6 @@ class RoomSwapRequestController extends Controller
     ]);
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Success
-    |--------------------------------------------------------------------------
-    */
-
     return redirect()
         ->route('faculty.room-swap')
         ->with(
@@ -642,28 +608,9 @@ class RoomSwapRequestController extends Controller
 
 
 
-
-
-
-
-
-
-
-
-
     /*
-    |--------------------------------------------------------------------------
     | Requests Received by Faculty B
-    |--------------------------------------------------------------------------
     */
-
-
-
-
-
-
-
-
 
     public function receivedRequests()
     {
@@ -693,9 +640,7 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | Faculty B Approves Request
-    |--------------------------------------------------------------------------
     */
 
     public function approve($id)
@@ -706,9 +651,7 @@ class RoomSwapRequestController extends Controller
 
 
         /*
-        |--------------------------------------------------------------------------
         | Only Faculty B can approve
-        |--------------------------------------------------------------------------
         */
 
         if ($swap->target_user_id != $user->id) {
@@ -739,9 +682,7 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    |--------------------------------------------------------------------------
     | Faculty B Declines Request
-    |--------------------------------------------------------------------------
     */
 
     public function decline($id)
@@ -752,9 +693,7 @@ class RoomSwapRequestController extends Controller
 
 
         /*
-        |--------------------------------------------------------------------------
         | Only Faculty B can decline
-        |--------------------------------------------------------------------------
         */
 
         if ($swap->target_user_id != $user->id) {
