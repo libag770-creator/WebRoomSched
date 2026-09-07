@@ -11,6 +11,7 @@ class FacultySubject extends Model
         'course_code',
         'subject',
         'year_level',
+        'major',
     ];
 
     public function faculty()

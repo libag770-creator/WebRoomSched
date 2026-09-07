@@ -514,6 +514,12 @@
             color: #777;
         }
 
+        .cell-major {
+    margin-top: 2px;
+    font-size: 9px;
+    font-weight: bold;
+}
+
         .empty-cell {
             color: #aaa;
             font-size: 10px;
@@ -828,11 +834,14 @@
                         'year_level' =>
                             $item->year_level,
 
+                            'major' =>
+                        $item->major,
+
                         'faculty_id' =>
                             $item->faculty
                                 ? $item->faculty->id
                                 : null,
-
+                        
                         'instructor' =>
                             $item->faculty
                                 ? $item->faculty->name
@@ -932,7 +941,7 @@
                 <div class="form-group">
 
                     <label>
-                        Subject
+                        Course Description
                     </label>
 
                     <input
@@ -962,20 +971,19 @@
 
                 </div>
 
-<!-- major -->
- <div class="schedule-info-field">
-    <label for="subject_type">
+<!-- SUBJECT TYPE -->
+<div class="form-group">
+    <label>
         Subject Type
     </label>
 
-    <select
+    <input
+        type="text"
         id="subject_type"
         name="subject_type"
+        readonly
+        placeholder="Automatic"
     >
-        <option value="">Optional</option>
-        <option value="Lab">Major</option>
-        <option value="">Non-major</option>
-    </select>
 </div>
                 <!-- FACULTY -->
 
@@ -995,21 +1003,39 @@
                 </div>
 
 
-                <!-- DESCRIPTION -->
+               <!-- MAJOR -->
 
-                <div class="form-group">
+<div class="form-group">
 
-                    <label>
-                        Subject Type
-                    </label>
+    <label>
+        Major
+    </label>
 
-                    <input
-                        type="text"
-                        id="description"
-                        placeholder="Optional"
-                    >
+    <input
+        type="text"
+        id="major"
+        readonly
+        placeholder="Automatic"
+    >
 
-                </div>
+</div>
+
+
+<!-- DESCRIPTION -->
+
+<div class="form-group">
+
+    <label>
+        Description
+    </label>
+
+    <input
+        type="text"
+        id="description"
+        placeholder="Optional description"
+    >
+
+</div>
 
             </div>
 
@@ -1395,6 +1421,15 @@
                                             : ''
                                     }}"
 
+                                    data-major="{{
+                                     $schedule
+                                             ? (
+                                                $schedule->major
+                                                 ?? ''
+                                              )
+                                         : ''
+                                    }}"
+
                                     data-instructor="{{
                                         $schedule
                                             ? $schedule->instructor
@@ -1708,6 +1743,11 @@
             'description'
         );
 
+        const majorInput =
+    document.getElementById(
+        'major'
+    );
+
 
     const colorInput =
         document.getElementById(
@@ -1879,6 +1919,11 @@
             instructorInput.value =
                 '';
 
+                majorInput.value =
+    '';
+
+            subjectTypeInput.value = 
+                '';
 
             clearStatus();
 
@@ -1925,6 +1970,17 @@
             const match =
                 matches[0];
 
+// AUTOMATIC SUBJECT TYPE
+// Course code with "." = Lab
+// Course code without "." = Lec
+
+const automaticSubjectType =
+    code.includes('.')
+        ? 'Lab'
+        : 'Lec';
+
+subjectTypeInput.value =
+    automaticSubjectType;
 
             subjectInput.value =
                 match.subject;
@@ -1937,6 +1993,8 @@
             instructorInput.value =
                 match.instructor;
 
+            majorInput.value =
+    match.major || '';
 
             showSuccess(
 
@@ -2040,10 +2098,14 @@
         instructorInput.value =
             cell.dataset.instructor || '';
 
+                       majorInput.value =
+    cell.dataset.major || '';
+    
 
         descriptionInput.value =
             cell.dataset.description || '';
 
+ 
             subjectTypeInput.value =
     cell.dataset.subjectType || '';
 
@@ -2200,17 +2262,10 @@
     |
     */
 
-    const subjectTypeInput =
-        document.getElementById(
-            'subject_type'
-        );
-
-
-    const subjectType =
-        subjectTypeInput
-            ? subjectTypeInput.value.trim()
-            : '';
-
+  const subjectType =
+    course.includes('.')
+        ? 'Lab'
+        : 'Lec';
 
     /*
     |--------------------------------------------------------------------------
@@ -2287,7 +2342,9 @@
     selectedCell.dataset.year =
         match.year_level;
 
-
+selectedCell.dataset.major =
+    match.major || '';
+     
     selectedCell.dataset.instructor =
         match.instructor;
 
@@ -2383,6 +2440,12 @@
         ) +
         '</div>' +
 
+         '<div class="cell-major">' +
+    escapeHtml(
+        match.major || ''
+    ) +
+    '</div>' +
+
         subjectTypeDisplay;
 
 
@@ -2463,6 +2526,9 @@
         selectedCell.dataset.year =
             '';
 
+        selectedCell.dataset.major =
+         '';
+
 
         selectedCell.dataset.instructor =
             '';
@@ -2509,6 +2575,9 @@
 
         yearLevelInput.value =
             '';
+
+        majorInput.value =
+    '';
 
         instructorInput.value =
             '';
@@ -2656,6 +2725,8 @@ for (
             cell.dataset.year =
                 '';
 
+            cell.dataset.major =
+                '';
 
             cell.dataset.instructor =
                 '';
@@ -3109,6 +3180,8 @@ for (
 
                     year_level:
                         match.year_level,
+
+                    major: match.major || '',
 
                     instructor:
                         match.instructor,

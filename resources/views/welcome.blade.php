@@ -1,601 +1,396 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>WebRoom Sched</title>
+    <title>WebRoom Sched | BSU Bokod Campus</title>
 
-<style>
+    <style>
 
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: Arial, Helvetica, sans-serif;
-    }
-
-
-    /* =================================
-       PAGE
-       ================================= */
-
-    body {
-        min-height: 100vh;
-
-        display: flex;
-        justify-content: center;
-        align-items: center;
-
-        background: #1b5e20;
-
-        overflow: hidden;
-
-        /* Start invisible */
-        opacity: 0;
-
-        animation: pageIntro 1.2s ease forwards;
-    }
-
-
-    /* =================================
-       INTRO CONTAINER
-       ================================= */
-
-    .intro {
-        width: 90%;
-        max-width: 850px;
-
-        min-height: 500px;
-
-        background: #ffffff;
-
-        border-radius: 20px;
-
-        display: flex;
-
-        overflow: hidden;
-
-        box-shadow:
-            0 15px 40px rgba(0, 0, 0, 0.25);
-
-        /* Smooth entrance */
-        opacity: 0;
-
-        transform:
-            translateY(35px)
-            scale(0.96);
-
-        animation:
-            introCard 1.2s
-            cubic-bezier(.22, 1, .36, 1)
-            0.2s
-            forwards;
-    }
-
-
-    /* =================================
-       LEFT SIDE
-       ================================= */
-
-    .left {
-        width: 50%;
-
-        background:
-            linear-gradient(
-                160deg,
-                #2e7d32,
-                #1b5e20
-            );
-
-        color: white;
-
-        display: flex;
-
-        justify-content: center;
-        align-items: center;
-
-        text-align: center;
-
-        padding: 40px;
-
-        position: relative;
-
-        overflow: hidden;
-    }
-
-
-    /* Decorative circle */
-
-    .left::before {
-        content: "";
-
-        position: absolute;
-
-        width: 260px;
-        height: 260px;
-
-        background:
-            rgba(249, 168, 37, 0.12);
-
-        border-radius: 50%;
-
-        top: -90px;
-        left: -90px;
-
-        animation:
-            circleIntro 1.5s ease forwards;
-    }
-
-
-    .left::after {
-        content: "";
-
-        position: absolute;
-
-        width: 190px;
-        height: 190px;
-
-        background:
-            rgba(255, 255, 255, 0.08);
-
-        border-radius: 50%;
-
-        bottom: -70px;
-        right: -60px;
-
-        animation:
-            circleIntro 1.7s ease forwards;
-    }
-
-
-    /* =================================
-       LEFT CONTENT
-       ================================= */
-
-    .left-content {
-        position: relative;
-
-        z-index: 2;
-
-        opacity: 0;
-
-        transform: scale(0.7);
-
-        animation:
-            logoContentIntro 1s
-            cubic-bezier(.22, 1, .36, 1)
-            0.7s
-            forwards;
-    }
-
-
-    /* =================================
-       LOGO
-       ================================= */
-
-    .logo {
-        width: 130px;
-        height: 130px;
-
-        object-fit: contain;
-
-        background: #ffffff;
-
-        padding: 12px;
-
-        border-radius: 50%;
-
-        border:
-            5px solid #f9a825;
-
-        box-shadow:
-            0 8px 20px rgba(0, 0, 0, 0.2);
-    }
-
-
-    /* =================================
-       RIGHT SIDE
-       ================================= */
-
-    .right {
-        width: 50%;
-
-        display: flex;
-
-        flex-direction: column;
-
-        justify-content: center;
-
-        align-items: center;
-
-        text-align: center;
-
-        padding: 45px;
-    }
-
-
-    .welcome {
-        color: #f9a825;
-
-        font-size: 15px;
-
-        font-weight: bold;
-
-        text-transform: uppercase;
-
-        letter-spacing: 2px;
-
-        margin-bottom: 10px;
-
-        opacity: 0;
-
-        transform: translateY(15px);
-
-        animation:
-            textIntro .8s ease
-            0.8s
-            forwards;
-    }
-
-
-    h1 {
-        color: #2e7d32;
-
-        font-size: 48px;
-
-        line-height: 1.05;
-
-        margin-bottom: 15px;
-
-        opacity: 0;
-
-        transform: translateY(15px);
-
-        animation:
-            textIntro .8s ease
-            0.95s
-            forwards;
-    }
-
-
-    .campus {
-        color: #555;
-
-        font-size: 16px;
-
-        margin-bottom: 20px;
-
-        opacity: 0;
-
-        transform: translateY(15px);
-
-        animation:
-            textIntro .8s ease
-            1.1s
-            forwards;
-    }
-
-
-    .description {
-        max-width: 330px;
-
-        color: #777;
-
-        line-height: 1.6;
-
-        font-size: 14px;
-
-        margin-bottom: 30px;
-
-        opacity: 0;
-
-        transform: translateY(15px);
-
-        animation:
-            textIntro .8s ease
-            1.25s
-            forwards;
-    }
-
-
-    /* =================================
-       LOADING
-       ================================= */
-
-    .loading {
-        display: flex;
-
-        flex-direction: column;
-
-        align-items: center;
-
-        gap: 10px;
-
-        color: #2e7d32;
-
-        font-size: 13px;
-
-        opacity: 0;
-
-        animation:
-            loadingIntro .8s ease
-            1.45s
-            forwards;
-    }
-
-
-    .loader {
-        width: 32px;
-        height: 32px;
-
-        border:
-            4px solid #e8f5e9;
-
-        border-top:
-            4px solid #f9a825;
-
-        border-radius: 50%;
-
-        animation:
-            spin 1s linear infinite;
-    }
-
-
-    /* =================================
-       INTRO ANIMATIONS
-       ================================= */
-
-    @keyframes pageIntro {
-
-        from {
-            opacity: 0;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
         }
-
-        to {
-            opacity: 1;
-        }
-
-    }
-
-
-    @keyframes introCard {
-
-        from {
-            opacity: 0;
-
-            transform:
-                translateY(35px)
-                scale(0.96);
-        }
-
-        to {
-            opacity: 1;
-
-            transform:
-                translateY(0)
-                scale(1);
-        }
-
-    }
-
-
-    @keyframes logoContentIntro {
-
-        from {
-            opacity: 0;
-
-            transform:
-                scale(0.7);
-        }
-
-        to {
-            opacity: 1;
-
-            transform:
-                scale(1);
-        }
-
-    }
-
-
-    @keyframes circleIntro {
-
-        from {
-            opacity: 0;
-
-            transform:
-                scale(0.5);
-        }
-
-        to {
-            opacity: 1;
-
-            transform:
-                scale(1);
-        }
-
-    }
-
-
-    @keyframes textIntro {
-
-        from {
-            opacity: 0;
-
-            transform:
-                translateY(15px);
-        }
-
-        to {
-            opacity: 1;
-
-            transform:
-                translateY(0);
-        }
-
-    }
-
-
-    @keyframes loadingIntro {
-
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-
-    }
-
-
-    @keyframes spin {
-
-        from {
-            transform: rotate(0deg);
-        }
-
-        to {
-            transform: rotate(360deg);
-        }
-
-    }
-
-
-    /* =================================
-       OUTRO
-       ================================= */
-
-    body.page-exit {
-
-        animation:
-            pageOutro 0.8s
-            cubic-bezier(.55, .085, .68, .53)
-            forwards;
-    }
-
-
-    body.page-exit .intro {
-
-        animation:
-            cardOutro 0.8s
-            cubic-bezier(.55, .085, .68, .53)
-            forwards;
-    }
-
-
-    @keyframes pageOutro {
-
-        from {
-            opacity: 1;
-        }
-
-        to {
-            opacity: 0;
-        }
-
-    }
-
-
-    @keyframes cardOutro {
-
-        from {
-            opacity: 1;
-
-            transform:
-                translateY(0)
-                scale(1);
-        }
-
-        to {
-            opacity: 0;
-
-            transform:
-                translateY(-25px)
-                scale(0.97);
-        }
-
-    }
-
-
-    /* =================================
-       MOBILE
-       ================================= */
-
-    @media (max-width: 700px) {
 
         body {
-            padding: 20px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1b5e20, #2e7d32);
+            color: #333;
         }
 
+        /* ================================
+           HEADER
+        ================================= */
 
-        .intro {
-            flex-direction: column;
-
+        header {
             width: 100%;
-
-            max-width: 450px;
+            padding: 20px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.12);
         }
 
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-        .left,
-        .right {
+        .brand img {
+            width: 55px;
+            height: 55px;
+            object-fit: contain;
+        }
+
+        .brand-text h2 {
+            color: #1b5e20;
+            font-size: 23px;
+            margin-bottom: 3px;
+        }
+
+        .brand-text span {
+            color: #777;
+            font-size: 13px;
+        }
+
+        .login-button {
+            text-decoration: none;
+            background: #f9a825;
+            color: #1b1b1b;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        .login-button:hover {
+            background: #f57f17;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* ================================
+           HERO
+        ================================= */
+
+        .hero {
+            min-height: calc(100vh - 95px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 7%;
+        }
+
+        .hero-container {
             width: 100%;
+            max-width: 1150px;
+            background: white;
+            border-radius: 25px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
         }
 
+        /* ================================
+           LEFT
+        ================================= */
 
-        .left {
-            min-height: 260px;
+        .hero-left {
+            width: 48%;
+            min-height: 560px;
 
-            padding: 30px;
+            background:
+                linear-gradient(
+                    145deg,
+                    #2e7d32,
+                    #1b5e20
+                );
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            position: relative;
+            overflow: hidden;
         }
 
+        .hero-left::before {
+            content: "";
+            position: absolute;
 
-        .right {
-            padding: 35px 25px;
+            width: 350px;
+            height: 350px;
+
+            background: rgba(249, 168, 37, 0.12);
+
+            border-radius: 50%;
+
+            top: -130px;
+            left: -120px;
         }
 
+        .hero-left::after {
+            content: "";
+            position: absolute;
+
+            width: 280px;
+            height: 280px;
+
+            background: rgba(255, 255, 255, 0.07);
+
+            border-radius: 50%;
+
+            bottom: -130px;
+            right: -100px;
+        }
+
+        .logo-container {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
 
         .logo {
-            width: 100px;
-            height: 100px;
+            width: 190px;
+            height: 190px;
+
+            object-fit: contain;
+
+            background: white;
+            padding: 15px;
+
+            border-radius: 50%;
+
+            border: 6px solid #f9a825;
+
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.25);
         }
 
-
-        h1 {
-            font-size: 38px;
+        .logo-container h3 {
+            color: white;
+            margin-top: 25px;
+            font-size: 25px;
         }
 
-    }
-
-
-    /* =================================
-       REDUCED MOTION
-       ================================= */
-
-    @media (prefers-reduced-motion: reduce) {
-
-        body,
-        .intro,
-        .left-content,
-        .welcome,
-        h1,
-        .campus,
-        .description,
-        .loading {
-            animation: none !important;
-
-            opacity: 1 !important;
-
-            transform: none !important;
+        .logo-container p {
+            color: rgba(255, 255, 255, 0.85);
+            margin-top: 8px;
+            font-size: 14px;
         }
 
-    }
+        /* ================================
+           RIGHT
+        ================================= */
 
-</style>
+        .hero-right {
+            width: 52%;
+            padding: 60px;
 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
 
+        .welcome {
+            color: #f9a825;
+            font-size: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+        }
+
+        .hero-right h1 {
+            color: #1b5e20;
+            font-size: 55px;
+            line-height: 1.05;
+            margin-bottom: 15px;
+        }
+
+        .campus {
+            color: #555;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .description {
+            color: #777;
+            font-size: 15px;
+            line-height: 1.7;
+            max-width: 500px;
+            margin-bottom: 35px;
+        }
+
+        /* ================================
+           BUTTONS
+        ================================= */
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 14px 25px;
+
+            border-radius: 9px;
+
+            text-decoration: none;
+
+            font-size: 15px;
+            font-weight: bold;
+
+            transition: all 0.3s ease;
+        }
+
+        .btn-schedule {
+            background: #2e7d32;
+            color: white;
+            box-shadow: 0 5px 15px rgba(46, 125, 50, 0.25);
+        }
+
+        .btn-schedule:hover {
+            background: #1b5e20;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(46, 125, 50, 0.35);
+        }
+
+        .btn-login {
+            background: white;
+            color: #1b5e20;
+            border: 2px solid #2e7d32;
+        }
+
+        .btn-login:hover {
+            background: #e8f5e9;
+            transform: translateY(-3px);
+        }
+
+        /* ================================
+           USER INFO
+        ================================= */
+
+        .access-info {
+            margin-top: 35px;
+            padding: 18px;
+
+            background: #f5f9f5;
+
+            border-left: 4px solid #f9a825;
+
+            border-radius: 8px;
+        }
+
+        .access-info strong {
+            display: block;
+            color: #1b5e20;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .access-info p {
+            color: #777;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* ================================
+           FOOTER
+        ================================= */
+
+        footer {
+            text-align: center;
+            padding: 15px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+        }
+
+        /* ================================
+           MOBILE
+        ================================= */
+
+        @media (max-width: 800px) {
+
+            header {
+                padding: 15px 5%;
+            }
+
+            .brand-text h2 {
+                font-size: 18px;
+            }
+
+            .brand-text span {
+                font-size: 11px;
+            }
+
+            .brand img {
+                width: 45px;
+                height: 45px;
+            }
+
+            .login-button {
+                padding: 10px 15px;
+                font-size: 13px;
+            }
+
+            .hero {
+                padding: 30px 5%;
+            }
+
+            .hero-container {
+                flex-direction: column;
+            }
+
+            .hero-left,
+            .hero-right {
+                width: 100%;
+            }
+
+            .hero-left {
+                min-height: 330px;
+                padding: 40px 20px;
+            }
+
+            .logo {
+                width: 135px;
+                height: 135px;
+            }
+
+            .logo-container h3 {
+                font-size: 20px;
+            }
+
+            .hero-right {
+                padding: 40px 30px;
+            }
+
+            .hero-right h1 {
+                font-size: 42px;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+
+    </style>
 
 </head>
 
@@ -603,84 +398,180 @@
 <body>
 
 
-<div class="intro">
-
-
     <!-- ================================
-         LEFT
-         ================================ -->
+         HEADER
+    ================================= -->
 
-    <div class="left">
+    <header>
 
-        <div class="left-content">
+        <div class="brand">
 
             <img
                 src="{{ asset('images/images.jpg') }}"
                 alt="BSU Bokod Campus Logo"
-                class="logo"
             >
+
+            <div class="brand-text">
+
+                <h2>WebRoom Sched</h2>
+
+                <span>
+                    BSU Bokod Campus
+                </span>
+
+            </div>
 
         </div>
 
-    </div>
+
+        <!-- Staff Login -->
+
+        <a
+            href="{{ route('login') }}"
+            class="login-button"
+        >
+            Login
+        </a>
+
+    </header>
+
 
 
     <!-- ================================
-         RIGHT
-         ================================ -->
+         MAIN WELCOME SECTION
+    ================================= -->
 
-    <div class="right">
+    <main class="hero">
 
-        <div class="welcome">
-            Welcome to
+        <div class="hero-container">
+
+
+            <!-- ================================
+                 LEFT SIDE
+            ================================= -->
+
+            <section class="hero-left">
+
+                <div class="logo-container">
+
+                    <img
+                        src="{{ asset('images/images.jpg') }}"
+                        alt="BSU Bokod Campus Logo"
+                        class="logo"
+                    >
+
+                    <h3>
+                        BSU Bokod Campus
+                    </h3>
+
+                    <p>
+                        Room Scheduling System
+                    </p>
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ================================
+                 RIGHT SIDE
+            ================================= -->
+
+            <section class="hero-right">
+
+                <div class="welcome">
+                    Welcome to
+                </div>
+
+
+                <h1>
+                    WebRoom<br>
+                    Sched
+                </h1>
+
+
+                <div class="campus">
+                    BSU Bokod Campus
+                </div>
+
+
+                <p class="description">
+
+                    A simple and organized room scheduling
+                    system for viewing classroom schedules,
+                    room availability, and academic information.
+
+                </p>
+
+
+
+                <!-- ================================
+                     ACTION BUTTONS
+                ================================= -->
+
+                <div class="buttons">
+
+                    <!-- Students do NOT need to login -->
+<a
+    href="{{ route('student.dashboard') }}"
+    class="btn btn-schedule"
+>
+    View Schedules
+</a>
+
+
+                    <!-- Admin / Chair / Faculty -->
+
+                    <a
+                        href="{{ route('login') }}"
+                        class="btn btn-login"
+                    >
+                        Admin / Chair / Faculty Login
+                    </a>
+
+                </div>
+
+
+
+                <!-- ================================
+                     ACCESS INFORMATION
+                ================================= -->
+
+                <div class="access-info">
+
+                    <strong>
+                        Easy Access
+                    </strong>
+
+                    <p>
+                        Students can view room schedules directly
+                        without logging in. Administrators, department
+                        chairs, and faculty members can log in to
+                        manage schedules and room information.
+                    </p>
+
+                </div>
+
+            </section>
+
+
         </div>
 
-
-        <h1>
-            WebRoom<br>
-            Sched
-        </h1>
+    </main>
 
 
-        <div class="campus">
-            BSU Bokod Campus
-        </div>
 
+    <!-- ================================
+         FOOTER
+    ================================= -->
 
-        <p class="description">
-            A simple and organized room scheduling
-            system for managing classrooms,
-            schedules, and room availability.
-        </p>
+    <footer>
 
+        © {{ date('Y') }} BSU Bokod Campus —
+        WebRoom Sched
 
-        <div class="loading">
-
-            <div class="loader"></div>
-
-            <span>
-                Loading...
-            </span>
-
-        </div>
-
-    </div>
-
-
-</div>
-
-
-<!-- =================================
-     REDIRECT TO LOGIN
-     ================================= -->
-
-<script> 
-
-setTimeout(function () { 
-    document.body.classList.add('page-exit'); 
-      setTimeout(function () { window.location.href = 
-      "{{ route('login') }}"; }, 800); }, 3000);
-       </script>
+    </footer>
 
 
 </body>

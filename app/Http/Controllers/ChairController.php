@@ -426,6 +426,12 @@ public function saveDraft( Request $request)
             'year_level' =>
                 $facultySubject->year_level,
 
+                'major' =>
+    $facultySubject->major,
+
+            'subject_type' =>
+            str_contains($courseCode, '.') ? 'Lab' : 'Lec',
+
             'instructor' =>
                 $facultySubject->faculty->name,
 
@@ -978,6 +984,8 @@ if (!$room->save()) {
             'academic_year' =>
                 $academicYear,
 
+     
+
             'course_code' =>
                 $facultySubject->course_code,
 
@@ -987,8 +995,11 @@ if (!$room->save()) {
             'year_level' =>
                 $facultySubject->year_level,
 
-            'subject_type' =>
-                $data['subject_type'] ?? null,
+                           'major' =>
+    $facultySubject->major,
+
+           'subject_type' =>
+            str_contains($courseCode, '.') ? 'Lab' : 'Lec',
 
             'instructor' =>
                 $facultySubject->faculty->name,
@@ -1460,6 +1471,7 @@ public function facultySubjects($faculty)
                     'course_code' => $subject->course_code,
                     'subject' => $subject->subject,
                     'year_level' => $subject->year_level,
+                    'major' => $subject->major,
                 ];
             }),
     ]);
@@ -1475,6 +1487,7 @@ public function storeFacultySubject(Request $request)
         'course_code' => 'required|string|max:50',
         'subject' => 'required|string|max:255',
         'year_level' => 'required|string|max:50',
+        'major' => 'required|string|max:100',
     ]);
 
     /*
@@ -1539,6 +1552,10 @@ public function storeFacultySubject(Request $request)
         'year_level' => trim(
             $request->year_level
         ),
+
+         'major' => trim(
+        $request->major
+    ),
     ]);
 
 
@@ -1575,6 +1592,9 @@ public function updateFacultySubject(
 
         'year_level' =>
             'required|string|max:50',
+
+            'major' =>
+        'required|string|max:100',
     ]);
 
 
@@ -1605,6 +1625,9 @@ public function updateFacultySubject(
 
         'year_level' =>
             trim($request->year_level),
+
+            'major' =>
+        trim($request->major),
     ]);
 
 
@@ -1893,9 +1916,6 @@ public function storeModifiedSchedule(Request $request)
         'academic_year' =>
             'nullable|string|max:100',
 
-        'subject_type' =>
-            'nullable|string|in:Major,Non-major',
-
         'description' =>
             'nullable|string|max:255',
 
@@ -2152,9 +2172,11 @@ public function storeModifiedSchedule(Request $request)
         'year_level' =>
             $facultySubject->year_level,
 
+            'major' =>
+    $facultySubject->major,
+
         'subject_type' =>
-            $request->subject_type
-                ?: null,
+        str_contains($courseCode, '.') ? 'Lab' : 'Lec',
 
         'instructor' =>
             $facultySubject->faculty->name,

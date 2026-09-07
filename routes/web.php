@@ -185,21 +185,6 @@ Route::delete(
     return view('student.dashboard');
     })->name('student.dashboard');
 
-    Route::get('/student', function () {
-        return view('student.choosedep');
-    })->name('student.choosedep');
-
-    Route::get('/student/cat', function () {
-        return view('student.catdash');
-    })->name('student.catdash');
-
-    Route::get('/student/ced', function () {
-        return view('student.ced');
-    })->name('student.ced');
-
-    Route::get('/student/ccjepa', function () {
-        return view('student.ccjepadash');
-    })->name('student.ccjepa');
 
 
 /*

@@ -23,12 +23,11 @@ class ScheduleDraft extends Model
         'day',
         'time',
 
-        'course_code',
-        'subject',
-        'year_level',
-
-        // Optional: Major / Non-major
-        'subject_type',
+       'course_code',
+'subject',
+'year_level',
+'major',
+'subject_type',
 
         'instructor',
         'description',

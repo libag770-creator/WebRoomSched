@@ -20,10 +20,10 @@ class Schedule extends Model
         'time',
 
         'course_code',
-        'subject',
-        'year_level',
-        'subject_type',
-        'instructor',
+'subject',
+'year_level',
+'major',
+'subject_type',
 
         'description',
         'color',

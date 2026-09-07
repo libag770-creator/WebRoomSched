@@ -705,11 +705,15 @@
                                                 </th>
 
                                                 <th>
-                                                    Subject
+                                                    Course Description
                                                 </th>
 
                                                 <th>
                                                     Year Level
+                                                </th>
+
+                                                <th>
+                                                     Major
                                                 </th>
 
                                                 <th>
@@ -765,6 +769,9 @@
 
                                                     </td>
 
+                                                    <td>
+                                                    {{ $facultySubject->major ?? '-' }}
+                                                    </td>
 
                                                     <td>
 
@@ -778,6 +785,7 @@
                                                                 @js($facultySubject->course_code),
                                                                 @js($facultySubject->subject),
                                                                 @js($facultySubject->year_level)
+                                                                @js($facultySubject->major)
                                                             )"
                                                         >
                                                             Edit
@@ -865,28 +873,39 @@
                                     value="{{ $selectedFaculty->id }}"
                                 >
 
+<div>
+
+    <label>
+        Course Code
+    </label>
+
+    <input
+        type="text"
+        name="course_code"
+        id="facultyCourseCode"
+        placeholder="IT 111"
+        value="{{ old('course_code') }}"
+        required
+    >
+
+    <small
+        id="courseTypeHint"
+        style="
+            display:block;
+            margin-top:6px;
+            color:#777;
+            font-size:12px;
+        "
+    >
+    </small>
+
+</div>
+
 
                                 <div>
 
                                     <label>
-                                        Course Code
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        name="course_code"
-                                        placeholder="IT 111"
-                                        value="{{ old('course_code') }}"
-                                        required
-                                    >
-
-                                </div>
-
-
-                                <div>
-
-                                    <label>
-                                        Subject
+                                        Course Description
                                     </label>
 
                                     <input
@@ -947,7 +966,21 @@
 
                                 </div>
 
+<div>
 
+    <label>
+        Major
+    </label>
+
+    <input
+        type="text"
+        name="major"
+        placeholder="BSIT"
+        value="{{ old('major') }}"
+        required
+    >
+
+</div>
                                 <button
                                     type="submit"
                                     class="btn green"
@@ -1067,7 +1100,18 @@
 
                             </select>
 
+<br><br>
 
+<label>
+    Major
+</label>
+
+<input
+    type="text"
+    id="editSubjectMajor"
+    name="major"
+    required
+>
                             <div
                                 style="
                                     margin-top:20px;
@@ -1117,7 +1161,8 @@
                     id,
                     courseCode,
                     subject,
-                    yearLevel
+                    yearLevel,
+                    major
                 ) {
 
                     document.getElementById(
@@ -1137,6 +1182,10 @@
                     ).value =
                         yearLevel || '';
 
+                    document.getElementById(
+                        'editSubjectMajor'
+                    ).value =
+                        major || '';
 
                     document.getElementById(
                         'editSubjectForm'
@@ -1197,6 +1246,55 @@
                         }
 
                     }
+                    const facultyCourseCode =
+    document.getElementById('facultyCourseCode');
+
+const courseTypeHint =
+    document.getElementById('courseTypeHint');
+
+
+facultyCourseCode.addEventListener(
+    'input',
+    function () {
+
+        const code =
+            this.value
+                .trim()
+                .toUpperCase();
+
+
+        if (!code) {
+
+            courseTypeHint.textContent =
+                'Enter course code';
+
+            courseTypeHint.style.color =
+                '#777';
+
+            return;
+        }
+
+
+        if (code.includes('.')) {
+
+            courseTypeHint.textContent =
+                'Subject Type: LAB';
+
+            courseTypeHint.style.color =
+                '#c62828';
+
+        } else {
+
+            courseTypeHint.textContent =
+                'Subject Type: LEC';
+
+            courseTypeHint.style.color =
+                '#2e7d32';
+
+        }
+
+    }
+);
                 );
 
             </script>
