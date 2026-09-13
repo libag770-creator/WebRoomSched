@@ -11,21 +11,18 @@ class Schedule extends Model
         'room_id',
         'faculty_id',
         'department_id',
-
-        // Schedule information
         'semester',
         'academic_year',
-
         'day',
         'time',
-
+        'row_position',
         'course_code',
-'subject',
-'year_level',
-'major',
-'subject_type',
-
-        'description',
+        'subject',
+        'year_level',
+        'major',
+        'instructor',
+        'subject_type',
+        'program',
         'color',
     ];
 
@@ -95,6 +92,20 @@ class Schedule extends Model
         return $this->hasMany(
             RoomSwapRequest::class,
             'target_schedule_id'
+        );
+    }
+
+        /*
+    |--------------------------------------------------------------------------
+    | MERGED DEPARTMENTS
+    |--------------------------------------------------------------------------
+    */
+
+    public function merges()
+    {
+        return $this->hasMany(
+            ScheduleMerge::class,
+            'schedule_id'
         );
     }
 }

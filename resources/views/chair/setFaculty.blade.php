@@ -716,6 +716,10 @@
                                                      Major
                                                 </th>
 
+                                                 <th>
+                                                     Program
+                                                </th>
+
                                                 <th>
                                                     Actions
                                                 </th>
@@ -735,43 +739,27 @@
 
                                                 <tr>
 
-                                                    <td>
+                                                  <td>
+    <strong>
+        {{ $facultySubject->course_code }}
+    </strong>
+</td>
 
-                                                        <strong>
+<td>
+    {{ $facultySubject->subject }}
+</td>
 
-                                                            {{
-                                                                $facultySubject
-                                                                    ->course_code
-                                                            }}
+<td>
+    {{ $facultySubject->year_level ?? '-' }}
+</td>
 
-                                                        </strong>
+<td>
+    {{ $facultySubject->major ?? '-' }}
+</td>
 
-                                                    </td>
-
-
-                                                    <td>
-
-                                                        {{
-                                                            $facultySubject
-                                                                ->subject
-                                                        }}
-
-                                                    </td>
-
-
-                                                    <td>
-
-                                                        {{
-                                                            $facultySubject
-                                                                ->year_level
-                                                            ?? '-'
-                                                        }}
-
-                                                    </td>
-
-                                                    <td>
-                                                    {{ $facultySubject->major ?? '-' }}
-                                                    </td>
+<td>
+    {{ $facultySubject->program ?? '-' }}
+</td>
 
                                                     <td>
 
@@ -780,13 +768,14 @@
                                                         <button
                                                             type="button"
                                                             class="btn yellow"
-                                                            onclick="editSubject(
-                                                                {{ $facultySubject->id }},
-                                                                @js($facultySubject->course_code),
-                                                                @js($facultySubject->subject),
-                                                                @js($facultySubject->year_level)
-                                                                @js($facultySubject->major)
-                                                            )"
+                                                           onclick="editSubject(
+    {{ $facultySubject->id }},
+    @js($facultySubject->course_code),
+    @js($facultySubject->subject),
+    @js($facultySubject->year_level),
+    @js($facultySubject->major),
+    @js($facultySubject->program),
+)"
                                                         >
                                                             Edit
                                                         </button>
@@ -975,8 +964,24 @@
     <input
         type="text"
         name="major"
-        placeholder="BSIT"
+        placeholder="Automotive"
         value="{{ old('major') }}"
+        required
+    >
+
+</div>
+
+<div>
+
+    <label>
+        Program
+    </label>
+
+    <input
+        type="text"
+        name="program"
+        placeholder="BSIT"
+        value="{{ old('program') }}"
         required
     >
 
@@ -1103,6 +1108,17 @@
 <br><br>
 
 <label>
+    Program
+</label>
+
+<input
+    type="text"
+    id="editSubjectProgram"
+    name="program"
+    required
+>
+
+<label>
     Major
 </label>
 
@@ -1112,6 +1128,10 @@
     name="major"
     required
 >
+
+<br><br>
+
+
                             <div
                                 style="
                                     margin-top:20px;
@@ -1162,7 +1182,8 @@
                     courseCode,
                     subject,
                     yearLevel,
-                    major
+                    major,
+                    program
                 ) {
 
                     document.getElementById(
@@ -1182,10 +1203,17 @@
                     ).value =
                         yearLevel || '';
 
+                     document.getElementById(
+                        'editSubjectProgram'
+                    ).value =
+                        program || '';
+
                     document.getElementById(
                         'editSubjectMajor'
                     ).value =
                         major || '';
+
+                    
 
                     document.getElementById(
                         'editSubjectForm'
@@ -1295,7 +1323,7 @@ facultyCourseCode.addEventListener(
 
     }
 );
-                );
+            
 
             </script>
 

@@ -426,12 +426,12 @@
 
         <!-- Staff Login -->
 
-        <a
+        <!-- <a
             href="{{ route('login') }}"
             class="login-button"
         >
             Login
-        </a>
+        </a> -->
 
     </header>
 
@@ -514,7 +514,7 @@
 
                     <!-- Students do NOT need to login -->
 <a
-    href="{{ route('student.dashboard') }}"
+    href="{{ route('student.schedule') }}"
     class="btn btn-schedule"
 >
     View Schedules
@@ -527,7 +527,7 @@
                         href="{{ route('login') }}"
                         class="btn btn-login"
                     >
-                        Admin / Chair / Faculty Login
+                        Login
                     </a>
 
                 </div>

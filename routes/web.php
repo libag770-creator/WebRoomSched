@@ -180,12 +180,13 @@ Route::delete(
 | STUDENT
 |--------------------------------------------------------------------------
 */
-    // student dashboard
-    Route::get('/student/dashboard', function () {
-    return view('student.dashboard');
-    })->name('student.dashboard');
+use App\Http\Controllers\StudentController;
 
+Route::get('/student/schedule', [StudentController::class, 'schedule'])
+    ->name('student.schedule');
 
+Route::get('/student/schedule/data', [StudentController::class, 'getSchedules'])
+    ->name('student.schedule.data');
 
 /*
 |--------------------------------------------------------------------------
@@ -335,6 +336,38 @@ Route::middleware('auth')->group(function () {
     'updateRoomPermission'
 ])->name('chair.room.permission');
 
+
+ /*
+    |--------------------------------------------------------------------------
+    | merge classes
+    |--------------------------------------------------------------------------
+    */
+
+
+Route::get(
+    '/chair/search-merge-classes',
+    [ChairController::class, 'searchMergeClasses']
+)->name('chair.search.merge.classes');
+
+Route::get(
+    '/chair/merge-departments',
+    [ChairController::class, 'mergeDepartments']
+)->name('chair.merge.departments');
+
+Route::get(
+    '/chair/merge-room/{roomId}',
+    [ChairController::class, 'mergeRoomSchedule']
+)->name('chair.merge.room');
+
+Route::get(
+    '/chair/merge-programs',
+    [ChairController::class, 'mergePrograms']
+)->name('chair.merge.programs');
+
+Route::post(
+    '/chair/merge-request',
+    [ChairController::class, 'createMergeRequest']
+)->name('chair.merge.request');
     /*
     |--------------------------------------------------------------------------
     | ROOM RESERVATIONS

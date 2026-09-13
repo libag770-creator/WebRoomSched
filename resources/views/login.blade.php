@@ -299,16 +299,6 @@
         </a>
 
 
-        <!-- VIEW SCHEDULE -->
-
-        <a
-            href="{{ route('student.dashboard') }}"
-            class="schedule-button"
-        >
-            📅 View Schedule
-        </a>
-
-
     </form>
 
 </div>

@@ -135,6 +135,62 @@
     border-radius: 6px;
     font-size: 14px;
 }
+
+.merge-section {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.merge-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.merge-description {
+    margin: 0 0 12px;
+    font-size: 13px;
+    color: #666;
+}
+
+.merge-search-status {
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+.merge-results {
+    margin-top: 12px;
+}
+
+.merge-result {
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.merge-result-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.merge-result-info {
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.merge-select-btn {
+    margin-top: 8px;
+    padding: 7px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
         .draft-mode {
             margin-top: 10px;
             display: inline-block;
@@ -363,6 +419,15 @@
             cursor: pointer;
         }
 
+        /* =====================================================
+   MULTI-CELL SELECTION
+   ===================================================== */
+
+        .schedule-cell.selected-cell {
+            outline: 3px solid #2e7d32;
+            outline-offset: -3px;
+            background: #e8f5e9 !important;
+        }
 
         /* =========================================================
            INSTRUCTION
@@ -390,12 +455,12 @@
             border: 1px solid #888;
         }
 
-        #scheduleTable {
-            width: 100%;
-            min-width: 950px;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
+      #scheduleTable {
+    width: 100%;
+    min-width: 1050px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
 
         #scheduleTable th,
         #scheduleTable td {
@@ -409,10 +474,10 @@
             font-size: 12px;
             font-weight: bold;
         }
-
-        #scheduleTable thead th:first-child {
-            width: 110px;
-        }
+#scheduleTable thead th:first-child,
+#scheduleTable thead th.time-header {
+    width: 110px;
+}
 
         .time-cell {
             background: #fafafa;
@@ -518,6 +583,80 @@
     margin-top: 2px;
     font-size: 9px;
     font-weight: bold;
+}
+
+.cell-program {
+    margin-top: 2px;
+    font-size: 8px;
+    font-weight: normal;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.merge-room-schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.merge-room-schedule-table th,
+.merge-room-schedule-table td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.merge-room-schedule-table th {
+    background: #2e7d32;
+    color: white;
+    font-weight: bold;
+    height: 40px;
+}
+
+.merge-time-cell {
+    width: 100px;
+    background: #f5f5f5;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.merge-schedule-cell {
+    height: 70px;
+    min-height: 70px;
+}
+
+.merge-empty-cell {
+    background: #fafafa;
+    color: #999;
+}
+
+.merge-occupied-cell {
+    background: #e8f5e9;
+    cursor: pointer;
+}
+
+.merge-class-course {
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.merge-class-subject {
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.merge-class-instructor {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.merge-noon-break td {
+    background: #eeeeee;
+    font-weight: bold;
+    height: 35px;
 }
 
         .empty-cell {
@@ -820,35 +959,22 @@
             $facultySubjects
                 ->map(function ($item) {
 
-                    return [
+                   return [
+    'id' => $item->id,
+    'course_code' => $item->course_code,
+    'subject' => $item->subject,
+    'year_level' => $item->year_level,
+    'major' => $item->major,
+    'program' => $item->program,
 
-                        'id' =>
-                            $item->id,
+    'faculty_id' => $item->faculty
+        ? $item->faculty->id
+        : null,
 
-                        'course_code' =>
-                            $item->course_code,
-
-                        'subject' =>
-                            $item->subject,
-
-                        'year_level' =>
-                            $item->year_level,
-
-                            'major' =>
-                        $item->major,
-
-                        'faculty_id' =>
-                            $item->faculty
-                                ? $item->faculty->id
-                                : null,
-                        
-                        'instructor' =>
-                            $item->faculty
-                                ? $item->faculty->name
-                                : '',
-
-                    ];
-
+    'instructor' => $item->faculty
+        ? $item->faculty->name
+        : '',
+];
                 })
                 ->values()
                 ->toArray();
@@ -1021,21 +1147,21 @@
 </div>
 
 
-<!-- DESCRIPTION -->
-
+<!-- PROGRAM -->
 <div class="form-group">
-
-    <label>
-        Description
+    <label for="program">
+        Program
     </label>
 
     <input
         type="text"
-        id="description"
-        placeholder="Optional description"
+        id="program"
+        name="program"
+        readonly
+        placeholder="Automatic"
     >
-
 </div>
+
 
             </div>
 
@@ -1084,6 +1210,114 @@
 
             </div>
 
+<!-- MERGE CLASS SECTION -->
+<div class="merge-section">
+
+    <div class="merge-title">
+        Merge Existing Class
+    </div>
+
+    <p class="merge-description">
+        Search for an existing class from another department,
+        or browse the department schedules manually.
+    </p>
+
+
+    <!-- SEARCH BY COURSE CODE -->
+
+    <div class="merge-search-box">
+
+        <label for="mergeCourseCode">
+            Search by Course Code
+        </label>
+
+        <div class="merge-search-row">
+
+            <input
+                type="text"
+                id="mergeCourseCode"
+                placeholder="Example: IT101"
+            >
+
+            <button
+                type="button"
+                id="searchMergeBtn"
+                class="btn btn-green"
+            >
+                Search
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <div class="merge-or">
+        OR
+    </div>
+
+
+    <!-- MANUAL BROWSE -->
+
+    <div class="merge-browse-box">
+
+        <div class="merge-browse-title">
+            Browse Departments
+        </div>
+
+        <div
+            id="mergeDepartments"
+            class="merge-departments"
+        >
+            Loading departments...
+        </div>
+
+    </div>
+
+
+    <!-- SEARCH / BROWSE STATUS -->
+
+    <div
+        id="mergeSearchStatus"
+        class="merge-search-status"
+    ></div>
+
+
+    <!-- RESULTS -->
+
+    <div
+        id="mergeResults"
+        class="merge-results"
+        style="display:none;"
+    ></div>
+
+
+    <!-- MANUAL SCHEDULE VIEW -->
+
+    <div
+        id="mergeScheduleView"
+        class="merge-schedule-view"
+        style="display:none;"
+    ></div>
+
+    <div
+    id="mergeProgramSelection"
+    style="display:none;"
+>
+    <label for="mergeProgramSelect">
+        Program to Merge
+    </label>
+
+    <select
+        id="mergeProgramSelect"
+    >
+        <option value="">
+            Select Program
+        </option>
+    </select>
+</div>
+
+</div>
 
             <div class="instruction">
 
@@ -1130,25 +1364,24 @@
 
             <table id="scheduleTable">
 
-              <thead>
+             <thead>
     <tr>
-        <th>TIME</th>
+        <th class="time-header">TIME</th>
 
         <th data-day="MON">MON</th>
-        <th data-day="TUE">TUE</th>
         <th data-day="WED">WED</th>
-        <th data-day="THU">THU</th>
         <th data-day="FRI">FRI</th>
-        <th data-day="SAT">SAT</th>
+
+        <th class="time-header">TIME</th>
+
+        <th data-day="TUE">TUE</th>
+        <th data-day="THU">THU</th>
     </tr>
 </thead>
-
 
                 <tbody id="scheduleBody">
 
                     @php
-
-                     
 
     /*
     |--------------------------------------------------------------------------
@@ -1156,9 +1389,7 @@
     |--------------------------------------------------------------------------
     */
 
-    $chairDepartmentId =
-        auth()->user()->department_id;
-
+    $chairDepartmentId = auth()->user()->department_id;
 
     /*
     |--------------------------------------------------------------------------
@@ -1166,12 +1397,8 @@
     |--------------------------------------------------------------------------
     */
 
-    $drafts =
-        $drafts ?? collect();
-
-    $schedules =
-        $schedules ?? collect();
-
+    $drafts = $drafts ?? collect();
+    $schedules = $schedules ?? collect();
 
     /*
     |--------------------------------------------------------------------------
@@ -1179,9 +1406,7 @@
     |--------------------------------------------------------------------------
     */
 
-    $isEditingDraft =
-        $isEditingDraft ?? false;
-
+    $isEditingDraft = $isEditingDraft ?? false;
 
     /*
     |--------------------------------------------------------------------------
@@ -1189,385 +1414,461 @@
     |--------------------------------------------------------------------------
     */
 
-    if ($isEditingDraft) {
+    $scheduleRows = $isEditingDraft
+        ? $drafts
+        : $schedules;
 
-        $scheduleRows =
-            $drafts;
+    /*
+    |--------------------------------------------------------------------------
+    | DEFAULT TIME ROWS
+    |--------------------------------------------------------------------------
+    |
+    | LEFT  = MWF
+    | RIGHT = TTH
+    |
+    */
 
-    } else {
+    $defaultTimes = [
+        '8:00-9:00',
+        '9:00-10:00',
+        '10:00-11:00',
+        '11:00-12:00',
+        '12:00-1:00',
+        '1:00-2:00',
+        '2:00-3:00',
+        '3:00-4:00',
+        '4:00-5:00',
+    ];
 
-        $scheduleRows =
-            $schedules;
+    /*
+    |--------------------------------------------------------------------------
+    | SCHEDULE MAP
+    |--------------------------------------------------------------------------
+    |
+    | KEY = DAY|TIME
+    |
+    */
 
+    $scheduleMap = [];
+
+    foreach ($scheduleRows as $row) {
+
+        $key =
+            strtoupper(trim($row->day))
+            . '|'
+            . trim($row->time);
+
+        $scheduleMap[$key] = $row;
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | LEFT / RIGHT TIME SLOTS
+    |--------------------------------------------------------------------------
+    |
+    | Both sides start with the same default times.
+    | Existing custom times are also added to the
+    | appropriate side.
+    |
+    */
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | DEFAULT TIMES
-                        |--------------------------------------------------------------------------
-                        */
+   $leftTimes = collect($defaultTimes);
+$rightTimes = collect($defaultTimes);
 
-                        $defaultTimes = [
+/*
+|--------------------------------------------------------------------------
+| Replace default row time with saved edited time
+|--------------------------------------------------------------------------
+| row_position identifies the visual timetable row.
+| This prevents an edited time from becoming a second row.
+*/
 
-                            '8:00-9:00',
-                            '9:00-10:00',
-                            '10:00-11:00',
+foreach ($scheduleRows as $row) {
+    $existingTime = trim($row->time);
 
-                            '12:00-1:00',
+    if ($existingTime === '') {
+        continue;
+    }
 
-                            '1:00-2:00',
-                            '2:00-3:00',
-                            '3:00-4:00',
-                            '4:00-5:00',
+    $position = $row->row_position;
 
-                        ];
+    if ($position === null) {
+        continue;
+    }
 
+    $position = (int) $position;
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | SCHEDULE MAP
-                        |--------------------------------------------------------------------------
-                        */
+    $day = strtoupper(trim($row->day));
 
-                        $scheduleMap = [];
+    if (
+        in_array($day, ['MON', 'WED', 'FRI'])
+        &&
+        isset($leftTimes[$position])
+    ) {
+        $leftTimes[$position] = $existingTime;
+    }
 
+    if (
+        in_array($day, ['TUE', 'THU'])
+        &&
+        isset($rightTimes[$position])
+    ) {
+        $rightTimes[$position] = $existingTime;
+    }
+}
+/*
+|--------------------------------------------------------------------------
+| SORT TIME SLOTS
+|--------------------------------------------------------------------------
+|
+| This prevents custom times from always appearing
+| at the bottom.
+|
+*/
 
-                        foreach (
-                            $scheduleRows
-                            as $row
-                        ) {
+$sortTime = function ($time) {
+    $start = trim(explode('-', $time)[0]);
 
-                            $key =
-                                strtoupper(
-                                    trim(
-                                        $row->day
-                                    )
-                                )
-                                . '|'
-                                .
-                                trim(
-                                    $row->time
-                                );
+    if (!preg_match('/^(\d{1,2}):(\d{2})$/', $start, $matches)) {
+        return 9999;
+    }
 
+    $hour = (int) $matches[1];
+    $minute = (int) $matches[2];
 
-                            $scheduleMap[$key] =
-                                $row;
+    // Treat 1:00-5:00 as afternoon times
+    if ($hour >= 1 && $hour <= 5) {
+        $hour += 12;
+    }
 
-                        }
+    return ($hour * 60) + $minute;
+};
 
+$leftTimes = $leftTimes
+    ->unique()
+    ->sortBy($sortTime)
+    ->values();
 
-                        /*
-                        |--------------------------------------------------------------------------
-                        | TIME SLOTS
-                        |--------------------------------------------------------------------------
-                        */
+$rightTimes = $rightTimes
+    ->unique()
+    ->sortBy($sortTime)
+    ->values();
 
-                        $timeSlots =
-                            collect(
-                                $defaultTimes
-                            );
+    /*
+    |--------------------------------------------------------------------------
+    | MAKE ROW COUNT THE SAME
+    |--------------------------------------------------------------------------
+    */
 
+    $rowCount = max(
+        $leftTimes->count(),
+        $rightTimes->count()
+    );
 
-                        foreach (
-                            $scheduleRows
-                            as $row
-                        ) {
-
-                            $existingTime =
-                                trim(
-                                    $row->time
-                                );
-
-
-                            if (
-                                $existingTime !== ''
-                                &&
-                                !$timeSlots->contains(
-                                    $existingTime
-                                )
-                            ) {
-
-                                $timeSlots->push(
-                                    $existingTime
-                                );
-
-                            }
-
-                        }
-
-                    @endphp
-
-
-                    @foreach(
-                        $timeSlots as $time
-                    )
-
-
-                        @if(
-                            $time ===
-                            '12:00-1:00'
-                        )
-
-                            <tr class="break-row">
-
-                                <td colspan="7">
-                                    N O O N
-                                    &nbsp;&nbsp;
-                                    B R E A K
-                                </td>
-
-                            </tr>
-
-                            @continue
-
-                        @endif
+@endphp
 
 
-                        <tr>
+@for($i = 0; $i < $rowCount; $i++)
+
+    @php
+
+        $leftTime =
+            $leftTimes[$i] ?? '';
+
+        $rightTime =
+            $rightTimes[$i] ?? '';
+
+    @endphp
 
 
-                            <!-- TIME -->
+    {{-- =========================================================
+         NOON BREAK
+         ========================================================= --}}
 
-                            <td
-                                class="time-cell"
-                                contenteditable="true"
-                                spellcheck="false"
-                            >
-                                {{ $time }}
-                            </td>
-
-
-                            <!-- DAYS -->
-
-                           @foreach(
-    [
-        'MON',
-        'TUE',
-        'WED',
-        'THU',
-        'FRI',
-        'SAT'
-    ] as $day
+   @if(
+    $leftTime === '12:00-1:00'
+    &&
+    $rightTime === '12:00-1:00'
 )
-
-
-                                @php
-
-                                    $key =
-                                        $day .
-                                        '|' .
-                                        trim(
-                                            $time
-                                        );
-
-
-                                    $schedule =
-                                        $scheduleMap[$key]
-                                        ?? null;
-
-
-                                    /*
-                                    |--------------------------------------------------------------------------
-                                    | OWNERSHIP
-                                    |--------------------------------------------------------------------------
-                                    */
-
-                                    $isLocked =
-                                        $schedule
-                                        &&
-                                        isset(
-                                            $schedule->department_id
-                                        )
-                                        &&
-                                        (int)
-                                        $schedule->department_id
-                                        !==
-                                        (int)
-                                        $chairDepartmentId;
-
-                                @endphp
-
-
-                                <td
-
-                                    class="
-                                        schedule-cell
-                                        {{
-                                            $isLocked
-                                                ? 'locked-cell'
-                                                : ''
-                                        }}
-                                    "
-
-                                    data-course="{{
-                                        $schedule
-                                            ? $schedule->course_code
-                                            : ''
-                                    }}"
-
-                                    data-subject="{{
-                                        $schedule
-                                            ? $schedule->subject
-                                            : ''
-                                    }}"
-
-                                    data-year="{{
-                                        $schedule
-                                            ? (
-                                                $schedule->year_level
-                                                ?? ''
-                                            )
-                                            : ''
-                                    }}"
-
-                                    data-major="{{
-                                     $schedule
-                                             ? (
-                                                $schedule->major
-                                                 ?? ''
-                                              )
-                                         : ''
-                                    }}"
-
-                                    data-instructor="{{
-                                        $schedule
-                                            ? $schedule->instructor
-                                            : ''
-                                    }}"
-
-                                    data-faculty-id="{{
-                                        $schedule
-                                            ? (
-                                                $schedule->faculty_id
-                                                ?? ''
-                                            )
-                                            : ''
-                                    }}"
-
-                                    data-department-id="{{
-                                        $schedule
-                                            ? (
-                                                $schedule->department_id
-                                                ?? ''
-                                            )
-                                            : ''
-                                    }}"
-
-                                    data-description="{{
-                                        $schedule
-                                            ? (
-                                                $schedule->description
-                                                ?? ''
-                                            )
-                                            : ''
-                                    }}"
-
-                                    data-color="{{
-                                        $schedule
-                                            ? (
-                                                $schedule->color
-                                                ?? '#ffffff'
-                                            )
-                                            : '#ffffff'
-                                    }}"
-
-                                    data-locked="{{
-                                        $isLocked
-                                            ? '1'
-                                            : '0'
-                                    }}"
-
-                                    data-subject-type="{{
-    $schedule
-        ? ($schedule->subject_type ?? '')
-        : ''
-}}"
-
-                                    style="
-                                        background-color:
-                                        {{
-                                            $schedule
-                                                ? (
-                                                    $schedule->color
-                                                    ?? '#ffffff'
-                                                )
-                                                : '#ffffff'
-                                        }};
-                                    "
-                                >
-
-
-                                    @if($schedule)
-
-                                        <div class="cell-course">
-
-                                            {{
-                                                $schedule->course_code
-                                            }}
-
-                                        </div>
-
-
-                                        <div class="cell-subject">
-
-                                            {{
-                                                $schedule->subject
-                                            }}
-
-                                        </div>
-
-
-                                        <div class="cell-instructor">
-
-                                            {{
-                                                $schedule->instructor
-                                            }}
-
-                                        </div>
-
-
-                                        <div class="cell-year">
-
-                                            {{
-                                                $schedule->year_level
-                                                ?? ''
-                                            }}
-
-                                        </div>
-
-                                    @if($schedule && $schedule->subject_type)
-    <div class="cell-subject-type">
-        {{ $schedule->subject_type }}
-    </div>
+    <tr class="break-row">
+        <td colspan="7">
+            N O O N
+            &nbsp;&nbsp;
+            B R E A K
+        </td>
+    </tr>
+    @continue
 @endif
 
-                                        @if($isLocked)
 
-                                            <div class="locked-label">
-                                                🔒 LOCKED
-                                            </div>
+    <tr>
 
-                                        @endif
+        {{-- =====================================================
+             LEFT TIME — MWF
+             ===================================================== --}}
 
-
-                                    @else
-
-                                        <span class="empty-cell">
-                                            Empty
-                                        </span>
-
-                                    @endif
+       <td class="time-cell editable-time" contenteditable="true" spellcheck="false">
+         {{ $leftTime }}
+       </td>
 
 
-                                </td>
+        {{-- =====================================================
+             MON
+             ===================================================== --}}
 
-                            @endforeach
+        @foreach(['MON', 'WED', 'FRI'] as $day)
+
+            @php
+
+                $key =
+                    $day
+                    . '|'
+                    . trim($leftTime);
+
+                $schedule =
+                    $scheduleMap[$key]
+                    ?? null;
+
+                $isLocked =
+                    $schedule
+                    &&
+                    isset($schedule->department_id)
+                    &&
+                    (int) $schedule->department_id
+                    !==
+                    (int) $chairDepartmentId;
+
+            @endphp
 
 
-                        </tr>
+            <td
+                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }}"
 
-                    @endforeach
+                data-schedule-id="{{ $schedule ? $schedule->id : '' }}"
+
+                data-day="{{ $day }}"
+
+                data-time="{{ $leftTime }}"
+
+                data-row-position="{{ $schedule ? $schedule->row_position : '' }}"
+
+                data-course="{{ $schedule ? $schedule->course_code : '' }}"
+
+                data-subject="{{ $schedule ? $schedule->subject : '' }}"
+
+                data-year="{{ $schedule ? ($schedule->year_level ?? '') : '' }}"
+
+                data-major="{{ $schedule ? ($schedule->major ?? '') : '' }}"
+
+                data-program="{{ $schedule ? ($schedule->program ?? '') : '' }}"
+
+                data-instructor="{{ $schedule ? $schedule->instructor : '' }}"
+
+                data-faculty-id="{{ $schedule ? ($schedule->faculty_id ?? '') : '' }}"
+
+                data-department-id="{{ $schedule ? ($schedule->department_id ?? '') : '' }}"
+
+                data-color="{{ $schedule ? ($schedule->color ?? '#ffffff') : '#ffffff' }}"
+
+                data-locked="{{ $isLocked ? '1' : '0' }}"
+
+                data-subject-type="{{ $schedule ? ($schedule->subject_type ?? '') : '' }}"
+
+                style="
+                    background-color:
+                    {{ $schedule ? ($schedule->color ?? '#ffffff') : '#ffffff' }};
+                "
+            >
+
+                @if($schedule)
+
+                    <div class="cell-course">
+                        {{ $schedule->course_code }}
+                    </div>
+
+                    <div class="cell-subject">
+                        {{ $schedule->subject }}
+                    </div>
+
+                    <div class="cell-instructor">
+                        {{ $schedule->instructor }}
+                    </div>
+
+                    <div class="cell-year">
+                        {{ $schedule->year_level ?? '' }}
+                    </div>
+
+                    @if($schedule->major)
+                        <div class="cell-major">
+                            {{ $schedule->major }}
+                        </div>
+                    @endif
+
+                    @if($schedule->program)
+                        <div class="cell-program">
+                            {{ $schedule->program }}
+                        </div>
+                    @endif
+
+                    @if($schedule->subject_type)
+                        <div class="cell-subject-type">
+                            {{ $schedule->subject_type }}
+                        </div>
+                    @endif
+
+                    @if($isLocked)
+                        <div class="locked-label">
+                            🔒 LOCKED
+                        </div>
+                    @endif
+
+                @else
+
+                    <span class="empty-cell">
+                        Empty
+                    </span>
+
+                @endif
+
+            </td>
+
+        @endforeach
+
+
+        {{-- =====================================================
+             RIGHT TIME — TTH
+             ===================================================== --}}
+
+        <td class="time-cell editable-time" contenteditable="true" spellcheck="false">
+        {{ $rightTime }}
+        </td>
+
+
+        {{-- =====================================================
+             TUE / THU
+             ===================================================== --}}
+
+        @foreach(['TUE', 'THU'] as $day)
+
+            @php
+
+                $key =
+                    $day
+                    . '|'
+                    . trim($rightTime);
+
+                $schedule =
+                    $scheduleMap[$key]
+                    ?? null;
+
+                $isLocked =
+                    $schedule
+                    &&
+                    isset($schedule->department_id)
+                    &&
+                    (int) $schedule->department_id
+                    !==
+                    (int) $chairDepartmentId;
+
+            @endphp
+
+
+            <td
+                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }}"
+
+                data-schedule-id="{{ $schedule ? $schedule->id : '' }}"
+
+                data-day="{{ $day }}"
+
+                data-time="{{ $rightTime }}"
+
+                data-row-position="{{ $schedule ? $schedule->row_position : '' }}"
+
+                data-course="{{ $schedule ? $schedule->course_code : '' }}"
+
+                data-subject="{{ $schedule ? $schedule->subject : '' }}"
+
+                data-year="{{ $schedule ? ($schedule->year_level ?? '') : '' }}"
+
+                data-major="{{ $schedule ? ($schedule->major ?? '') : '' }}"
+
+                data-program="{{ $schedule ? ($schedule->program ?? '') : '' }}"
+
+                data-instructor="{{ $schedule ? $schedule->instructor : '' }}"
+
+                data-faculty-id="{{ $schedule ? ($schedule->faculty_id ?? '') : '' }}"
+
+                data-department-id="{{ $schedule ? ($schedule->department_id ?? '') : '' }}"
+
+                data-color="{{ $schedule ? ($schedule->color ?? '#ffffff') : '#ffffff' }}"
+
+                data-locked="{{ $isLocked ? '1' : '0' }}"
+
+                data-subject-type="{{ $schedule ? ($schedule->subject_type ?? '') : '' }}"
+
+                style="
+                    background-color:
+                    {{ $schedule ? ($schedule->color ?? '#ffffff') : '#ffffff' }};
+                "
+            >
+
+                @if($schedule)
+
+                    <div class="cell-course">
+                        {{ $schedule->course_code }}
+                    </div>
+
+                    <div class="cell-subject">
+                        {{ $schedule->subject }}
+                    </div>
+
+                    <div class="cell-instructor">
+                        {{ $schedule->instructor }}
+                    </div>
+
+                    <div class="cell-year">
+                        {{ $schedule->year_level ?? '' }}
+                    </div>
+
+                    @if($schedule->major)
+                        <div class="cell-major">
+                            {{ $schedule->major }}
+                        </div>
+                    @endif
+
+                    @if($schedule->program)
+                        <div class="cell-program">
+                            {{ $schedule->program }}
+                        </div>
+                    @endif
+
+                    @if($schedule->subject_type)
+                        <div class="cell-subject-type">
+                            {{ $schedule->subject_type }}
+                        </div>
+                    @endif
+
+                    @if($isLocked)
+                        <div class="locked-label">
+                            🔒 LOCKED
+                        </div>
+                    @endif
+
+                @else
+
+                    <span class="empty-cell">
+                        Empty
+                    </span>
+
+                @endif
+
+            </td>
+
+        @endforeach
+
+    </tr>
+
+@endfor
 
 
                 </tbody>
@@ -1731,22 +2032,20 @@
             'year_level'
         );
 
+    const majorInput =
+        document.getElementById(
+            'major'
+        );
+
+    const programInput =
+        document.getElementById(
+            'program'
+        );
 
     const instructorInput =
         document.getElementById(
             'instructor'
         );
-
-
-    const descriptionInput =
-        document.getElementById(
-            'description'
-        );
-
-        const majorInput =
-    document.getElementById(
-        'major'
-    );
 
 
     const colorInput =
@@ -1922,6 +2221,9 @@
                 majorInput.value =
     '';
 
+     programInput.value =
+    '';
+
             subjectTypeInput.value = 
                 '';
 
@@ -1994,7 +2296,10 @@ subjectTypeInput.value =
                 match.instructor;
 
             majorInput.value =
-    match.major || '';
+                match.major || '';
+
+            programInput.value =
+                match.program || '';
 
             showSuccess(
 
@@ -2102,8 +2407,8 @@ subjectTypeInput.value =
     cell.dataset.major || '';
     
 
-        descriptionInput.value =
-            cell.dataset.description || '';
+        programInput.value =
+            cell.dataset.program || '';
 
  
             subjectTypeInput.value =
@@ -2163,67 +2468,71 @@ subjectTypeInput.value =
     |--------------------------------------------------------------------------
     */
 
-    function attachCellEvents()
-    {
+   function attachCellEvents()
+{
 
-        document
-            .querySelectorAll(
-                '#scheduleTable .schedule-cell'
-            )
-            .forEach(
-                function(cell)
-                {
+    document
+        .querySelectorAll(
+            '#scheduleTable .schedule-cell'
+        )
+        .forEach(
+            function(cell)
+            {
 
-                    cell.onclick =
-                        function()
-                        {
+                cell.onclick =
+                    function()
+                    {
 
-                            selectCell(
-                                this
-                            );
+                        // Do nothing if the cell is locked
+                        if (
+                            this.classList.contains(
+                                'locked-cell'
+                            )
+                        ) {
+                            return;
+                        }
 
-                        };
+                        // Toggle selection
+                        this.classList.toggle(
+                            'selected-cell'
+                        );
 
-                }
-            );
+                    };
 
-    }
+            }
+        );
+
+}
 
 
     attachCellEvents();
 
 
     /*
-    |--------------------------------------------------------------------------
-    | SAVE CELL
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| SAVE CELL
+|--------------------------------------------------------------------------
+*/
 
-    function saveCell()
+function saveCell()
 {
-    if (!selectedCell) {
-
-        alert(
-            'Please select a schedule cell first.'
+    const selectedCells =
+        Array.from(
+            document.querySelectorAll(
+                '#scheduleTable .schedule-cell.selected-cell'
+            )
         );
-
-        return;
-    }
-
 
     /*
     |--------------------------------------------------------------------------
-    | CHECK LOCKED CELL
+    | CHECK SELECTION
     |--------------------------------------------------------------------------
     */
 
-    if (
-        selectedCell.dataset.locked ===
-        '1'
-    ) {
+    if (selectedCells.length === 0) {
 
         alert(
-            'This schedule belongs to another department and is locked.'
+            'Please select at least one schedule cell first.'
         );
 
         return;
@@ -2242,30 +2551,9 @@ subjectTypeInput.value =
             .toUpperCase();
 
 
-    const description =
-        descriptionInput.value
-            .trim();
-
-
     const color =
         colorInput.value;
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | OPTIONAL SUBJECT TYPE
-    |--------------------------------------------------------------------------
-    |
-    | Major
-    | Non-major
-    | Blank
-    |
-    */
-
-  const subjectType =
-    course.includes('.')
-        ? 'Lab'
-        : 'Lec';
 
     /*
     |--------------------------------------------------------------------------
@@ -2327,136 +2615,199 @@ subjectTypeInput.value =
 
     /*
     |--------------------------------------------------------------------------
-    | SAVE DATA TO CELL
+    | SUBJECT TYPE
     |--------------------------------------------------------------------------
     */
 
-    selectedCell.dataset.course =
-        match.course_code;
-
-
-    selectedCell.dataset.subject =
-        match.subject;
-
-
-    selectedCell.dataset.year =
-        match.year_level;
-
-selectedCell.dataset.major =
-    match.major || '';
-     
-    selectedCell.dataset.instructor =
-        match.instructor;
-
-
-    selectedCell.dataset.facultyId =
-        match.faculty_id ||
-        '';
-
-
-    selectedCell.dataset.departmentId =
-        chairDepartmentId;
-
-
-    selectedCell.dataset.description =
-        description;
-
-
-    selectedCell.dataset.color =
-        color;
+    const subjectType =
+        course.includes('.')
+            ? 'Lab'
+            : 'Lec';
 
 
     /*
     |--------------------------------------------------------------------------
-    | SAVE MAJOR / NON-MAJOR
+    | CHECK LOCKED CELLS
     |--------------------------------------------------------------------------
     */
 
-    selectedCell.dataset.subjectType =
-        subjectType;
+    const lockedCells =
+        selectedCells.filter(
+            cell =>
+                cell.dataset.locked === '1'
+        );
+
+
+    if (lockedCells.length > 0) {
+
+        alert(
+            'One or more selected cells belong to another department and are locked.'
+        );
+
+        return;
+    }
 
 
     /*
     |--------------------------------------------------------------------------
-    | MARK AS EDITABLE
+    | APPLY COURSE TO ALL SELECTED CELLS
     |--------------------------------------------------------------------------
     */
 
-    selectedCell.dataset.locked =
-        '0';
+    selectedCells.forEach(
+        function(cell)
+        {
+
+            /*
+            |------------------------------------------------------------------
+            | SAVE DATA TO CELL
+            |------------------------------------------------------------------
+            */
+
+            cell.dataset.course =
+                match.course_code;
+
+            cell.dataset.subject =
+                match.subject;
+
+            cell.dataset.year =
+                match.year_level;
+
+            cell.dataset.major =
+                match.major || '';
+
+            cell.dataset.program =
+                match.program || '';
+
+            cell.dataset.instructor =
+                match.instructor;
+
+            /*
+            | Keep existing schedule ID.
+            | New schedules remain blank until saved.
+            */
+
+            cell.dataset.scheduleId =
+                cell.dataset.scheduleId || '';
+
+            cell.dataset.facultyId =
+                match.faculty_id || '';
+
+            cell.dataset.departmentId =
+                chairDepartmentId;
+
+            cell.dataset.color =
+                color;
+
+            cell.dataset.subjectType =
+                subjectType;
+
+            cell.dataset.locked =
+                '0';
 
 
-    selectedCell.classList.remove(
-        'locked-cell'
+            /*
+            |------------------------------------------------------------------
+            | REMOVE LOCKED STATUS
+            |------------------------------------------------------------------
+            */
+
+            cell.classList.remove(
+                'locked-cell'
+            );
+
+
+            /*
+            |------------------------------------------------------------------
+            | DISPLAY
+            |------------------------------------------------------------------
+            */
+
+            let subjectTypeDisplay = '';
+
+
+            if (subjectType) {
+
+                subjectTypeDisplay =
+
+                    '<div class="cell-subject-type">' +
+
+                    escapeHtml(
+                        subjectType
+                    ) +
+
+                    '</div>';
+            }
+
+
+            cell.innerHTML =
+
+                '<div class="cell-course">' +
+                escapeHtml(
+                    match.course_code
+                ) +
+                '</div>' +
+
+                '<div class="cell-subject">' +
+                escapeHtml(
+                    match.subject
+                ) +
+                '</div>' +
+
+                '<div class="cell-instructor">' +
+                escapeHtml(
+                    match.instructor
+                ) +
+                '</div>' +
+
+                '<div class="cell-year">' +
+                escapeHtml(
+                    match.year_level
+                ) +
+                '</div>' +
+
+                '<div class="cell-major">' +
+                escapeHtml(
+                    match.major || ''
+                ) +
+                '</div>' +
+
+                '<div class="cell-program">' +
+                escapeHtml(
+                    match.program || ''
+                ) +
+                '</div>' +
+
+                subjectTypeDisplay;
+
+
+            /*
+            |------------------------------------------------------------------
+            | BACKGROUND COLOR
+            |------------------------------------------------------------------
+            */
+
+            cell.style.backgroundColor =
+                color;
+
+        }
     );
 
 
     /*
     |--------------------------------------------------------------------------
-    | DISPLAY
+    | CLEAR SELECTION
     |--------------------------------------------------------------------------
     */
 
-    let subjectTypeDisplay = '';
-
-
-    if (subjectType) {
-
-        subjectTypeDisplay =
-
-            '<div class="cell-subject-type">' +
-
-            escapeHtml(
-                subjectType
-            ) +
-
-            '</div>';
-    }
-
-
-    selectedCell.innerHTML =
-
-        '<div class="cell-course">' +
-        escapeHtml(
-            match.course_code
-        ) +
-        '</div>' +
-
-        '<div class="cell-subject">' +
-        escapeHtml(
-            match.subject
-        ) +
-        '</div>' +
-
-        '<div class="cell-instructor">' +
-        escapeHtml(
-            match.instructor
-        ) +
-        '</div>' +
-
-        '<div class="cell-year">' +
-        escapeHtml(
-            match.year_level
-        ) +
-        '</div>' +
-
-         '<div class="cell-major">' +
-    escapeHtml(
-        match.major || ''
-    ) +
-    '</div>' +
-
-        subjectTypeDisplay;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | BACKGROUND COLOR
-    |--------------------------------------------------------------------------
-    */
-
-    selectedCell.style.backgroundColor =
-        color;
+    selectedCells.forEach(
+        function(cell)
+        {
+            cell.classList.remove(
+                'selected-cell'
+            );
+        }
+    );
 
 
     /*
@@ -2477,122 +2828,170 @@ selectedCell.dataset.major =
     );
 }
     /*
-    |--------------------------------------------------------------------------
-    | CLEAR CELL
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| CLEAR CELL
+|--------------------------------------------------------------------------
+*/
 
-    function clearCell()
-    {
+function clearCell()
+{
 
-        if (!selectedCell) {
-
-            alert(
-                'Please select a schedule cell first.'
-            );
-
-            return;
-
-        }
-
-
-        if (
-            selectedCell.dataset.locked ===
-            '1'
-        ) {
-
-            alert(
-                'This schedule belongs to another department and is locked.'
-            );
-
-            return;
-
-        }
-
-
-        selectedCell.dataset.course =
-            '';
-
-
-        selectedCell.dataset.subject =
-            '';
-
-        selectedCell.dataset.subjectType =
-             '';
-
-         subjectTypeInput.value =
-              '';
-
-        selectedCell.dataset.year =
-            '';
-
-        selectedCell.dataset.major =
-         '';
-
-
-        selectedCell.dataset.instructor =
-            '';
-
-
-        selectedCell.dataset.facultyId =
-            '';
-
-
-        selectedCell.dataset.departmentId =
-            '';
-
-
-        selectedCell.dataset.description =
-            '';
-
-
-        selectedCell.dataset.color =
-            '#ffffff';
-
-
-        selectedCell.dataset.locked =
-            '0';
-
-
-        selectedCell.classList.remove(
-            'locked-cell'
+    const selectedCells =
+        Array.from(
+            document.querySelectorAll(
+                '#scheduleTable .schedule-cell.selected-cell'
+            )
         );
 
 
-        selectedCell.style.backgroundColor =
-            '#ffffff';
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK SELECTION
+    |--------------------------------------------------------------------------
+    */
 
+    if (selectedCells.length === 0) {
 
-        selectedCell.innerHTML =
-            '<span class="empty-cell">Empty</span>';
+        alert(
+            'Please select a schedule cell first.'
+        );
 
-
-        courseCodeInput.value =
-            '';
-
-        subjectInput.value =
-            '';
-
-        yearLevelInput.value =
-            '';
-
-        majorInput.value =
-    '';
-
-        instructorInput.value =
-            '';
-
-        descriptionInput.value =
-            '';
-
-        colorInput.value =
-            '#ffffff';
-
-
-        clearStatus();
-
+        return;
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK LOCKED CELLS
+    |--------------------------------------------------------------------------
+    */
+
+    const lockedCells =
+        selectedCells.filter(
+            cell =>
+                cell.dataset.locked === '1'
+        );
+
+
+    if (lockedCells.length > 0) {
+
+        alert(
+            'One or more selected cells belong to another department and are locked.'
+        );
+
+        return;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CLEAR ALL SELECTED CELLS
+    |--------------------------------------------------------------------------
+    */
+
+    selectedCells.forEach(
+        function(cell)
+        {
+
+            cell.dataset.course =
+                '';
+
+            cell.dataset.subject =
+                '';
+
+            cell.dataset.subjectType =
+                '';
+
+            cell.dataset.year =
+                '';
+
+            cell.dataset.major =
+                '';
+
+            cell.dataset.instructor =
+                '';
+
+            cell.dataset.facultyId =
+                '';
+
+            cell.dataset.departmentId =
+                '';
+
+            cell.dataset.program =
+                '';
+
+            cell.dataset.color =
+                '#ffffff';
+
+            cell.dataset.locked =
+                '0';
+
+
+            cell.classList.remove(
+                'locked-cell'
+            );
+
+
+            cell.style.backgroundColor =
+                '#ffffff';
+
+
+            cell.innerHTML =
+                '<span class="empty-cell">Empty</span>';
+
+
+            /*
+            | Remove selection highlight
+            */
+
+            cell.classList.remove(
+                'selected-cell'
+            );
+
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CLEAR INPUT FIELDS
+    |--------------------------------------------------------------------------
+    */
+
+    courseCodeInput.value =
+        '';
+
+    subjectInput.value =
+        '';
+
+    subjectTypeInput.value =
+        '';
+
+    yearLevelInput.value =
+        '';
+
+    majorInput.value =
+        '';
+
+    instructorInput.value =
+        '';
+
+    programInput.value =
+        '';
+
+    colorInput.value =
+        '#ffffff';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CLEAR STATUS
+    |--------------------------------------------------------------------------
+    */
+
+    clearStatus();
+
+}
 
     /*
     |--------------------------------------------------------------------------
@@ -2639,152 +3038,174 @@ selectedCell.dataset.major =
     |--------------------------------------------------------------------------
     */
 
-    function addRow()
-    {
-
-        const tbody =
-            document.getElementById(
-                'scheduleBody'
-            );
+   function addRow()
+{
+    const tbody =
+        document.getElementById('scheduleBody');
 
 
-        const row =
-            document.createElement(
-                'tr'
-            );
+    const row =
+        document.createElement('tr');
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | TIME
-        |--------------------------------------------------------------------------
-        */
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE TIME CELL
+    |--------------------------------------------------------------------------
+    */
 
-        const timeCell =
-            document.createElement(
-                'td'
-            );
+    function createTimeCell()
+{
+    const timeCell =
+        document.createElement('td');
 
-
-        timeCell.className =
-            'time-cell';
-
+    timeCell.className =
+        'time-cell editable-time';
 
         timeCell.contentEditable =
             'true';
 
-
         timeCell.spellcheck =
             false;
-
 
         timeCell.textContent =
             'New Time';
 
-
-        row.appendChild(
-            timeCell
-        );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DAYS
-        |--------------------------------------------------------------------------
-        */
-
-       const dayCount =
-    document.querySelectorAll(
-        '#scheduleTable thead th[data-day]'
-    ).length;
-
-for (
-    let i = 0;
-    i < dayCount;
-    i++
-        ) {
-
-            const cell =
-                document.createElement(
-                    'td'
-                );
-
-
-            cell.className =
-                'schedule-cell';
-
-
-            cell.dataset.course =
-                '';
-
-
-            cell.dataset.subject =
-                '';
-
-
-            cell.dataset.year =
-                '';
-
-            cell.dataset.major =
-                '';
-
-            cell.dataset.instructor =
-                '';
-
-
-            cell.dataset.facultyId =
-                '';
-
-
-            cell.dataset.departmentId =
-                chairDepartmentId;
-
-
-            cell.dataset.description =
-                '';
-
-
-            cell.dataset.color =
-                '#ffffff';
-
-
-                cell.dataset.subjectType = '';
-
-            cell.dataset.locked =
-                '0';
-
-
-            cell.innerHTML =
-                '<span class="empty-cell">Empty</span>';
-
-
-            row.appendChild(
-                cell
-            );
-
-        }
-
-
-        tbody.appendChild(
-            row
-        );
-
-
-        attachCellEvents();
-
-
-        row.scrollIntoView({
-
-            behavior:
-                'smooth',
-
-            block:
-                'center'
-
-        });
-
+        return timeCell;
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE SCHEDULE CELL
+    |--------------------------------------------------------------------------
+    */
+
+    function createScheduleCell()
+    {
+        const cell =
+            document.createElement('td');
+
+        cell.className =
+            'schedule-cell';
+
+        cell.dataset.course =
+            '';
+
+        cell.dataset.subject =
+            '';
+
+        cell.dataset.year =
+            '';
+
+        cell.dataset.major =
+            '';
+
+        cell.dataset.program =
+            '';
+
+        cell.dataset.instructor =
+            '';
+
+        cell.dataset.facultyId =
+            '';
+
+        cell.dataset.departmentId =
+            chairDepartmentId;
+
+        cell.dataset.color =
+            '#ffffff';
+
+        cell.dataset.subjectType =
+            '';
+
+        cell.dataset.locked =
+            '0';
+
+        cell.innerHTML =
+            '<span class="empty-cell">Empty</span>';
+
+        return cell;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | LEFT SIDE
+    | TIME + MON + WED + FRI
+    |--------------------------------------------------------------------------
+    */
+
+    row.appendChild(
+        createTimeCell()
+    );
+
+    row.appendChild(
+        createScheduleCell()
+    );
+
+    row.appendChild(
+        createScheduleCell()
+    );
+
+    row.appendChild(
+        createScheduleCell()
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RIGHT SIDE
+    | TIME + TUE + THU
+    |--------------------------------------------------------------------------
+    */
+
+    row.appendChild(
+        createTimeCell()
+    );
+
+    row.appendChild(
+        createScheduleCell()
+    );
+
+    row.appendChild(
+        createScheduleCell()
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ADD ROW
+    |--------------------------------------------------------------------------
+    */
+
+    tbody.appendChild(row);
+
+
+ /*
+|--------------------------------------------------------------------------
+| ATTACH CELL EVENTS
+|--------------------------------------------------------------------------
+*/
+
+attachCellEvents();
+
+
+
+attachTimeCellEvents();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SCROLL TO NEW ROW
+    |--------------------------------------------------------------------------
+    */
+
+    row.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+    });
+}
 
     document
         .getElementById(
@@ -2828,7 +3249,7 @@ for (
     |--------------------------------------------------------------------------
     */
 
-   function prepareSchedule()
+  function prepareSchedule()
 {
     const hidden =
         document.getElementById(
@@ -2864,7 +3285,7 @@ for (
 
     /*
     |--------------------------------------------------------------------------
-    | SEND SEMESTER AS TOP-LEVEL FIELD
+    | SEND SEMESTER
     |--------------------------------------------------------------------------
     */
 
@@ -2889,7 +3310,7 @@ for (
 
     /*
     |--------------------------------------------------------------------------
-    | SEND ACADEMIC YEAR AS TOP-LEVEL FIELD
+    | SEND ACADEMIC YEAR
     |--------------------------------------------------------------------------
     */
 
@@ -2926,88 +3347,21 @@ for (
 
     /*
     |--------------------------------------------------------------------------
-    | GET DAY COLUMNS FROM TABLE
-    |--------------------------------------------------------------------------
+    | COLUMN DEFINITIONS
+    |-------------------------------------------------------------------------- 
     */
 
-    const headerRow =
-        document.querySelector(
-            '#scheduleTable thead tr'
-        );
+    const leftDays = [
+        'MON',
+        'WED',
+        'FRI'
+    ];
 
+    const rightDays = [
+        'TUE',
+        'THU'
+    ];
 
-    if (!headerRow) {
-        return 0;
-    }
-
-
-    const dayHeaders =
-        headerRow.querySelectorAll(
-            'th[data-day]'
-        );
-
-
-    const days = [];
-
-
-    dayHeaders.forEach(
-        function(header)
-        {
-
-            const day =
-                (
-                    header.dataset.day ||
-                    header.innerText ||
-                    ''
-                )
-                .trim()
-                .toUpperCase();
-
-
-            if (day) {
-
-                days.push(
-                    day
-                );
-
-            }
-
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | FALLBACK DAYS
-    |--------------------------------------------------------------------------
-    */
-
-    if (days.length === 0) {
-
-        const fallbackDays = [
-            'MON',
-            'TUE',
-            'WED',
-            'THU',
-            'FRI'
-        ];
-
-
-        fallbackDays.forEach(
-            function(day)
-            {
-                days.push(day);
-            }
-        );
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | COUNTER
-    |--------------------------------------------------------------------------
-    */
 
     let counter = 0;
 
@@ -3024,7 +3378,7 @@ for (
 
             /*
             |--------------------------------------------------------------------------
-            | SKIP BREAK
+            | SKIP NOON BREAK
             |--------------------------------------------------------------------------
             */
 
@@ -3039,218 +3393,418 @@ for (
 
             /*
             |--------------------------------------------------------------------------
-            | TIME CELL
+            | LEFT TIME
             |--------------------------------------------------------------------------
             */
 
-            const timeCell =
+            const leftTimeCell =
                 row.cells[0];
-
-
-            if (!timeCell) {
-                return;
-            }
-
-
-            const time =
-                timeCell.innerText
-                    .trim();
-
-
-            if (!time) {
-                return;
-            }
 
 
             /*
             |--------------------------------------------------------------------------
-            | PROCESS DAY CELLS
+            | RIGHT TIME
             |--------------------------------------------------------------------------
             */
 
-            for (
-                let j = 0;
-                j < days.length;
-                j++
-            ) {
-
-                const cell =
-                    row.cells[j + 1];
+            const rightTimeCell =
+                row.cells[4];
 
 
-                if (!cell) {
-                    continue;
-                }
+            const leftTime =
+                leftTimeCell
+                    ? leftTimeCell.innerText.trim()
+                    : '';
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | NEVER SUBMIT LOCKED CELLS
-                |--------------------------------------------------------------------------
-                */
-
-                if (
-                    cell.dataset.locked ===
-                    '1'
-                ) {
-                    continue;
-                }
+            const rightTime =
+                rightTimeCell
+                    ? rightTimeCell.innerText.trim()
+                    : '';
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | GET COURSE
-                |--------------------------------------------------------------------------
-                */
+            /*
+            |--------------------------------------------------------------------------
+            | PROCESS LEFT SIDE
+            | MON / WED / FRI
+            |--------------------------------------------------------------------------
+            */
 
-                const course =
-                    (
-                        cell.dataset.course ||
-                        ''
-                    )
-                    .trim();
+            leftDays.forEach(
+                function(day, index)
+                {
 
-
-                if (!course) {
-                    continue;
-                }
+                    const cell =
+                        row.cells[index + 1];
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | FIND COURSE
-                |--------------------------------------------------------------------------
-                */
+                    if (!cell) {
+                        return;
+                    }
 
-                const matches =
-                    findCourse(
-                        course
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | LOCKED CELLS ARE NOT SUBMITTED
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (
+                        cell.dataset.locked ===
+                        '1'
+                    ) {
+                        return;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | TIME REQUIRED
+                    |--------------------------------------------------------------------------
+                    */
+
+                    if (!leftTime) {
+                        return;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | COURSE
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const course =
+                        (
+                            cell.dataset.course ||
+                            ''
+                        ).trim();
+
+
+                    if (!course) {
+                        return;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | FIND COURSE
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const matches =
+                        findCourse(course);
+
+
+                    if (
+                        matches.length !== 1
+                    ) {
+                        return;
+                    }
+
+
+                    const match =
+                        matches[0];
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SUBJECT TYPE
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const subjectType =
+                        (
+                            cell.dataset.subjectType ||
+                            ''
+                        ).trim();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SCHEDULE DATA
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const scheduleData = {
+
+                        schedule_id: cell.dataset.scheduleId || '',
+
+                        row_position: Array.from(
+                        document.querySelectorAll('#scheduleBody > tr:not(.break-row)')
+                        ).indexOf(row),
+
+                        day: day,
+
+                        time: leftTime,
+
+                        course_code:
+                            match.course_code,
+
+                        subject:
+                            match.subject,
+
+                        year_level:
+                            match.year_level,
+
+                        major:
+                            match.major || '',
+
+                        program:
+                            match.program || '',
+
+                        instructor:
+                            match.instructor,
+
+                        faculty_id:
+                            match.faculty_id || '',
+
+                        department_id:
+                            chairDepartmentId,
+
+                        subject_type:
+                            subjectType,
+
+                        color:
+                            cell.dataset.color ||
+                            '#ffffff'
+                    };
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | CREATE HIDDEN INPUTS
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Object.keys(
+                        scheduleData
+                    ).forEach(
+                        function(name)
+                        {
+
+                            const input =
+                                document.createElement(
+                                    'input'
+                                );
+
+                            input.type =
+                                'hidden';
+
+                            input.name =
+                                'schedule[' +
+                                counter +
+                                '][' +
+                                name +
+                                ']';
+
+                            input.value =
+                                scheduleData[name];
+
+                            hidden.appendChild(
+                                input
+                            );
+
+                        }
                     );
 
 
-                if (
-                    matches.length !== 1
-                ) {
-                    continue;
+                    counter++;
+
                 }
+            );
 
 
-                const match =
-                    matches[0];
+            /*
+            |--------------------------------------------------------------------------
+            | PROCESS RIGHT SIDE
+            | TUE / THU
+            |--------------------------------------------------------------------------
+            */
+
+            rightDays.forEach(
+                function(day, index)
+                {
+
+                    const cell =
+                        row.cells[index + 5];
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | SUBJECT TYPE
-                |--------------------------------------------------------------------------
-                */
-
-                const subjectType =
-                    (
-                        cell.dataset.subjectType ||
-                        ''
-                    )
-                    .trim();
+                    if (!cell) {
+                        return;
+                    }
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | SCHEDULE DATA
-                |--------------------------------------------------------------------------
-                |
-                | IMPORTANT:
-                | semester and academic_year are NOT
-                | placed here.
-                |
-                */
+                    /*
+                    |--------------------------------------------------------------------------
+                    | LOCKED CELLS ARE NOT SUBMITTED
+                    |--------------------------------------------------------------------------
+                    */
 
-                const scheduleData = {
-
-                    day:
-                        days[j],
-
-                    time:
-                        time,
-
-                    course_code:
-                        match.course_code,
-
-                    subject:
-                        match.subject,
-
-                    year_level:
-                        match.year_level,
-
-                    major: match.major || '',
-
-                    instructor:
-                        match.instructor,
-
-                    faculty_id:
-                        match.faculty_id ||
-                        '',
-
-                    department_id:
-                        chairDepartmentId,
-
-                    subject_type:
-                        subjectType,
-
-                    description:
-                        cell.dataset.description ||
-                        '',
-
-                    color:
-                        cell.dataset.color ||
-                        '#ffffff'
-                };
+                    if (
+                        cell.dataset.locked ===
+                        '1'
+                    ) {
+                        return;
+                    }
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | CREATE SCHEDULE INPUTS
-                |--------------------------------------------------------------------------
-                */
+                    /*
+                    |--------------------------------------------------------------------------
+                    | TIME REQUIRED
+                    |--------------------------------------------------------------------------
+                    */
 
-                Object.keys(
-                    scheduleData
-                ).forEach(
-                    function(name)
-                    {
+                    if (!rightTime) {
+                        return;
+                    }
 
-                        const input =
-                            document.createElement(
-                                'input'
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | COURSE
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const course =
+                        (
+                            cell.dataset.course ||
+                            ''
+                        ).trim();
+
+
+                    if (!course) {
+                        return;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | FIND COURSE
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const matches =
+                        findCourse(course);
+
+
+                    if (
+                        matches.length !== 1
+                    ) {
+                        return;
+                    }
+
+
+                    const match =
+                        matches[0];
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SUBJECT TYPE
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const subjectType =
+                        (
+                            cell.dataset.subjectType ||
+                            ''
+                        ).trim();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SCHEDULE DATA
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const scheduleData = {
+
+                        schedule_id: cell.dataset.scheduleId || '',
+
+                        row_position: Array.from(
+                        document.querySelectorAll('#scheduleBody > tr:not(.break-row)')
+                        ).indexOf(row),
+
+                        day: day,
+
+                        time: rightTime,
+
+                        course_code:
+                            match.course_code,
+
+                        subject:
+                            match.subject,
+
+                        year_level:
+                            match.year_level,
+
+                        major:
+                            match.major || '',
+
+                        program:
+                            match.program || '',
+
+                        instructor:
+                            match.instructor,
+
+                        faculty_id:
+                            match.faculty_id || '',
+
+                        department_id:
+                            chairDepartmentId,
+
+                        subject_type:
+                            subjectType,
+
+                        color:
+                            cell.dataset.color ||
+                            '#ffffff'
+                    };
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | CREATE HIDDEN INPUTS
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Object.keys(
+                        scheduleData
+                    ).forEach(
+                        function(name)
+                        {
+
+                            const input =
+                                document.createElement(
+                                    'input'
+                                );
+
+                            input.type =
+                                'hidden';
+
+                            input.name =
+                                'schedule[' +
+                                counter +
+                                '][' +
+                                name +
+                                ']';
+
+                            input.value =
+                                scheduleData[name];
+
+                            hidden.appendChild(
+                                input
                             );
 
-
-                        input.type =
-                            'hidden';
-
-
-                        input.name =
-                            'schedule[' +
-                            counter +
-                            '][' +
-                            name +
-                            ']';
+                        }
+                    );
 
 
-                        input.value =
-                            scheduleData[name];
+                    counter++;
 
-
-                        hidden.appendChild(
-                            input
-                        );
-
-                    }
-                );
-
-
-                counter++;
-
-            }
+                }
+            );
 
         }
     );
@@ -3258,7 +3812,6 @@ for (
 
     return counter;
 }
-
     /*
     |--------------------------------------------------------------------------
     | FORM SUBMIT
@@ -3328,6 +3881,1337 @@ for (
 
         }
     );
+
+    // =====================================================
+// EDITABLE TIME CELLS
+// =====================================================
+
+function attachTimeCellEvents() {
+    document.querySelectorAll('.editable-time').forEach(timeCell => {
+
+        // Prevent Enter from creating a new line
+        timeCell.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.blur();
+            }
+        });
+
+    });
+}
+// ============================================================
+// MERGE WITH EXISTING CLASS
+// ============================================================
+
+const findMergeClassBtn =
+    document.getElementById('findMergeClassBtn');
+
+const mergeSearchForm =
+    document.getElementById('mergeSearchForm');
+
+const searchMergeBtn =
+    document.getElementById('searchMergeBtn');
+
+const mergeCourseCode =
+    document.getElementById('mergeCourseCode');
+
+const mergeSearchStatus =
+    document.getElementById('mergeSearchStatus');
+
+const mergeResults =
+    document.getElementById('mergeResults');
+
+
+// ------------------------------------------------------------
+// SHOW MERGE SEARCH FORM
+// ------------------------------------------------------------
+
+if (findMergeClassBtn) {
+
+    findMergeClassBtn.addEventListener(
+        'click',
+        function () {
+
+            mergeSearchForm.style.display =
+                'block';
+
+            mergeSearchStatus.textContent =
+                '';
+
+            mergeResults.innerHTML =
+                '';
+
+            mergeResults.style.display =
+                'none';
+
+            mergeCourseCode.focus();
+
+        }
+    );
+
+}
+
+
+// ------------------------------------------------------------
+// SEARCH EXISTING CLASS
+// ------------------------------------------------------------
+
+if (searchMergeBtn) {
+
+    searchMergeBtn.addEventListener(
+        'click',
+        function () {
+
+           const courseCode =
+    mergeCourseCode.value.trim();
+
+if (!courseCode) {
+
+    alert(
+        'Please enter a course code.'
+    );
+
+    mergeCourseCode.focus();
+
+    return;
+}
+
+
+            mergeSearchStatus.textContent =
+                'Searching for existing classes...';
+
+            mergeResults.innerHTML =
+                '';
+
+            mergeResults.style.display =
+                'none';
+
+const params =
+    new URLSearchParams({
+
+        course_code:
+            courseCode
+
+    });
+
+
+            fetch(
+                '{{ route("chair.search.merge.classes") }}?' +
+                params.toString(),
+                {
+                    method: 'GET',
+
+                    headers: {
+                        'Accept':
+                            'application/json',
+
+                        'X-Requested-With':
+                            'XMLHttpRequest'
+                    }
+                }
+            )
+            .then(function(response) {
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        'Search request failed.'
+                    );
+
+                }
+
+                return response.json();
+
+            })
+            .then(function(data) {
+                window.mergeRoomSchedules =
+                data.schedules || [];
+                if (
+                    !data.classes ||
+                    data.classes.length === 0
+                ) {
+
+                    mergeSearchStatus.textContent =
+                        'No matching class was found in another department.';
+
+                    return;
+                }
+
+
+                mergeSearchStatus.textContent =
+                    data.classes.length +
+                    ' matching class(es) found.';
+
+
+                data.classes.forEach(
+                    function(existingClass) {
+
+                        const result =
+                            document.createElement('div');
+
+                        result.className =
+                            'merge-result';
+
+
+                        result.innerHTML =
+
+                            '<div class="merge-result-title">' +
+
+                            escapeHtml(
+                                existingClass.course_code
+                            ) +
+
+                            ' — ' +
+
+                            escapeHtml(
+                                existingClass.subject
+                            ) +
+
+                            '</div>' +
+
+                            '<div class="merge-result-info">' +
+
+                            '<strong>Department:</strong> ' +
+
+                            escapeHtml(
+                                existingClass.department
+                            ) +
+
+                            '<br>' +
+
+                            '<strong>Instructor:</strong> ' +
+
+                            escapeHtml(
+                                existingClass.instructor
+                            ) +
+
+                            '<br>' +
+
+                           '<strong>Building:</strong> ' +
+
+escapeHtml(
+    existingClass.building ||
+    'Unknown Building'
+) +
+
+'<br>' +
+
+'<strong>Room:</strong> ' +
+
+escapeHtml(
+    existingClass.room
+) +
+
+'<br>' +
+
+                            '<strong>Day:</strong> ' +
+
+                            escapeHtml(
+                                existingClass.day
+                            ) +
+
+                            '<br>' +
+
+                            '<strong>Time:</strong> ' +
+
+                            escapeHtml(
+                                existingClass.time
+                            ) +
+
+                            '</div>' +
+
+                            '<button ' +
+
+                            'type="button" ' +
+
+                            'class="merge-select-btn btn btn-green" ' +
+
+                            'data-schedule-id="' +
+
+                            existingClass.id +
+
+                            '">' +
+
+                            'Select This Class' +
+
+                            '</button>';
+
+
+                        mergeResults.appendChild(
+                            result
+                        );
+
+                    }
+                );
+
+
+                mergeResults.style.display =
+                    'block';
+
+            })
+            .catch(function(error) {
+
+                console.error(error);
+
+                mergeSearchStatus.textContent =
+                    'Unable to search for existing classes.';
+
+            });
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// MANUAL MERGE BROWSE
+// ============================================================
+
+const mergeDepartments =
+    document.getElementById('mergeDepartments');
+
+const mergeScheduleView =
+    document.getElementById('mergeScheduleView');
+
+
+// ------------------------------------------------------------
+// LOAD DEPARTMENTS
+// ------------------------------------------------------------
+
+function loadMergeDepartments()
+{
+    if (!mergeDepartments) {
+        return;
+    }
+
+    mergeDepartments.innerHTML =
+        '<div class="merge-loading">' +
+        'Loading departments...' +
+        '</div>';
+
+    fetch(
+        '{{ route("chair.merge.departments") }}',
+        {
+            method: 'GET',
+
+            headers: {
+                'Accept':
+                    'application/json',
+
+                'X-Requested-With':
+                    'XMLHttpRequest'
+            }
+        }
+    )
+    .then(function(response)
+    {
+        if (!response.ok) {
+            throw new Error(
+                'Unable to load departments.'
+            );
+        }
+
+        return response.json();
+    })
+    .then(function(data)
+    {
+        if (
+            !data.success ||
+            !data.departments ||
+            data.departments.length === 0
+        ) {
+            mergeDepartments.innerHTML =
+                '<div class="merge-empty">' +
+                'No other departments found.' +
+                '</div>';
+
+            return;
+        }
+
+        mergeDepartments.innerHTML = '';
+
+        data.departments.forEach(
+            function(department)
+            {
+                const departmentBox =
+                    document.createElement('div');
+
+                departmentBox.className =
+                    'merge-department-box';
+
+                departmentBox.innerHTML =
+                    '<button ' +
+                    'type="button" ' +
+                    'class="merge-department-btn">' +
+
+                    escapeHtml(
+                        department.name
+                    ) +
+
+                    '</button>' +
+
+                    '<div ' +
+                    'class="merge-buildings" ' +
+                    'style="display:none;">' +
+
+                    '</div>';
+
+                mergeDepartments.appendChild(
+                    departmentBox
+                );
+
+
+                const departmentButton =
+                    departmentBox.querySelector(
+                        '.merge-department-btn'
+                    );
+
+                const buildingsContainer =
+                    departmentBox.querySelector(
+                        '.merge-buildings'
+                    );
+
+
+                departmentButton.addEventListener(
+                    'click',
+                    function()
+                    {
+                        const isOpen =
+                            buildingsContainer.style.display ===
+                            'block';
+
+                        if (isOpen) {
+
+                            buildingsContainer.style.display =
+                                'none';
+
+                            return;
+                        }
+
+
+                        buildingsContainer.innerHTML =
+                            '';
+
+
+                        if (
+                            !department.buildings ||
+                            department.buildings.length === 0
+                        ) {
+
+                            buildingsContainer.innerHTML =
+                                '<div class="merge-empty">' +
+                                'No buildings found.' +
+                                '</div>';
+
+                            buildingsContainer.style.display =
+                                'block';
+
+                            return;
+                        }
+
+
+                        department.buildings.forEach(
+                            function(building)
+                            {
+                                const buildingBox =
+                                    document.createElement('div');
+
+                                buildingBox.className =
+                                    'merge-building-box';
+
+
+                                buildingBox.innerHTML =
+                                    '<button ' +
+                                    'type="button" ' +
+                                    'class="merge-building-btn">' +
+
+                                    escapeHtml(
+                                        building.name
+                                    ) +
+
+                                    '</button>' +
+
+                                    '<div ' +
+                                    'class="merge-rooms" ' +
+                                    'style="display:none;">' +
+
+                                    '</div>';
+
+
+                                buildingsContainer.appendChild(
+                                    buildingBox
+                                );
+
+
+                                const buildingButton =
+                                    buildingBox.querySelector(
+                                        '.merge-building-btn'
+                                    );
+
+                                const roomsContainer =
+                                    buildingBox.querySelector(
+                                        '.merge-rooms'
+                                    );
+
+
+                                buildingButton.addEventListener(
+                                    'click',
+                                    function()
+                                    {
+                                        const isOpen =
+                                            roomsContainer.style.display ===
+                                            'block';
+
+                                        if (isOpen) {
+
+                                            roomsContainer.style.display =
+                                                'none';
+
+                                            return;
+                                        }
+
+
+                                        roomsContainer.innerHTML =
+                                            '';
+
+
+                                        if (
+                                            !building.rooms ||
+                                            building.rooms.length === 0
+                                        ) {
+
+                                            roomsContainer.innerHTML =
+                                                '<div class="merge-empty">' +
+                                                'No rooms found.' +
+                                                '</div>';
+
+                                            roomsContainer.style.display =
+                                                'block';
+
+                                            return;
+                                        }
+
+
+                                        building.rooms.forEach(
+                                            function(room)
+                                            {
+                                                const roomButton =
+                                                    document.createElement(
+                                                        'button'
+                                                    );
+
+                                                roomButton.type =
+                                                    'button';
+
+                                                roomButton.className =
+                                                    'merge-room-btn';
+
+                                                roomButton.textContent =
+                                                    room.name;
+
+                                                roomButton.dataset.roomId =
+                                                    room.id;
+
+                                                roomsContainer.appendChild(
+                                                    roomButton
+                                                );
+
+
+                                                roomButton.addEventListener(
+                                                    'click',
+                                                    function()
+                                                    {
+                                                        openMergeRoomSchedule(
+                                                            room.id,
+                                                            department.name,
+                                                            building.name,
+                                                            room.name
+                                                        );
+                                                    }
+                                                );
+                                            }
+                                        );
+
+
+                                        roomsContainer.style.display =
+                                            'block';
+                                    }
+                                );
+                            }
+                        );
+
+
+                        buildingsContainer.style.display =
+                            'block';
+                    }
+                );
+            }
+        );
+    })
+    .catch(function(error)
+    {
+        console.error(error);
+
+        mergeDepartments.innerHTML =
+            '<div class="merge-error">' +
+            'Unable to load departments.' +
+            '</div>';
+    });
+}
+
+
+// ------------------------------------------------------------
+// OPEN ROOM SCHEDULE IN SEPARATE CARD
+// ------------------------------------------------------------
+
+function openMergeRoomSchedule(
+    roomId,
+    departmentName,
+    buildingName,
+    roomName
+)
+{
+    if (!mergeScheduleView) {
+        return;
+    }
+
+    /*
+     |--------------------------------------------------------------------------
+     | SHOW THE SCHEDULE CARD
+     |--------------------------------------------------------------------------
+     */
+
+    mergeScheduleView.style.display =
+        'block';
+
+    mergeScheduleView.innerHTML =
+
+        '<div class="merge-schedule-card">' +
+
+            '<div class="merge-schedule-card-header">' +
+
+                '<div>' +
+
+                    '<div class="merge-schedule-card-title">' +
+                        'Room Schedule' +
+                    '</div>' +
+
+                    '<div class="merge-schedule-card-info">' +
+
+                        '<strong>Department:</strong> ' +
+                        escapeHtml(departmentName) +
+
+                        ' &nbsp; | &nbsp; ' +
+
+                        '<strong>Building:</strong> ' +
+                        escapeHtml(buildingName) +
+
+                        ' &nbsp; | &nbsp; ' +
+
+                        '<strong>Room:</strong> ' +
+                        escapeHtml(roomName) +
+
+                    '</div>' +
+
+                '</div>' +
+
+                '<button ' +
+                    'type="button" ' +
+                    'class="merge-close-schedule-btn"' +
+                '>' +
+                    'Close' +
+                '</button>' +
+
+            '</div>' +
+
+            '<div class="merge-schedule-loading">' +
+                'Loading schedule...' +
+            '</div>' +
+
+        '</div>';
+
+
+    /*
+     |--------------------------------------------------------------------------
+     | CLOSE BUTTON
+     |--------------------------------------------------------------------------
+     */
+
+    const closeButton =
+        mergeScheduleView.querySelector(
+            '.merge-close-schedule-btn'
+        );
+
+    closeButton.addEventListener(
+        'click',
+        function()
+        {
+            mergeScheduleView.style.display =
+                'none';
+
+            mergeScheduleView.innerHTML =
+                '';
+        }
+    );
+
+
+    /*
+     |--------------------------------------------------------------------------
+     | LOAD ROOM SCHEDULE
+     |--------------------------------------------------------------------------
+     */
+
+    fetch(
+        '{{ route("chair.merge.room", ":roomId") }}'
+            .replace(
+                ':roomId',
+                roomId
+            ),
+        {
+            method: 'GET',
+
+            headers: {
+                'Accept':
+                    'application/json',
+
+                'X-Requested-With':
+                    'XMLHttpRequest'
+            }
+        }
+    )
+    .then(function(response)
+    {
+       if (!response.ok) {
+
+    return response.text().then(function(text) {
+
+        console.error(
+            'Room schedule error:',
+            response.status,
+            text
+        );
+
+        throw new Error(
+            'Server error ' +
+            response.status +
+            ': ' +
+            text
+        );
+
+    });
+
+}
+        return response.json();
+    })
+    .then(function(data)
+    {
+        if (
+            !data.success ||
+            !data.room
+        ) {
+
+            throw new Error(
+                'Invalid room schedule response.'
+            );
+
+        }
+
+
+        /*
+         |--------------------------------------------------------------------------
+         | FIND THE CARD
+         |--------------------------------------------------------------------------
+         */
+
+        const card =
+            mergeScheduleView.querySelector(
+                '.merge-schedule-card'
+            );
+
+
+        /*
+         |--------------------------------------------------------------------------
+         | BUILD SCHEDULE
+         |--------------------------------------------------------------------------
+         */
+
+        let scheduleHtml =
+
+            '<div class="merge-readonly-notice">' +
+
+                'This schedule is read-only. ' +
+
+                'Only existing occupied classes can be selected ' +
+
+                'for a merge request.' +
+
+            '</div>' +
+
+            '<div class="merge-room-schedule-table-wrapper">' +
+
+            '<table class="merge-room-schedule-table">' +
+
+                '<thead>' +
+
+                    '<tr>' +
+
+                        '<th>TIME</th>' +
+
+                        '<th>MON</th>' +
+
+                        '<th>WED</th>' +
+
+                        '<th>FRI</th>' +
+
+                        '<th>TIME</th>' +
+
+                        '<th>TUE</th>' +
+
+                        '<th>THU</th>' +
+
+                    '</tr>' +
+
+                '</thead>' +
+
+                '<tbody>';
+
+
+        /*
+         |--------------------------------------------------------------------------
+         | TIME ROWS
+         |--------------------------------------------------------------------------
+         */
+
+        const timeRows = [
+            '8:00-9:00',
+            '9:00-10:00',
+            '10:00-11:00',
+            '11:00-12:00',
+            '12:00-1:00',
+            '1:00-2:00',
+            '2:00-3:00',
+            '3:00-4:00',
+            '4:00-5:00'
+        ];
+
+
+        timeRows.forEach(
+            function(time, rowIndex)
+            {
+                /*
+                 |--------------------------------------------------------------------------
+                 | NOON BREAK
+                 |--------------------------------------------------------------------------
+                 */
+
+                if (rowIndex === 4) {
+
+                    scheduleHtml +=
+
+                        '<tr class="merge-noon-break">' +
+
+                            '<td colspan="7">' +
+                                'NOON BREAK' +
+                            '</td>' +
+
+                        '</tr>';
+
+                }
+
+
+                /*
+                 |--------------------------------------------------------------------------
+                 | FIND CELLS
+                 |--------------------------------------------------------------------------
+                 */
+
+                const leftTime =
+                    time;
+
+                const rightTime =
+                    time;
+
+
+                const monday =
+                    findMergeSchedule(
+                        data.schedules,
+                        'MON',
+                        rowIndex
+                    );
+
+                const wednesday =
+                    findMergeSchedule(
+                        data.schedules,
+                        'WED',
+                        rowIndex
+                    );
+
+                const friday =
+                    findMergeSchedule(
+                        data.schedules,
+                        'FRI',
+                        rowIndex
+                    );
+
+                const tuesday =
+                    findMergeSchedule(
+                        data.schedules,
+                        'TUE',
+                        rowIndex
+                    );
+
+                const thursday =
+                    findMergeSchedule(
+                        data.schedules,
+                        'THU',
+                        rowIndex
+                    );
+
+
+                scheduleHtml +=
+
+                    '<tr>' +
+
+                        '<td class="merge-time-cell">' +
+                            escapeHtml(leftTime) +
+                        '</td>' +
+
+                        buildMergeScheduleCell(
+                            monday
+                        ) +
+
+                        buildMergeScheduleCell(
+                            wednesday
+                        ) +
+
+                        buildMergeScheduleCell(
+                            friday
+                        ) +
+
+                        '<td class="merge-time-cell">' +
+                            escapeHtml(rightTime) +
+                        '</td>' +
+
+                        buildMergeScheduleCell(
+                            tuesday
+                        ) +
+
+                        buildMergeScheduleCell(
+                            thursday
+                        ) +
+
+                    '</tr>';
+            }
+        );
+
+
+        scheduleHtml +=
+
+                '</tbody>' +
+
+            '</table>' +
+
+            '</div>';
+
+
+        /*
+         |--------------------------------------------------------------------------
+         | REPLACE LOADING MESSAGE
+         |--------------------------------------------------------------------------
+         */
+
+        const loading =
+            card.querySelector(
+                '.merge-schedule-loading'
+            );
+
+        if (loading) {
+
+            loading.outerHTML =
+                scheduleHtml;
+
+        }
+    })
+    .catch(function(error)
+    {
+        console.error(error);
+
+        const card =
+            mergeScheduleView.querySelector(
+                '.merge-schedule-card'
+            );
+
+        if (card) {
+
+            const loading =
+                card.querySelector(
+                    '.merge-schedule-loading'
+                );
+
+            if (loading) {
+
+                loading.innerHTML =
+                    'Unable to load room schedule.';
+
+            }
+
+        }
+    });
+}
+
+function loadMergePrograms()
+{
+    const mergeProgramSelect =
+        document.getElementById(
+            'mergeProgramSelect'
+        );
+
+    if (!mergeProgramSelect) {
+        return;
+    }
+
+    mergeProgramSelect.innerHTML =
+        '<option value="">Loading programs...</option>';
+
+    fetch(
+        "{{ route('chair.merge.programs') }}",
+        {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }
+    )
+    .then(function(response)
+    {
+        if (!response.ok) {
+            throw new Error(
+                'Failed to load programs.'
+            );
+        }
+
+        return response.json();
+    })
+    .then(function(data)
+    {
+        mergeProgramSelect.innerHTML =
+            '<option value="">Select Program</option>';
+
+        if (
+            !data.success ||
+            !Array.isArray(data.programs) ||
+            data.programs.length === 0
+        ) {
+            mergeProgramSelect.innerHTML =
+                '<option value="">No programs available</option>';
+
+            return;
+        }
+
+        data.programs.forEach(
+            function(program)
+            {
+                const option =
+                    document.createElement('option');
+
+                option.value = program;
+                option.textContent = program;
+
+                mergeProgramSelect.appendChild(
+                    option
+                );
+            }
+        );
+    })
+    .catch(function(error)
+    {
+        console.error(
+            'Merge programs error:',
+            error
+        );
+
+        mergeProgramSelect.innerHTML =
+            '<option value="">Unable to load programs</option>';
+    });
+}
+// ------------------------------------------------------------
+// FIND SCHEDULE FOR A DAY / ROW
+// ------------------------------------------------------------
+
+function findMergeSchedule(
+    schedules,
+    day,
+    rowIndex
+)
+{
+    if (!schedules) {
+        return null;
+    }
+
+    return schedules.find(
+        function(schedule)
+        {
+            return (
+                schedule.day === day &&
+                Number(schedule.row_position) ===
+                    rowIndex
+            );
+        }
+    ) || null;
+}
+
+
+// ------------------------------------------------------------
+// BUILD READ-ONLY SCHEDULE CELL
+// ------------------------------------------------------------
+function buildMergeScheduleCell(
+    schedule
+)
+{
+    if (!schedule) {
+        return (
+            '<td class="merge-schedule-cell merge-empty-cell">' +
+                '<span>' +
+                    'Empty' +
+                '</span>' +
+            '</td>'
+        );
+    }
+
+    return (
+        '<td ' +
+            'class="merge-schedule-cell merge-occupied-cell" ' +
+            'data-schedule-id="' +
+                schedule.id +
+            '" ' +
+            'data-program="' +
+                escapeHtml(
+                    schedule.program || ''
+                ) +
+            '"' +
+        '>' +
+
+            '<div class="merge-class-course">' +
+                escapeHtml(
+                    schedule.course_code || ''
+                ) +
+            '</div>' +
+
+            '<div class="merge-class-subject">' +
+                escapeHtml(
+                    schedule.subject || ''
+                ) +
+            '</div>' +
+
+            '<div class="merge-class-instructor">' +
+                escapeHtml(
+                    schedule.instructor || ''
+                ) +
+            '</div>' +
+
+            '<div class="merge-select-hint">' +
+                'Click to request merge' +
+            '</div>' +
+
+        '</td>'
+    );
+}
+document.addEventListener(
+    'click',
+    function(event)
+    {
+        const cell =
+            event.target.closest(
+                '.merge-occupied-cell'
+            );
+
+        if (!cell) {
+            return;
+        }
+
+        const scheduleId =
+            cell.dataset.scheduleId;
+
+        if (!scheduleId) {
+            return;
+        }
+
+        /*
+         |--------------------------------------------------------------------------
+         | GET THE SELECTED CLASS
+         |--------------------------------------------------------------------------
+         */
+
+        const schedule =
+            mergeScheduleView.querySelector(
+                '[data-schedule-id="' +
+                scheduleId +
+                '"]'
+            );
+
+        if (!schedule) {
+            return;
+        }
+
+        /*
+         |--------------------------------------------------------------------------
+         | GET CLASS INFORMATION
+         |--------------------------------------------------------------------------
+         */
+
+        const course =
+            schedule.querySelector(
+                '.merge-class-course'
+            )?.textContent.trim() || '';
+
+        const subject =
+            schedule.querySelector(
+                '.merge-class-subject'
+            )?.textContent.trim() || '';
+
+        const instructor =
+            schedule.querySelector(
+                '.merge-class-instructor'
+            )?.textContent.trim() || '';
+
+      /*
+ |--------------------------------------------------------------------------
+ | GET PROGRAM FROM THE SELECTED CELL
+ |--------------------------------------------------------------------------
+ */
+
+const existingProgram =
+    cell.dataset.program &&
+    cell.dataset.program.trim()
+        ? cell.dataset.program.trim()
+        : 'Unknown Program';
+
+console.log(
+    'Selected schedule ID:',
+    scheduleId
+);
+
+console.log(
+    'Existing program:',
+    existingProgram
+);
+        /*
+|--------------------------------------------------------------------------
+| PROGRAM TO MERGE
+|--------------------------------------------------------------------------
+*/
+
+const programSelection =
+    document.getElementById(
+        'mergeProgramSelection'
+    );
+
+const mergeProgramSelect =
+    document.getElementById(
+        'mergeProgramSelect'
+    );
+
+if (
+    !programSelection ||
+    !mergeProgramSelect
+) {
+    alert(
+        'Program selection is not available.'
+    );
+
+    return;
+}
+
+/*
+|--------------------------------------------------------------------------
+| SHOW PROGRAM SELECTION
+|--------------------------------------------------------------------------
+*/
+
+programSelection.style.display = 'block';
+
+mergeProgramSelect.value = '';
+
+loadMergePrograms();
+
+programSelection.scrollIntoView({
+    behavior: 'smooth',
+    block: 'nearest'
+});
+
+/*
+|--------------------------------------------------------------------------
+| WHEN PROGRAM IS SELECTED
+|--------------------------------------------------------------------------
+*/
+
+mergeProgramSelect.onchange =
+    function()
+    {
+        const mergingProgram =
+            this.value.trim();
+
+        if (!mergingProgram) {
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CONFIRM MERGE
+        |--------------------------------------------------------------------------
+        */
+
+        const confirmed = confirm(
+            'Merge Existing Class?\n\n' +
+            'Course: ' +
+            course +
+            '\n' +
+            'Subject: ' +
+            subject +
+            '\n' +
+            'Instructor: ' +
+            instructor +
+            '\n\n' +
+            'Existing Program: ' +
+            existingProgram +
+            '\n' +
+            'Your Program: ' +
+            mergingProgram +
+            '\n\n' +
+            'After merging:\n' +
+            existingProgram +
+            ' / ' +
+            mergingProgram +
+            '\n\n' +
+            'Do you want to request this merge?'
+        );
+
+        if (confirmed) {
+
+            alert(
+                'Ready to create merge request for schedule ID: ' +
+                scheduleId
+            );
+
+            programSelection.style.display =
+                'none';
+
+            mergeProgramSelect.value = '';
+        }
+    };
+    }
+);
+// ------------------------------------------------------------
+// INITIALIZE MANUAL BROWSE
+// ------------------------------------------------------------
+
+loadMergeDepartments();
+
+
+// Existing time-cell events
+attachTimeCellEvents();
 
 </script>
 

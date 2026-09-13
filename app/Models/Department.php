@@ -54,4 +54,18 @@ class Department extends Model
         );
     }
 
+        /*
+    |--------------------------------------------------------------------------
+    | SCHEDULE MERGE REQUESTS
+    |--------------------------------------------------------------------------
+    */
+
+    public function scheduleMerges()
+    {
+        return $this->hasMany(
+            ScheduleMerge::class,
+            'department_id'
+        );
+    }
+
 }

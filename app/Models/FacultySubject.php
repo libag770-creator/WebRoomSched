@@ -12,6 +12,7 @@ class FacultySubject extends Model
         'subject',
         'year_level',
         'major',
+        'program',
     ];
 
     public function faculty()
@@ -21,4 +22,19 @@ class FacultySubject extends Model
             'faculty_id'
         );
     }
+
+       /*
+    |--------------------------------------------------------------------------
+    | MERGE REQUESTS
+    |--------------------------------------------------------------------------
+    */
+
+    public function scheduleMerges()
+    {
+        return $this->hasMany(
+            ScheduleMerge::class,
+            'faculty_subject_id'
+        );
+    }
+
 }
