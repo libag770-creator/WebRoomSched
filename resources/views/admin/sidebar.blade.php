@@ -1,39 +1,78 @@
 <aside class="sidebar">
 
-    <ul>
+    <ul class="sidebar-menu">
 
         <li class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
             <a href="{{ route('admin.dashboard') }}">
-                <i class="fa-solid fa-table-columns"></i>
-                <span>Dashboard</span>
+
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-table-columns"></i>
+                </span>
+
+                <span class="sidebar-text">
+                    Dashboard
+                </span>
+
             </a>
         </li>
+
 
         <li class="{{ request()->routeIs('admin.manageusers') ? 'active' : '' }}">
             <a href="{{ route('admin.manageusers') }}">
-                <i class="fa-solid fa-users"></i>
-                <span>Manage Users</span>
+
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-users"></i>
+                </span>
+
+                <span class="sidebar-text">
+                    Manage Users
+                </span>
+
             </a>
         </li>
+
 
         <li class="{{ request()->routeIs('admin.buildings') ? 'active' : '' }}">
             <a href="{{ route('admin.buildings') }}">
-                <i class="fa-solid fa-building"></i>
-                <span>Manage Buildings</span>
+
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-building"></i>
+                </span>
+
+                <span class="sidebar-text">
+                    Manage Buildings
+                </span>
+
             </a>
         </li>
 
+
         <li class="{{ request()->routeIs('admin.departments') ? 'active' : '' }}">
-    <a href="{{ route('admin.departments') }}">
-        <i class="fa-solid fa-building-columns"></i>
-        <span>Manage College Departments</span>
-    </a>
-</li>
+            <a href="{{ route('admin.departments') }}">
+
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-building-columns"></i>
+                </span>
+
+                <span class="sidebar-text">
+                    Manage College Departments
+                </span>
+
+            </a>
+        </li>
+
 
         <li class="{{ request()->routeIs('admin.schedules') ? 'active' : '' }}">
             <a href="{{ route('admin.schedules') }}">
-                <i class="fa-solid fa-calendar"></i>
-                <span>View Schedules</span>
+
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-calendar"></i>
+                </span>
+
+                <span class="sidebar-text">
+                    View Schedules
+                </span>
+
             </a>
         </li>
 

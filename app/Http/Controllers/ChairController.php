@@ -8,6 +8,7 @@ use App\Models\Room;
 use App\Models\Reservation;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Models\User;
 use App\Models\Department;
 use App\Models\FacultySubject;
@@ -74,7 +75,39 @@ class ChairController extends Controller
 ->latest()
 ->get();
 
+/*
+|--------------------------------------------------------------------------
+| PENDING MERGE REQUESTS
+|--------------------------------------------------------------------------
+|
+| Show only pending merge requests for classes
+| owned by this chair's department.
+|
+*/
 
+$mergeRequests = ScheduleMerge::with([
+    'schedule.room',
+    'schedule.department',
+    'facultySubject',
+    'department',
+])
+->whereIn('status', [
+    'pending',
+    'approved'
+])
+->whereHas(
+    'schedule',
+    function ($query) {
+
+        $query->where(
+            'department_id',
+            Auth::user()->department_id
+        );
+
+    }
+)
+->latest()
+->get();
     /*
     |--------------------------------------------------------------------------
     | DASHBOARD VIEW
@@ -82,13 +115,14 @@ class ChairController extends Controller
     */
 
     return view(
-        'chair.dashboard',
-        compact(
-            'departments',
-            'reservations',
-            'swapRequests'
-        )
-    );
+    'chair.dashboard',
+    compact(
+        'departments',
+        'reservations',
+        'swapRequests',
+        'mergeRequests'
+    )
+);
 }
 public function drafts()
 {
@@ -148,6 +182,9 @@ public function saveDraft( Request $request)
         'schedule.*.time' =>
             'required|string|max:50',
 
+            'schedule.*.row_position' =>
+    'required|integer',
+
         'schedule.*.course_code' =>
             'required|string|max:50',
 
@@ -161,7 +198,7 @@ public function saveDraft( Request $request)
             'required|string|max:255',
 
         'schedule.*.major' =>
-            'required|string|max:50',
+    'nullable|string|max:50',
 
         'schedule.*.program' =>
             'required|string|max:50',
@@ -417,12 +454,17 @@ public function saveDraft( Request $request)
                 ),
 
             'time' =>
-                trim(
-                    $data['time']
-                ),
+    trim(
+        $data['time']
+    ),
 
-            'course_code' =>
-                $facultySubject->course_code,
+'row_position' =>
+    isset($data['row_position'])
+        ? (int) $data['row_position']
+        : null,
+
+'course_code' =>
+    $facultySubject->course_code,
 
             'subject' =>
                 $facultySubject->subject,
@@ -535,20 +577,29 @@ public function index(Request $request, $roomId)
     | GET PUBLISHED SCHEDULES
     |--------------------------------------------------------------------------
     */
+$schedules =
+    Schedule::with([
+        'merges' => function ($query) {
+            $query
+                ->where('status', 'approved')
+                ->with([
+                    'department',
+                    'facultySubject'
+                ]);
+        }
+    ])
+    ->where(
+        'room_id',
+        $room->id
+    )
+    ->orderBy(
+        'day'
+    )
+    ->orderBy(
+        'time'
+    )
 
-    $schedules =
-        Schedule::where(
-            'room_id',
-            $room->id
-        )
-        ->orderBy(
-            'day'
-        )
-        ->orderBy(
-            'time'
-        )
-        ->get();
-
+    ->get();
 
     /*
     |--------------------------------------------------------------------------
@@ -815,7 +866,7 @@ if (!$room->save()) {
             'required|string|max:50',
             
         'schedule.*.major' =>
-            'required|string|max:50',
+    'nullable|string|max:50',
 
          'schedule.*.program' =>
             'required|string|max:50',
@@ -1542,14 +1593,14 @@ public function storeFacultySubject(Request $request)
         abort(403, 'Unauthorized.');
     }
 
-    $request->validate([
-        'faculty_id' => 'required|exists:users,id',
-        'course_code' => 'required|string|max:50',
-        'subject' => 'required|string|max:255',
-        'year_level' => 'required|string|max:50',
-        'major' => 'required|string|max:100',
-        'program' => 'required|string|max:100',
-    ]);
+   $request->validate([
+    'faculty_id' => 'required|exists:users,id',
+    'course_code' => 'required|string|max:50',
+    'subject' => 'required|string|max:255',
+    'year_level' => 'required|string|max:50',
+    'major' => 'nullable|string|max:100',
+    'program' => 'required|string|max:100',
+]);
 
     /*
     |--------------------------------------------------------------------------
@@ -1614,9 +1665,9 @@ public function storeFacultySubject(Request $request)
             $request->year_level
         ),
 
-        'major' => trim(
-            $request->major
-        ),
+        'major' => $request->filled('major')
+    ? trim($request->major)
+    : null,
 
         'program' => trim(
             $request->program
@@ -1658,8 +1709,8 @@ public function updateFacultySubject(
         'year_level' =>
             'required|string|max:50',
 
-            'major' =>
-        'required|string|max:100',
+          'major' =>
+    'nullable|string|max:100',
 
         'program' =>
             'required|string|max:100',
@@ -1694,8 +1745,10 @@ public function updateFacultySubject(
         'year_level' =>
             trim($request->year_level),
 
-            'major' =>
-        trim($request->major),
+         'major' =>
+    $request->filled('major')
+        ? trim($request->major)
+        : null,
 
         'program' =>
         trim($request->program),
@@ -1891,6 +1944,219 @@ public function editDraft($roomId)
     );
 }
 
+public function publishDraft(Request $request, $roomId)
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
+
+    $chair = Auth::user();
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET ROOM
+    |--------------------------------------------------------------------------
+    */
+
+    $room = Room::findOrFail($roomId);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET CURRENT CHAIR'S DRAFT
+    |--------------------------------------------------------------------------
+    */
+
+    $drafts = ScheduleDraft::where('room_id', $room->id)
+        ->where('created_by', $chair->id)
+        ->orderBy('id')
+        ->get();
+
+    if ($drafts->isEmpty()) {
+        return redirect()
+            ->route('chair.drafts')
+            ->with(
+                'error',
+                'No draft was found for this room.'
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK OVERRIDE
+    |--------------------------------------------------------------------------
+    */
+
+    $override =
+        $request->boolean('override');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK WHETHER ROOM ALREADY HAS A PUBLISHED SCHEDULE
+    |--------------------------------------------------------------------------
+    */
+
+    $existingSchedules =
+        Schedule::where(
+            'room_id',
+            $room->id
+        )->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROOM ALREADY HAS A SCHEDULE
+    |--------------------------------------------------------------------------
+    |
+    | Do not replace anything unless the user explicitly
+    | confirmed Override & Publish.
+    |
+    */
+
+    if (
+        $existingSchedules->isNotEmpty()
+        && !$override
+    ) {
+
+        return redirect()
+            ->route(
+                'chair.drafts.edit',
+                $room->id
+            )
+            ->with(
+                'schedule_conflict',
+                true
+            );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | PUBLISH
+    |--------------------------------------------------------------------------
+    */
+
+    DB::transaction(
+        function () use (
+            $room,
+            $chair,
+            $drafts
+        ) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | REMOVE EXISTING PUBLISHED SCHEDULE
+            |--------------------------------------------------------------------------
+            */
+
+            Schedule::where(
+                'room_id',
+                $room->id
+            )->delete();
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | CREATE PUBLISHED SCHEDULES FROM DRAFT
+            |--------------------------------------------------------------------------
+            */
+
+            foreach ($drafts as $draft) {
+
+                Schedule::create([
+
+                    'room_id' =>
+                        $room->id,
+
+                    'faculty_id' =>
+                        $draft->faculty_id,
+
+                    'department_id' =>
+                        $draft->department_id
+                        ?? $chair->department_id,
+
+                    'day' =>
+                        strtoupper(
+                            trim($draft->day)
+                        ),
+
+                    'time' =>
+                        trim($draft->time),
+
+                    'row_position' =>
+                        $draft->row_position,
+
+                    'semester' =>
+                        $draft->semester,
+
+                    'academic_year' =>
+                        $draft->academic_year,
+
+                    'course_code' =>
+                        $draft->course_code,
+
+                    'subject' =>
+                        $draft->subject,
+
+                    'year_level' =>
+                        $draft->year_level,
+
+                    'major' =>
+                        $draft->major,
+
+                    'program' =>
+                        $draft->program,
+
+                    'subject_type' =>
+                        $draft->subject_type,
+
+                    'instructor' =>
+                        $draft->instructor,
+
+                    'color' =>
+                        $draft->color
+                        ?? '#ffffff',
+                ]);
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | DELETE DRAFT
+            |--------------------------------------------------------------------------
+            */
+
+            ScheduleDraft::where(
+                'room_id',
+                $room->id
+            )
+            ->where(
+                'created_by',
+                $chair->id
+            )
+            ->delete();
+        }
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUCCESS
+    |--------------------------------------------------------------------------
+    */
+
+    return redirect()
+        ->route('chair.drafts')
+        ->with(
+            'success',
+            'Draft published successfully. The previous schedule in Room '
+            . $room->room_name
+            . ' was replaced.'
+        );
+}
+
 public function modifySchedule()
 {
     if (!Auth::check() || Auth::user()->role !== 'chair') {
@@ -1988,7 +2254,7 @@ public function storeModifiedSchedule(Request $request)
             'nullable|string|max:100',
         
         'major' =>
-            'required|string|max:50',
+    'nullable|string|max:50',
 
         'program' =>
             'required|string|max:100',
@@ -2320,6 +2586,12 @@ public function storeModifiedSchedule(Request $request)
 
 public function searchMergeClasses(Request $request)
 {
+    /*
+    |--------------------------------------------------------------------------
+    | AUTHORIZATION
+    |--------------------------------------------------------------------------
+    */
+
     if (
         !Auth::check() ||
         Auth::user()->role !== 'chair'
@@ -2329,169 +2601,231 @@ public function searchMergeClasses(Request $request)
 
     $chair = Auth::user();
 
+
     /*
-     |--------------------------------------------------------------------------
-     | VALIDATE SEARCH
-     |--------------------------------------------------------------------------
-     |
-     | Search is based on COURSE CODE only.
-     | Partial searches are allowed.
-     |
-     | Example:
-     | IT     → IT101, IT102, IT201, etc.
-     |
-     */
+    |--------------------------------------------------------------------------
+    | VALIDATE SEARCH
+    |--------------------------------------------------------------------------
+    */
 
     $request->validate([
         'course_code' => 'required|string|max:50',
     ]);
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | CLEAN COURSE CODE
+    |--------------------------------------------------------------------------
+    */
+
     $courseCode = strtoupper(
         trim($request->course_code)
     );
 
-    /*
-     |--------------------------------------------------------------------------
-     | FIND EXISTING CLASSES
-     |--------------------------------------------------------------------------
-     |
-     | Search all schedules using the course code.
-     |
-     | We load:
-     | - Room
-     | - Room Department
-     | - Room Building
-     | - Faculty Department
-     |
-     */
 
-    $classes = Schedule::with([
-        'room.department',
-        'room.building',
-        'faculty.department',
-    ])
+    /*
+    |--------------------------------------------------------------------------
+    | SEARCH EXISTING SCHEDULES
+    |--------------------------------------------------------------------------
+    |
+    | We use direct joins instead of nested Eloquent relationships.
+    |
+    | This avoids errors from:
+    | room.department
+    | room.building
+    | faculty.department
+    |
+    */
+
+    $classes = Schedule::query()
+
+        ->leftJoin(
+            'rooms',
+            'schedules.room_id',
+            '=',
+            'rooms.id'
+        )
+
+        ->leftJoin(
+            'buildings',
+            'rooms.building_id',
+            '=',
+            'buildings.id'
+        )
+
+        ->leftJoin(
+            'departments',
+            'schedules.department_id',
+            '=',
+            'departments.id'
+        )
+
+        ->leftJoin(
+            'users',
+            'schedules.faculty_id',
+            '=',
+            'users.id'
+        )
+
         ->where(
-            'course_code',
+            'schedules.course_code',
             'LIKE',
             '%' . $courseCode . '%'
         )
+
+        /*
+        |--------------------------------------------------------------------------
+        | ONLY OTHER DEPARTMENTS
+        |--------------------------------------------------------------------------
+        */
+
+        ->where(
+            'schedules.department_id',
+            '!=',
+            $chair->department_id
+        )
+
+        ->select([
+            'schedules.id',
+            'schedules.course_code',
+            'schedules.subject',
+            'schedules.day',
+            'schedules.time',
+            'schedules.room_id',
+            'schedules.department_id',
+            'schedules.faculty_id',
+            'schedules.instructor',
+            'schedules.program',
+
+            'rooms.room_name',
+
+            'buildings.name as building_name',
+
+            'departments.name as department_name',
+
+            'users.name as faculty_name',
+        ])
+
+        ->orderBy(
+            'schedules.course_code'
+        )
+
+        ->orderBy(
+            'schedules.day'
+        )
+
+        ->orderBy(
+            'schedules.time'
+        )
+
         ->get();
 
-    /*
-     |--------------------------------------------------------------------------
-     | REMOVE CLASSES FROM CURRENT DEPARTMENT
-     |--------------------------------------------------------------------------
-     |
-     | A chair should only be able to search for classes
-     | belonging to OTHER departments.
-     |
-     */
-
-    $classes = $classes
-        ->filter(function ($schedule) use ($chair) {
-
-            return (int) $schedule->department_id !==
-                (int) $chair->department_id;
-
-        })
-        ->values();
 
     /*
-     |--------------------------------------------------------------------------
-     | RETURN SEARCH RESULTS
-     |--------------------------------------------------------------------------
-     */
+    |--------------------------------------------------------------------------
+    | RETURN RESULTS
+    |--------------------------------------------------------------------------
+    */
 
     return response()->json([
         'success' => true,
 
-        'classes' => $classes->map(function ($schedule) {
+        'classes' => $classes
+            ->map(function ($schedule) {
 
-            return [
+                return [
 
-                /*
-                 |--------------------------------------------------------------
-                 | SCHEDULE
-                 |--------------------------------------------------------------
-                 */
+                    /*
+                    |--------------------------------------------------------------------------
+                    | SCHEDULE
+                    |--------------------------------------------------------------------------
+                    */
 
-                'id' =>
-                    $schedule->id,
+                    'id' =>
+                        $schedule->id,
 
-                'course_code' =>
-                    $schedule->course_code,
+                    'course_code' =>
+                        $schedule->course_code,
 
-                'subject' =>
-                    $schedule->subject,
+                    'subject' =>
+                        $schedule->subject,
 
-                'day' =>
-                    $schedule->day,
+                    'day' =>
+                        $schedule->day,
 
-                'time' =>
-                    $schedule->time,
+                    'time' =>
+                        $schedule->time,
 
-                /*
-                 |--------------------------------------------------------------
-                 | ROOM
-                 |--------------------------------------------------------------
-                 */
 
-                'room_id' =>
-                    $schedule->room_id,
+                    /*
+                    |--------------------------------------------------------------------------
+                    | ROOM
+                    |--------------------------------------------------------------------------
+                    */
 
-                /*
-                 |--------------------------------------------------------------
-                 | BUILDING
-                 |--------------------------------------------------------------
-                 */
+                    'room_id' =>
+                        $schedule->room_id,
 
-                'building' =>
-                    $schedule->room &&
-                    $schedule->room->building
-                        ? $schedule->room->building->name
-                        : 'Unknown Building',
+                    'room' =>
+                        $schedule->room_name
+                        ?: 'Unknown Room',
 
-                /*
-                 |--------------------------------------------------------------
-                 | ROOM NAME
-                 |--------------------------------------------------------------
-                 */
 
-                'room' =>
-                    $schedule->room
-                        ? $schedule->room->room_name
-                        : 'Unknown Room',
+                    /*
+                    |--------------------------------------------------------------------------
+                    | BUILDING
+                    |--------------------------------------------------------------------------
+                    */
 
-                /*
-                 |--------------------------------------------------------------
-                 | DEPARTMENT
-                 |--------------------------------------------------------------
-                 */
+                    'building' =>
+                        $schedule->building_name
+                        ?: 'Unknown Building',
 
-                'department_id' =>
-                    $schedule->department_id,
 
-                'department' =>
-                    $schedule->room &&
-                    $schedule->room->department
-                        ? $schedule->room->department->name
-                        : 'Unknown Department',
+                    /*
+                    |--------------------------------------------------------------------------
+                    | DEPARTMENT
+                    |--------------------------------------------------------------------------
+                    */
 
-                /*
-                 |--------------------------------------------------------------
-                 | FACULTY / INSTRUCTOR
-                 |--------------------------------------------------------------
-                 */
+                    'department_id' =>
+                        $schedule->department_id,
 
-                'faculty_id' =>
-                    $schedule->faculty_id,
+                    'department' =>
+                        $schedule->department_name
+                        ?: 'Unknown Department',
 
-                'instructor' =>
-                    $schedule->instructor,
 
-            ];
+                    /*
+                    |--------------------------------------------------------------------------
+                    | FACULTY
+                    |--------------------------------------------------------------------------
+                    */
 
-        })->values(),
+                    'faculty_id' =>
+                        $schedule->faculty_id,
+
+                    'instructor' =>
+                        $schedule->instructor
+                        ?: $schedule->faculty_name
+                        ?: 'Unknown Instructor',
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | PROGRAM
+                    |--------------------------------------------------------------------------
+                    */
+
+                    'program' =>
+                        $schedule->program
+                        ?: 'Unknown Program',
+
+                ];
+            })
+
+            ->values(),
     ]);
 }
 
@@ -2632,32 +2966,79 @@ public function mergeRoomSchedule($roomId)
      |--------------------------------------------------------------------------
      */
 
-   $schedules = Schedule::where(
-    'room_id',
-    $room->id
-)
+$schedules = Schedule::with([
+    'merges' => function ($query) {
+        $query
+            ->where('status', 'approved')
+            ->with([
+                'department',
+                'facultySubject'
+            ]);
+    }
+])
+    ->where(
+        'room_id',
+        $room->id
+    )
     ->orderBy('row_position')
     ->orderBy('day')
     ->get();
 
 $schedules->each(function ($schedule) {
-    $facultySubject = FacultySubject::where(
-        'faculty_id',
-        $schedule->faculty_id
-    )
-        ->where(
-            'course_code',
-            $schedule->course_code
-        )
-        ->first();
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET ORIGINAL PROGRAM
+    |--------------------------------------------------------------------------
+    */
+
+    $programs = collect();
 
     if (
-        (!$schedule->program || trim($schedule->program) === '') &&
-        $facultySubject
+        $schedule->program &&
+        trim($schedule->program) !== ''
     ) {
-        $schedule->program =
-            $facultySubject->program;
+        $programs->push(
+            trim($schedule->program)
+        );
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET APPROVED MERGED PROGRAMS
+    |--------------------------------------------------------------------------
+    */
+
+    foreach ($schedule->merges as $merge) {
+
+        if (
+            $merge->status === 'approved' &&
+            $merge->facultySubject &&
+            $merge->facultySubject->program
+        ) {
+
+            $programs->push(
+                trim(
+                    $merge->facultySubject->program
+                )
+            );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | COMBINED PROGRAM
+    |--------------------------------------------------------------------------
+    */
+
+    $schedule->program =
+        $programs
+            ->filter()
+            ->unique()
+            ->values()
+            ->implode(' / ');
 });
 
     /*
@@ -2773,6 +3154,12 @@ public function mergePrograms()
 }
 public function createMergeRequest(Request $request)
 {
+    /*
+    |--------------------------------------------------------------------------
+    | AUTHORIZATION
+    |--------------------------------------------------------------------------
+    */
+
     if (
         !Auth::check() ||
         Auth::user()->role !== 'chair'
@@ -2781,6 +3168,13 @@ public function createMergeRequest(Request $request)
     }
 
     $chair = Auth::user();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDATE
+    |--------------------------------------------------------------------------
+    */
 
     $validated = $request->validate([
         'schedule_id' => [
@@ -2796,28 +3190,32 @@ public function createMergeRequest(Request $request)
         ],
     ]);
 
+
     /*
     |--------------------------------------------------------------------------
-    | GET CHAIR DEPARTMENT
+    | CHECK CHAIR DEPARTMENT
     |--------------------------------------------------------------------------
     */
 
     if (!$chair->department_id) {
         return response()->json([
             'success' => false,
-            'message' => 'Your account is not assigned to a department.',
+            'message' =>
+                'Your account is not assigned to a department.',
         ], 422);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | FIND ORIGINAL SCHEDULE
+    | GET CLICKED SCHEDULE
     |--------------------------------------------------------------------------
     */
 
-    $schedule = Schedule::with([
-        'room',
-    ])->find($validated['schedule_id']);
+    $schedule = Schedule::find(
+        $validated['schedule_id']
+    );
+
 
     if (!$schedule) {
         return response()->json([
@@ -2826,14 +3224,16 @@ public function createMergeRequest(Request $request)
         ], 404);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | GET ORIGINAL DEPARTMENT
+    | OWNER DEPARTMENT
     |--------------------------------------------------------------------------
     */
 
     $ownerDepartmentId =
         $schedule->department_id;
+
 
     if (!$ownerDepartmentId) {
         return response()->json([
@@ -2843,9 +3243,10 @@ public function createMergeRequest(Request $request)
         ], 422);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | PREVENT MERGING YOUR OWN DEPARTMENT
+    | PREVENT OWN DEPARTMENT MERGE
     |--------------------------------------------------------------------------
     */
 
@@ -2860,9 +3261,10 @@ public function createMergeRequest(Request $request)
         ], 422);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | FIND PROGRAM
+    | FIND FACULTY SUBJECT FOR PARTICIPATING PROGRAM
     |--------------------------------------------------------------------------
     */
 
@@ -2883,6 +3285,7 @@ public function createMergeRequest(Request $request)
         )
         ->first();
 
+
     if (!$facultySubject) {
         return response()->json([
             'success' => false,
@@ -2891,70 +3294,774 @@ public function createMergeRequest(Request $request)
         ], 422);
     }
 
+
     /*
     |--------------------------------------------------------------------------
-    | PREVENT DUPLICATE MERGE REQUEST
+    | FIND ALL SCHEDULE CELLS THAT BELONG TO THIS SAME CLASS
+    |--------------------------------------------------------------------------
+    |
+    | Example:
+    |
+    | MON 9:00 - 10:00  IT136
+    | WED 9:00 - 10:00  IT136
+    | FRI 9:00 - 10:00  IT136
+    |
+    | Clicking any one of these will find all three.
+    |
+    */
+
+    $sameClassQuery = Schedule::query()
+        ->where(
+            'department_id',
+            $schedule->department_id
+        )
+        ->where(
+            'room_id',
+            $schedule->room_id
+        )
+        ->where(
+            'faculty_id',
+            $schedule->faculty_id
+        )
+        ->where(
+            'course_code',
+            $schedule->course_code
+        )
+        ->where(
+            'subject',
+            $schedule->subject
+        )
+        ->where(
+            'year_level',
+            $schedule->year_level
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MATCH MAJOR
     |--------------------------------------------------------------------------
     */
 
-    $existingMerge =
-        ScheduleMerge::where(
+    if (
+        $schedule->major === null ||
+        trim((string) $schedule->major) === ''
+    ) {
+
+        $sameClassQuery->where(function ($query) {
+
+            $query->whereNull('major')
+                ->orWhere('major', '');
+
+        });
+
+    } else {
+
+        $sameClassQuery->where(
+            'major',
+            $schedule->major
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MATCH PROGRAM
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $schedule->program === null ||
+        trim((string) $schedule->program) === ''
+    ) {
+
+        $sameClassQuery->where(function ($query) {
+
+            $query->whereNull('program')
+                ->orWhere('program', '');
+
+        });
+
+    } else {
+
+        $sameClassQuery->where(
+            'program',
+            $schedule->program
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MATCH SEMESTER
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $schedule->semester === null ||
+        trim((string) $schedule->semester) === ''
+    ) {
+
+        $sameClassQuery->where(function ($query) {
+
+            $query->whereNull('semester')
+                ->orWhere('semester', '');
+
+        });
+
+    } else {
+
+        $sameClassQuery->where(
+            'semester',
+            $schedule->semester
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MATCH ACADEMIC YEAR
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $schedule->academic_year === null ||
+        trim((string) $schedule->academic_year) === ''
+    ) {
+
+        $sameClassQuery->where(function ($query) {
+
+            $query->whereNull('academic_year')
+                ->orWhere('academic_year', '');
+
+        });
+
+    } else {
+
+        $sameClassQuery->where(
+            'academic_year',
+            $schedule->academic_year
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET ALL CELLS
+    |--------------------------------------------------------------------------
+    */
+
+    $sameClassSchedules =
+        $sameClassQuery
+            ->orderBy('row_position')
+            ->orderBy('day')
+            ->orderBy('time')
+            ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SAFETY
+    |--------------------------------------------------------------------------
+    */
+
+    if ($sameClassSchedules->isEmpty()) {
+
+        $sameClassSchedules =
+            collect([$schedule]);
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK EXISTING MERGES
+    |--------------------------------------------------------------------------
+    */
+
+    $scheduleIds =
+        $sameClassSchedules
+            ->pluck('id')
+            ->values();
+
+
+    $existingMerges =
+        ScheduleMerge::whereIn(
             'schedule_id',
-            $schedule->id
+            $scheduleIds
         )
         ->where(
             'department_id',
             $chair->department_id
         )
-        ->first();
+        ->whereIn(
+            'status',
+            [
+                'pending',
+                'approved',
+            ]
+        )
+        ->get();
 
-    if ($existingMerge) {
-
-        return response()->json([
-            'success' => false,
-            'message' =>
-                'Your department already has a merge request for this class.',
-        ], 422);
-    }
 
     /*
     |--------------------------------------------------------------------------
-    | CREATE MERGE REQUEST
+    | IF ALREADY FULLY MERGED
     |--------------------------------------------------------------------------
     */
 
-    $merge =
-        ScheduleMerge::create([
-            'schedule_id' =>
-                $schedule->id,
+    if (
+        $existingMerges->count() >=
+        $scheduleIds->count()
+    ) {
 
-            'department_id' =>
-                $chair->department_id,
+        $hasApproved =
+            $existingMerges->contains(
+                function ($merge) {
+                    return $merge->status === 'approved';
+                }
+            );
 
-            'faculty_subject_id' =>
-                $facultySubject->id,
+        return response()->json([
+            'success' => false,
+            'message' => $hasApproved
+                ? 'Your department is already merged with this class.'
+                : 'Your department already has a pending merge request for this class.',
+        ], 422);
+    }
 
-            'status' =>
-                'pending',
 
-            'approved_by' =>
-                null,
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE MERGE REQUEST FOR EVERY CELL
+    |--------------------------------------------------------------------------
+    */
 
-            'approved_at' =>
-                null,
-        ]);
+    $createdMerges = [];
+
+
+    foreach ($sameClassSchedules as $classSchedule) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK IF THIS CELL ALREADY HAS A MERGE
+        |--------------------------------------------------------------------------
+        */
+
+        $existingMerge =
+            ScheduleMerge::where(
+                'schedule_id',
+                $classSchedule->id
+            )
+            ->where(
+                'department_id',
+                $chair->department_id
+            )
+            ->whereIn(
+                'status',
+                [
+                    'pending',
+                    'approved',
+                ]
+            )
+            ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SKIP ALREADY MERGED CELL
+        |--------------------------------------------------------------------------
+        */
+
+        if ($existingMerge) {
+            continue;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE MERGE
+        |--------------------------------------------------------------------------
+        */
+
+        $merge =
+            ScheduleMerge::create([
+                'schedule_id' =>
+                    $classSchedule->id,
+
+                'department_id' =>
+                    $chair->department_id,
+
+                'faculty_subject_id' =>
+                    $facultySubject->id,
+
+                'status' =>
+                    'pending',
+
+                'approved_by' =>
+                    null,
+
+                'approved_at' =>
+                    null,
+            ]);
+
+
+        $createdMerges[] =
+            $merge->id;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RETURN SUCCESS
+    |--------------------------------------------------------------------------
+    */
 
     return response()->json([
         'success' => true,
 
         'message' =>
-            'Merge request submitted successfully.',
+            'Merge request submitted for the entire class.',
 
-        'merge_id' =>
-            $merge->id,
+        'merge_ids' =>
+            $createdMerges,
+
+        'schedule_count' =>
+            $scheduleIds->count(),
 
         'status' =>
-            $merge->status,
+            'pending',
     ]);
+}
+/*
+|--------------------------------------------------------------------------
+| APPROVE MERGE REQUEST
+|--------------------------------------------------------------------------
+*/
+
+public function approveMergeRequest(
+    ScheduleMerge $merge
+) {
+    /*
+    |--------------------------------------------------------------------------
+    | AUTHORIZATION
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        !Auth::check() ||
+        Auth::user()->role !== 'chair'
+    ) {
+        abort(403, 'Unauthorized.');
+    }
+
+    $chair = Auth::user();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD ORIGINAL SCHEDULE
+    |--------------------------------------------------------------------------
+    */
+
+    $merge->load('schedule');
+
+
+    if (!$merge->schedule) {
+
+        return back()->with(
+            'error',
+            'The original schedule could not be found.'
+        );
+    }
+
+
+    $schedule =
+        $merge->schedule;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ONLY OWNER DEPARTMENT CAN APPROVE
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        (int) $schedule->department_id !==
+        (int) $chair->department_id
+    ) {
+        abort(
+            403,
+            'You cannot approve this merge request.'
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FIND ALL CELLS OF THE SAME CLASS
+    |--------------------------------------------------------------------------
+    */
+
+    $sameClassQuery =
+        Schedule::query()
+
+        ->where(
+            'department_id',
+            $schedule->department_id
+        )
+
+        ->where(
+            'room_id',
+            $schedule->room_id
+        )
+
+        ->where(
+            'faculty_id',
+            $schedule->faculty_id
+        )
+
+        ->where(
+            'course_code',
+            $schedule->course_code
+        )
+
+        ->where(
+            'subject',
+            $schedule->subject
+        )
+
+        ->where(
+            'year_level',
+            $schedule->year_level
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MATCH MAJOR
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $schedule->major === null ||
+        trim((string) $schedule->major) === ''
+    ) {
+
+        $sameClassQuery->where(function ($query) {
+
+            $query->whereNull('major')
+                ->orWhere('major', '');
+
+        });
+
+    } else {
+
+        $sameClassQuery->where(
+            'major',
+            $schedule->major
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MATCH PROGRAM
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $schedule->program === null ||
+        trim((string) $schedule->program) === ''
+    ) {
+
+        $sameClassQuery->where(function ($query) {
+
+            $query->whereNull('program')
+                ->orWhere('program', '');
+
+        });
+
+    } else {
+
+        $sameClassQuery->where(
+            'program',
+            $schedule->program
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MATCH SEMESTER
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $schedule->semester === null ||
+        trim((string) $schedule->semester) === ''
+    ) {
+
+        $sameClassQuery->where(function ($query) {
+
+            $query->whereNull('semester')
+                ->orWhere('semester', '');
+
+        });
+
+    } else {
+
+        $sameClassQuery->where(
+            'semester',
+            $schedule->semester
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | MATCH ACADEMIC YEAR
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        $schedule->academic_year === null ||
+        trim((string) $schedule->academic_year) === ''
+    ) {
+
+        $sameClassQuery->where(function ($query) {
+
+            $query->whereNull('academic_year')
+                ->orWhere('academic_year', '');
+
+        });
+
+    } else {
+
+        $sameClassQuery->where(
+            'academic_year',
+            $schedule->academic_year
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET ALL SCHEDULE CELLS
+    |--------------------------------------------------------------------------
+    */
+
+    $sameClassSchedules =
+        $sameClassQuery->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET SCHEDULE IDS
+    |--------------------------------------------------------------------------
+    */
+
+    $scheduleIds =
+        $sameClassSchedules
+            ->pluck('id')
+            ->values();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | APPROVE ALL MERGES FOR THIS CLASS
+    |--------------------------------------------------------------------------
+    */
+
+    ScheduleMerge::whereIn(
+        'schedule_id',
+        $scheduleIds
+    )
+    ->where(
+        'department_id',
+        $merge->department_id
+    )
+    ->whereIn(
+        'status',
+        [
+            'pending',
+            'approved',
+        ]
+    )
+    ->update([
+        'status' =>
+            'approved',
+
+        'approved_by' =>
+            $chair->id,
+
+        'approved_at' =>
+            now(),
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUCCESS
+    |--------------------------------------------------------------------------
+    */
+
+    return back()->with(
+        'success',
+        'The entire class merge was approved successfully.'
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| REJECT MERGE REQUEST
+|--------------------------------------------------------------------------
+*/
+
+public function rejectMergeRequest(
+    ScheduleMerge $merge
+) {
+    if (
+        !Auth::check() ||
+        Auth::user()->role !== 'chair'
+    ) {
+        abort(403, 'Unauthorized.');
+    }
+
+    $chair = Auth::user();
+
+    $merge->load('schedule');
+
+    if (!$merge->schedule) {
+        return back()->with(
+            'error',
+            'The original schedule could not be found.'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ONLY OWNER DEPARTMENT CAN REJECT
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        (int) $merge->schedule->department_id !==
+        (int) $chair->department_id
+    ) {
+        abort(403, 'You cannot reject this merge request.');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | REJECT
+    |--------------------------------------------------------------------------
+    */
+
+    $merge->status = 'rejected';
+
+    $merge->approved_by = null;
+
+    $merge->approved_at = null;
+
+    $merge->save();
+
+    return back()->with(
+        'success',
+        'Merge request rejected.'
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| REMOVE APPROVED MERGE
+|--------------------------------------------------------------------------
+*/
+
+public function removeMergeRequest(
+    ScheduleMerge $merge
+) {
+    if (
+        !Auth::check() ||
+        Auth::user()->role !== 'chair'
+    ) {
+        abort(403, 'Unauthorized.');
+    }
+
+    $chair = Auth::user();
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD ORIGINAL SCHEDULE
+    |--------------------------------------------------------------------------
+    */
+
+    $merge->load('schedule');
+
+    if (!$merge->schedule) {
+
+        return back()->with(
+            'error',
+            'The original schedule could not be found.'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ONLY OWNER CHAIR CAN REMOVE THE MERGE
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        (int) $merge->schedule->department_id !==
+        (int) $chair->department_id
+    ) {
+        abort(
+            403,
+            'You cannot remove this merge.'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | ONLY APPROVED MERGES CAN BE REMOVED
+    |--------------------------------------------------------------------------
+    */
+
+    if ($merge->status !== 'approved') {
+
+        return back()->with(
+            'error',
+            'Only an approved merge can be removed.'
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | REMOVE PARTICIPATING DEPARTMENT
+    |--------------------------------------------------------------------------
+    */
+
+    $merge->delete();
+
+    /*
+    |--------------------------------------------------------------------------
+    | RETURN TO DASHBOARD
+    |--------------------------------------------------------------------------
+    */
+
+    return back()->with(
+        'success',
+        'Merged program removed successfully.'
+    );
 }
 }

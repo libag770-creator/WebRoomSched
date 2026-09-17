@@ -1,6 +1,6 @@
-<div class="wrapper">
+@include('footerheader.header')
 
-    @include('footerheader.header')
+<div class="wrapper">
 
     <div class="main-layout">
 
@@ -910,11 +910,10 @@
             </div>
 
 
-        </main>
+          </main>
 
     </div>
 
-
-    @include('footerheader.footer')
-
 </div>
+
+@include('footerheader.footer')

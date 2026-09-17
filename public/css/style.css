@@ -1,0 +1,885 @@
+/* =========================================================
+   GLOBAL RESET
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    font-family:
+        "Segoe UI",
+        Arial,
+        Helvetica,
+        sans-serif;
+    background: #f4f7f5;
+    color: #1f2937;
+}
+
+body {
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   MAIN PAGE STRUCTURE
+========================================================= */
+
+/*
+    Header
+       ↓
+    .wrapper
+       ↓
+    .main-layout
+       ├── sidebar
+       └── content
+       ↓
+    Footer
+*/
+
+.wrapper {
+    width: 100%;
+    min-height: calc(100vh - 70px);
+
+    display: flex;
+    flex-direction: column;
+
+    flex: 1;
+
+    min-width: 0;
+}
+
+
+/* =========================================================
+   MAIN LAYOUT
+   SIDEBAR + CONTENT SIDE BY SIDE
+========================================================= */
+
+.main-layout {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+
+    align-items: stretch;
+
+    flex: 1;
+
+    min-width: 0;
+    min-height: 0;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.top-header {
+    width: 100%;
+    height: 70px;
+
+    background: #2e7d32;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 24px;
+
+    color: #ffffff;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.12);
+
+    position: relative;
+    z-index: 100;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   HEADER LEFT
+========================================================= */
+
+.header-left {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    min-width: 0;
+}
+
+
+/* =========================================================
+   LOGO
+========================================================= */
+
+.logo {
+    width: 44px;
+    height: 44px;
+
+    min-width: 44px;
+
+    border-radius: 50%;
+
+    object-fit: cover;
+
+    background: #ffffff;
+
+    border: 2px solid rgba(255, 255, 255, 0.85);
+
+    display: block;
+
+    box-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+
+/* =========================================================
+   HEADER TITLE
+========================================================= */
+
+.header-title {
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    min-width: 0;
+}
+
+.header-title small {
+    display: block;
+
+    font-size: 11px;
+
+    line-height: 14px;
+
+    font-weight: 500;
+
+    color: rgba(255, 255, 255, 0.88);
+
+    letter-spacing: 0.2px;
+}
+
+.header-title h3 {
+    margin: 2px 0 0;
+
+    font-size: 16px;
+
+    line-height: 20px;
+
+    font-weight: 700;
+
+    color: #ffffff;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   HEADER RIGHT
+========================================================= */
+
+.header-right {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 9px;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   HEADER BUTTONS
+========================================================= */
+
+.header-right button {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    padding: 0;
+    margin: 0;
+
+    border: 0;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: rgba(255, 255, 255, 0.14);
+
+    color: #ffffff;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+
+/* =========================================================
+   HEADER ICON
+========================================================= */
+
+.header-right button i {
+    display: block;
+
+    font-size: 14px;
+
+    line-height: 1;
+
+    text-align: center;
+}
+
+
+/* =========================================================
+   LOGOUT FORM
+========================================================= */
+
+.logout-form {
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+
+/* =========================================================
+   HEADER HOVER
+========================================================= */
+
+.header-right button:hover {
+    background: rgba(255, 255, 255, 0.24);
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.content {
+    flex: 1;
+
+    min-width: 0;
+    min-height: 0;
+
+    background: #f5f7fb;
+
+    padding: 26px;
+
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+========================================================= */
+
+.page-header {
+    margin-bottom: 22px;
+}
+
+.page-header h1,
+.page-header h2 {
+    color: #1f2937;
+
+    font-weight: 700;
+
+    line-height: 1.25;
+}
+
+.page-header p {
+    margin-top: 5px;
+
+    color: #667085;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+    width: 250px;
+
+    min-width: 250px;
+
+    height: auto;
+
+    background: #ffffff;
+
+    border-right: 1px solid #e3e8e5;
+
+    overflow-y: auto;
+
+    flex-shrink: 0;
+
+    box-shadow:
+        2px 0 8px rgba(16, 24, 40, 0.03);
+}
+
+
+/* =========================================================
+   SIDEBAR LIST
+========================================================= */
+
+.sidebar-menu {
+    list-style: none;
+
+    padding: 18px 14px;
+
+    margin: 0;
+}
+
+
+/* Also support older sidebar <ul> structure */
+
+.sidebar > ul {
+    list-style: none;
+
+    padding: 18px 14px;
+
+    margin: 0;
+}
+
+
+/* =========================================================
+   SIDEBAR ITEM
+========================================================= */
+
+.sidebar li {
+    margin-bottom: 6px;
+}
+
+.sidebar li:last-child {
+    margin-bottom: 0;
+}
+
+
+/* =========================================================
+   SIDEBAR LINK
+========================================================= */
+
+.sidebar a {
+    width: 100%;
+
+    min-height: 44px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    padding: 0 15px;
+
+    color: #475467;
+
+    text-decoration: none;
+
+    border-radius: 9px;
+
+    font-size: 14px;
+
+    font-weight: 500;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+
+/* =========================================================
+   SIDEBAR ICON
+========================================================= */
+
+.sidebar a i {
+    width: 22px;
+
+    min-width: 22px;
+
+    height: 22px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    font-size: 15px;
+
+    line-height: 1;
+
+    color: #667085;
+
+    transition:
+        color 0.2s ease;
+}
+
+
+/* =========================================================
+   SIDEBAR STANDARDIZED ICON
+========================================================= */
+
+.sidebar-icon {
+    width: 22px;
+
+    min-width: 22px;
+
+    height: 22px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+.sidebar-icon i {
+    width: auto !important;
+
+    min-width: auto !important;
+
+    height: auto !important;
+
+    display: block !important;
+
+    font-size: 15px;
+
+    line-height: 1;
+}
+
+
+/* =========================================================
+   SIDEBAR TEXT
+========================================================= */
+
+.sidebar-text {
+    display: block;
+
+    flex: 1;
+
+    min-width: 0;
+
+    line-height: 1.3;
+}
+
+
+/* =========================================================
+   SIDEBAR HOVER
+========================================================= */
+
+.sidebar a:hover {
+    background: #f0f7f1;
+
+    color: #2e7d32;
+}
+
+.sidebar a:hover i {
+    color: #2e7d32;
+}
+
+
+/* =========================================================
+   ACTIVE SIDEBAR
+========================================================= */
+
+.sidebar li.active a {
+    background: #2e7d32;
+
+    color: #ffffff;
+
+    font-weight: 600;
+
+    box-shadow:
+        0 3px 8px rgba(46, 125, 50, 0.18);
+}
+
+.sidebar li.active a i {
+    color: #ffffff;
+}
+
+.sidebar li.active a .sidebar-icon i {
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.card {
+    background: #ffffff;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 2px 8px rgba(16, 24, 40, 0.04);
+}
+
+
+/* =========================================================
+   BUTTONS
+========================================================= */
+
+button {
+    font-family: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+
+/* =========================================================
+   INPUTS / SELECTS
+========================================================= */
+
+input,
+select,
+textarea {
+    border: 1px solid #d0d5dd;
+
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #1f2937;
+
+    outline: none;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #2e7d32;
+
+    box-shadow:
+        0 0 0 3px rgba(46, 125, 50, 0.10);
+}
+
+
+/* =========================================================
+   TABLES
+========================================================= */
+
+table {
+    border-collapse: collapse;
+}
+
+th {
+    font-weight: 600;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.footer {
+    width: 100%;
+
+    min-height: 52px;
+
+    background: #2e7d32;
+
+    color: #ffffff;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    padding: 8px 20px;
+
+    font-size: 11px;
+
+    font-weight: 500;
+
+    line-height: 17px;
+
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+.sidebar::-webkit-scrollbar,
+.content::-webkit-scrollbar {
+    width: 7px;
+
+    height: 7px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.content::-webkit-scrollbar-thumb {
+    background: #cbd5cf;
+
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.content::-webkit-scrollbar-thumb:hover {
+    background: #aab8ae;
+}
+
+
+/* =========================================================
+   RESPONSIVE - TABLET
+========================================================= */
+
+@media (max-width: 900px) {
+
+    .sidebar {
+        width: 220px;
+
+        min-width: 220px;
+    }
+
+    .content {
+        padding: 20px;
+    }
+
+    .top-header {
+        padding: 0 18px;
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+
+    .top-header {
+        height: 64px;
+    }
+
+    .wrapper {
+        min-height: calc(100vh - 64px);
+    }
+
+    .logo {
+        width: 40px;
+
+        height: 40px;
+
+        min-width: 40px;
+    }
+
+    .header-title h3 {
+        font-size: 14px;
+    }
+
+    .header-title small {
+        font-size: 10px;
+    }
+
+    .header-right {
+        gap: 6px;
+    }
+
+    .header-right button {
+        width: 35px;
+
+        height: 35px;
+
+        min-width: 35px;
+    }
+
+    .sidebar {
+        width: 210px;
+
+        min-width: 210px;
+    }
+
+    .content {
+        padding: 16px;
+    }
+
+    .footer {
+        font-size: 10px;
+    }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE - SMALL MOBILE
+========================================================= */
+
+@media (max-width: 520px) {
+
+    .top-header {
+        padding: 0 12px;
+    }
+
+    .header-left {
+        gap: 9px;
+    }
+
+    .logo {
+        width: 36px;
+
+        height: 36px;
+
+        min-width: 36px;
+    }
+
+    .header-title h3 {
+        max-width: 180px;
+
+        font-size: 13px;
+    }
+
+    .header-right button {
+        width: 33px;
+
+        height: 33px;
+
+        min-width: 33px;
+    }
+
+    .sidebar {
+        width: 190px;
+
+        min-width: 190px;
+    }
+
+    .sidebar a {
+        font-size: 13px;
+
+        padding: 0 12px;
+
+        gap: 10px;
+    }
+
+    .content {
+        padding: 12px;
+    }
+
+}
+
+
+/* =========================================================
+   STUDENT PAGES
+   Student has NO sidebar
+========================================================= */
+
+.no-sidebar-layout {
+    width: 100%;
+
+    flex: 1;
+
+    min-width: 0;
+
+    background: #f5f7fb;
+}
+
+.no-sidebar-layout .content {
+    width: 100%;
+}
+
+
+/* =========================================================
+   SAFETY FOR ROLE SIDEBARS
+========================================================= */
+
+.main-layout > .sidebar {
+    align-self: stretch;
+}
+
+.main-layout > .content {
+    flex: 1;
+}
+
+
+/* =========================================================
+   PREVENT HORIZONTAL PAGE BREAKS
+========================================================= */
+
+.wrapper,
+.main-layout,
+.content {
+    max-width: 100%;
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid #2e7d32;
+
+    outline-offset: 2px;
+}

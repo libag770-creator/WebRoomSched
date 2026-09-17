@@ -1,12 +1,10 @@
 @php
-use Illuminate\Support\Facades\Auth;
+    use Illuminate\Support\Facades\Auth;
 @endphp
+
+@include('footerheader.header')
+
 <div class="wrapper">
-
-    @include('footerheader.header')
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
     <style>
         *{
             margin:0;
@@ -534,9 +532,11 @@ use Illuminate\Support\Facades\Auth;
 </div>
 
 
-@include('footerheader.footer')
+
 
 </div>
+
+@include('footerheader.footer')
 <script>
 
 function showTab(tabId, button){

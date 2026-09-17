@@ -1,6 +1,6 @@
 <aside class="sidebar">
 
-    <ul>
+    <ul class="sidebar-menu">
 
         <!-- =========================================
              DASHBOARD
@@ -10,9 +10,11 @@
 
             <a href="{{ route('chair.dashboard') }}">
 
-                <i class="fa-solid fa-table-columns"></i>
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-table-columns"></i>
+                </span>
 
-                <span>
+                <span class="sidebar-text">
                     Dashboard
                 </span>
 
@@ -29,9 +31,11 @@
 
             <a href="{{ route('chair.setFaculty') }}">
 
-                <i class="fa-solid fa-user-gear"></i>
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-user-gear"></i>
+                </span>
 
-                <span>
+                <span class="sidebar-text">
                     Set Faculty
                 </span>
 
@@ -48,9 +52,11 @@
 
             <a href="{{ route('chair.setschedule') }}">
 
-                <i class="fa-solid fa-calendar-days"></i>
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </span>
 
-                <span>
+                <span class="sidebar-text">
                     Set Schedule
                 </span>
 
@@ -67,9 +73,11 @@
 
             <a href="{{ route('chair.drafts') }}">
 
-                <i class="fa-solid fa-file-pen"></i>
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-file-pen"></i>
+                </span>
 
-                <span>
+                <span class="sidebar-text">
                     Drafts
                 </span>
 
@@ -86,9 +94,11 @@
 
             <a href="{{ route('chair.modifyschedule') }}">
 
-                <i class="fa-solid fa-right-left"></i>
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-right-left"></i>
+                </span>
 
-                <span>
+                <span class="sidebar-text">
                     Modify Schedule
                 </span>
 

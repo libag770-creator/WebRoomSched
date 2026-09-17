@@ -2,6 +2,11 @@
 <html lang="en">
 
 <head>
+  
+
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <link rel="stylesheet" href="{{ asset('css/excel.css') }}">
 
     <meta charset="UTF-8">
 
@@ -15,750 +20,6 @@
     </title>
 
 
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            padding: 25px;
-            background: #f1f3f2;
-            font-family: Arial, Helvetica, sans-serif;
-            color: #222;
-        }
-
-        .page {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-
-        /* =========================================================
-           TOP BAR
-        ========================================================= */
-
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 18px;
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 9px 14px;
-            background: #777;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-        }
-
-        .back-link:hover {
-            background: #616161;
-        }
-
-
-        /* =========================================================
-           MESSAGES
-        ========================================================= */
-
-        .message {
-            padding: 12px 15px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }
-
-        .message-success {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-left: 5px solid #2e7d32;
-        }
-
-        .message-error {
-            background: #ffebee;
-            color: #b71c1c;
-            border-left: 5px solid #c62828;
-        }
-
-
-        /* =========================================================
-           HEADER
-        ========================================================= */
-
-        .program-header {
-            background: white;
-            border: 1px solid #aaa;
-            padding: 18px 20px;
-            text-align: center;
-        }
-
-        .program-title {
-            font-size: 26px;
-            font-weight: bold;
-            letter-spacing: .5px;
-        }
-
-        .program-semester {
-            margin-top: 4px;
-            font-size: 13px;
-        }
-.schedule-information {
-    display: flex;
-    gap: 20px;
-    margin: 20px 0;
-    flex-wrap: wrap;
-}
-
-.schedule-info-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.schedule-info-field label {
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.schedule-info-field input {
-    width: 220px;
-    padding: 9px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.merge-section {
-    margin-top: 20px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background: #fafafa;
-}
-
-.merge-title {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 6px;
-}
-
-.merge-description {
-    margin: 0 0 12px;
-    font-size: 13px;
-    color: #666;
-}
-
-.merge-search-status {
-    margin-top: 10px;
-    font-size: 13px;
-}
-
-.merge-results {
-    margin-top: 12px;
-}
-
-.merge-result {
-    padding: 12px;
-    margin-bottom: 8px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background: #fff;
-}
-
-.merge-result-title {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.merge-result-info {
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.merge-select-btn {
-    margin-top: 8px;
-    padding: 7px 12px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-        .draft-mode {
-            margin-top: 10px;
-            display: inline-block;
-            padding: 8px 12px;
-            background: #fff8e1;
-            color: #6d4c00;
-            border-left: 5px solid #f9a825;
-            border-radius: 5px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .program-meta {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-top: 16px;
-            text-align: left;
-            font-size: 13px;
-        }
-
-        .meta-item {
-            padding: 9px 10px;
-            background: #fafafa;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .meta-item strong {
-            color: #2e7d32;
-        }
-
-
-        /* =========================================================
-           EDITOR
-        ========================================================= */
-
-        .editor-panel {
-            background: white;
-            margin-top: 18px;
-            padding: 18px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
-        }
-
-        .editor-title {
-            color: #2e7d32;
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .editor-subtitle {
-            color: #777;
-            font-size: 13px;
-            margin-bottom: 18px;
-        }
-
-
-        /* =========================================================
-           FORM
-        ========================================================= */
-
-        .form-grid {
-            display: grid;
-            grid-template-columns:
-                1.2fr
-                2fr
-                1.2fr
-                1.5fr
-                2fr;
-            gap: 10px;
-            align-items: end;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 9px 10px;
-            border: 1px solid #bbb;
-            border-radius: 5px;
-            background: white;
-            font-size: 13px;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #2e7d32;
-            box-shadow: 0 0 0 2px rgba(46,125,50,.1);
-        }
-
-        .form-group input[readonly] {
-            background: #f5f5f5;
-        }
-
-
-        /* =========================================================
-           LOOKUP STATUS
-        ========================================================= */
-
-        .lookup-status {
-            margin-top: 10px;
-            padding: 9px 12px;
-            border-radius: 5px;
-            font-size: 12px;
-            display: none;
-        }
-
-        .lookup-success {
-            display: block;
-            background: #e8f5e9;
-            color: #2e7d32;
-            border-left: 4px solid #2e7d32;
-        }
-
-        .lookup-error {
-            display: block;
-            background: #ffebee;
-            color: #b71c1c;
-            border-left: 4px solid #c62828;
-        }
-
-        .lookup-warning {
-            display: block;
-            background: #fff8e1;
-            color: #6d4c00;
-            border-left: 4px solid #f9a825;
-        }
-
-
-        /* =========================================================
-           BUTTONS
-        ========================================================= */
-
-        .btn {
-            border: none;
-            padding: 9px 14px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: .15s;
-        }
-
-        .btn:active {
-            transform: scale(.98);
-        }
-
-        .btn-green {
-            background: #2e7d32;
-            color: white;
-        }
-
-        .btn-green:hover {
-            background: #1b5e20;
-        }
-
-        .btn-yellow {
-            background: #f9a825;
-            color: #1b5e20;
-        }
-
-        .btn-yellow:hover {
-            background: #e69b00;
-            color: white;
-        }
-
-        .btn-red {
-            background: #c62828;
-            color: white;
-        }
-
-        .btn-red:hover {
-            background: #a61b1b;
-        }
-
-        .btn-gray {
-            background: #777;
-            color: white;
-        }
-
-        .btn-gray:hover {
-            background: #616161;
-        }
-
-
-        /* =========================================================
-           CELL CONTROLS
-        ========================================================= */
-
-        .cell-controls {
-            display: flex;
-            align-items: end;
-            gap: 10px;
-            margin-top: 14px;
-            flex-wrap: wrap;
-        }
-
-        .color-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .color-group label {
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .color-group input[type="color"] {
-            width: 60px;
-            height: 38px;
-            padding: 3px;
-            cursor: pointer;
-        }
-
-        /* =====================================================
-   MULTI-CELL SELECTION
-   ===================================================== */
-
-        .schedule-cell.selected-cell {
-            outline: 3px solid #2e7d32;
-            outline-offset: -3px;
-            background: #e8f5e9 !important;
-        }
-
-        /* =========================================================
-           INSTRUCTION
-        ========================================================= */
-
-        .instruction {
-            margin-top: 15px;
-            padding: 12px 14px;
-            background: #fff8e1;
-            color: #6d4c00;
-            border-left: 5px solid #f9a825;
-            border-radius: 5px;
-            font-size: 12px;
-        }
-
-
-        /* =========================================================
-           TABLE
-        ========================================================= */
-
-        .table-wrapper {
-            margin-top: 18px;
-            overflow-x: auto;
-            background: white;
-            border: 1px solid #888;
-        }
-
-      #scheduleTable {
-    width: 100%;
-    min-width: 1050px;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-
-        #scheduleTable th,
-        #scheduleTable td {
-            border: 1px solid #888;
-        }
-
-        #scheduleTable thead th {
-            background: #e6ebe8;
-            height: 40px;
-            text-align: center;
-            font-size: 12px;
-            font-weight: bold;
-        }
-#scheduleTable thead th:first-child,
-#scheduleTable thead th.time-header {
-    width: 110px;
-}
-
-        .time-cell {
-            background: #fafafa;
-            min-height: 70px;
-            height: 70px;
-            padding: 8px;
-            text-align: center;
-            vertical-align: middle;
-            font-size: 11px;
-            font-weight: bold;
-            cursor: text;
-        }
-
-        .time-cell:focus {
-            outline: 2px solid #2e7d32;
-            outline-offset: -2px;
-        }
-
-        .schedule-cell {
-            height: 90px;
-            padding: 5px;
-            text-align: center;
-            vertical-align: middle;
-            cursor: pointer;
-            background: white;
-            transition: .15s;
-        }
-
-        .schedule-cell:hover {
-            background: #f7fbf7;
-        }
-
-        .schedule-cell.selected {
-            outline: 3px solid #2e7d32;
-            outline-offset: -3px;
-        }
-
-.schedule-info-field select {
-    width: 220px;
-    padding: 9px 12px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    background: white;
-}
-
-.cell-subject-type {
-    font-size: 11px;
-    font-weight: 600;
-    margin-top: 3px;
-}
-        /* =========================================================
-           LOCKED CELL
-        ========================================================= */
-
-        .locked-cell {
-            background: #eeeeee !important;
-            color: #777;
-            cursor: not-allowed !important;
-            opacity: .85;
-            position: relative;
-        }
-
-        .locked-cell:hover {
-            background: #e5e5e5 !important;
-        }
-
-        .locked-label {
-            margin-top: 4px;
-            color: #c62828;
-            font-size: 8px;
-            font-weight: bold;
-        }
-
-
-        /* =========================================================
-           CELL CONTENT
-        ========================================================= */
-
-        .cell-course {
-            font-size: 11px;
-            font-weight: bold;
-        }
-
-        .cell-subject {
-            margin-top: 3px;
-            font-size: 10px;
-        }
-
-        .cell-instructor {
-            margin-top: 3px;
-            font-size: 9px;
-            color: #555;
-        }
-
-        .cell-year {
-            margin-top: 2px;
-            font-size: 9px;
-            color: #777;
-        }
-
-        .cell-major {
-    margin-top: 2px;
-    font-size: 9px;
-    font-weight: bold;
-}
-
-.cell-program {
-    margin-top: 2px;
-    font-size: 8px;
-    font-weight: normal;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.merge-room-schedule-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-
-.merge-room-schedule-table th,
-.merge-room-schedule-table td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-    vertical-align: middle;
-}
-
-.merge-room-schedule-table th {
-    background: #2e7d32;
-    color: white;
-    font-weight: bold;
-    height: 40px;
-}
-
-.merge-time-cell {
-    width: 100px;
-    background: #f5f5f5;
-    font-weight: bold;
-    white-space: nowrap;
-}
-
-.merge-schedule-cell {
-    height: 70px;
-    min-height: 70px;
-}
-
-.merge-empty-cell {
-    background: #fafafa;
-    color: #999;
-}
-
-.merge-occupied-cell {
-    background: #e8f5e9;
-    cursor: pointer;
-}
-
-.merge-class-course {
-    font-weight: bold;
-    font-size: 13px;
-}
-
-.merge-class-subject {
-    font-size: 12px;
-    margin-top: 4px;
-}
-
-.merge-class-instructor {
-    font-size: 11px;
-    margin-top: 4px;
-}
-
-.merge-noon-break td {
-    background: #eeeeee;
-    font-weight: bold;
-    height: 35px;
-}
-
-        .empty-cell {
-            color: #aaa;
-            font-size: 10px;
-            font-style: italic;
-        }
-
-        .break-row td {
-            height: 28px;
-            background: #efefef;
-            text-align: center;
-            font-size: 11px;
-            font-weight: bold;
-            letter-spacing: 6px;
-            color: #555;
-        }
-
-
-        /* =========================================================
-           FOOTER
-        ========================================================= */
-
-        .table-footer {
-            padding: 12px;
-            text-align: center;
-            background: #fafafa;
-            border: 1px solid #bbb;
-            border-top: none;
-        }
-
-
-        /* =========================================================
-           ACTIONS
-        ========================================================= */
-
-        .editor-actions {
-            margin-top: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .action-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-
-        /* =========================================================
-           RESPONSIVE
-        ========================================================= */
-
-        @media (max-width: 1000px) {
-
-            .program-meta {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .form-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-        }
-
-        @media (max-width: 650px) {
-
-            body {
-                padding: 12px;
-            }
-
-            .program-title {
-                font-size: 21px;
-            }
-
-            .program-meta {
-                grid-template-columns: 1fr;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .editor-actions {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .action-group {
-                width: 100%;
-            }
-
-            .action-group .btn {
-                flex: 1;
-            }
-
-        }
-
-    </style>
 
 </head>
 
@@ -1162,6 +423,9 @@
     >
 </div>
 
+<button type="button" id="mergeClassToggleBtn" class="merge-class-toggle-btn">
+    Merge Class (optional)
+</button>
 
             </div>
 
@@ -1211,7 +475,11 @@
             </div>
 
 <!-- MERGE CLASS SECTION -->
-<div class="merge-section">
+<div
+    class="merge-section"
+    id="mergeExistingClass"
+    style="display: none;"
+>
 
     <div class="merge-title">
         Merge Existing Class
@@ -1300,21 +568,60 @@
         style="display:none;"
     ></div>
 
-    <div
-    id="mergeProgramSelection"
-    style="display:none;"
->
-    <label for="mergeProgramSelect">
-        Program to Merge
-    </label>
+    <!-- PROGRAM SELECTION POPUP -->
+<div id="mergeProgramSelection" class="program-popup" style="display:none;">
 
-    <select
-        id="mergeProgramSelect"
-    >
-        <option value="">
-            Select Program
-        </option>
-    </select>
+    <div class="program-popup-overlay"></div>
+
+    <div class="program-popup-card">
+
+        <!-- X BUTTON -->
+        <button
+            type="button"
+            id="closeMergeProgramPopup"
+            class="program-popup-close"
+        >
+            &times;
+        </button>
+
+        <h3>Select Program</h3>
+
+        <p>
+            Choose the program you want to merge.
+        </p>
+
+        <label for="mergeProgramSelect">
+            Program
+        </label>
+
+        <select id="mergeProgramSelect">
+            <option value="">
+                Select Program
+            </option>
+        </select>
+
+        <div class="program-popup-actions">
+
+            <button
+                type="button"
+                id="cancelMergeProgram"
+                class="program-popup-cancel"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                id="confirmMergeProgram"
+                class="program-popup-confirm"
+            >
+                Continue
+            </button>
+
+        </div>
+
+    </div>
+
 </div>
 
 </div>
@@ -1585,11 +892,7 @@ $rightTimes = $rightTimes
          NOON BREAK
          ========================================================= --}}
 
-   @if(
-    $leftTime === '12:00-1:00'
-    &&
-    $rightTime === '12:00-1:00'
-)
+   @if($i === 4)
     <tr class="break-row">
         <td colspan="7">
             N O O N
@@ -1704,11 +1007,74 @@ $rightTimes = $rightTimes
                         </div>
                     @endif
 
-                    @if($schedule->program)
-                        <div class="cell-program">
-                            {{ $schedule->program }}
-                        </div>
-                    @endif
+        
+    @php
+    $programs = collect();
+
+    /*
+    |--------------------------------------------------------------------------
+    | MAIN PROGRAM
+    |--------------------------------------------------------------------------
+    */
+
+    if (!empty($schedule->program)) {
+        $programs->push(
+            $schedule->program
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | APPROVED MERGED PROGRAMS
+    |--------------------------------------------------------------------------
+    |
+    | Published Schedule records may have merges.
+    | ScheduleDraft records do not necessarily have
+    | the merges relationship.
+    |
+    */
+
+    $scheduleMerges =
+        $schedule->merges ?? collect();
+
+    foreach ($scheduleMerges as $merge) {
+
+        if (
+            $merge->status === 'approved' &&
+            $merge->facultySubject &&
+            !empty(
+                $merge->facultySubject->program
+            )
+        ) {
+
+            $programs->push(
+                $merge->facultySubject->program
+            );
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | REMOVE DUPLICATES
+    |--------------------------------------------------------------------------
+    */
+
+  
+
+
+    $programs = $programs
+        ->filter()
+        ->unique()
+        ->values();
+@endphp
+
+@if($programs->count() > 0)
+    <div class="cell-program">
+        {{ $programs->implode(' / ') }}
+    </div>
+@endif
 
                     @if($schedule->subject_type)
                         <div class="cell-subject-type">
@@ -1971,7 +1337,102 @@ $rightTimes = $rightTimes
 
 </div>
 
+@if(session('schedule_conflict'))
 
+<div
+    id="scheduleConflictModal"
+    class="schedule-conflict-overlay"
+>
+
+    <div class="schedule-conflict-modal">
+
+        <div class="schedule-conflict-icon">
+            ⚠
+        </div>
+
+        <h2>
+            Schedule Conflict
+        </h2>
+
+        <p class="schedule-conflict-message">
+
+            This room already has a published
+            schedule.
+
+            <br><br>
+
+            Publishing this draft will
+            <strong>
+                replace the existing schedule
+            </strong>
+            in this room.
+
+        </p>
+
+
+        <div class="schedule-conflict-room">
+
+            <strong>
+                Room:
+            </strong>
+
+            {{ $room->room_name }}
+
+        </div>
+
+
+        <p class="schedule-conflict-warning">
+
+            Do you want to override the
+            existing schedule and publish
+            this draft?
+
+        </p>
+
+
+        <div class="schedule-conflict-actions">
+
+            <button
+                type="button"
+                id="cancelScheduleConflict"
+                class="btn btn-gray"
+            >
+                Cancel
+            </button>
+
+
+            <form
+                method="POST"
+                action="{{ route(
+                    'chair.drafts.publish',
+                    $room->id
+                ) }}"
+            >
+
+                @csrf
+
+                <input
+                    type="hidden"
+                    name="override"
+                    value="1"
+                >
+
+                <button
+                    type="submit"
+                    class="btn btn-green"
+                >
+                    Override & Publish
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+@endif
 <script>
 
     /*
@@ -1993,7 +1454,8 @@ $rightTimes = $rightTimes
     const chairDepartmentId =
         @json(auth()->user()->department_id);
 
-
+    const isEditingDraft =
+    @json($isEditingDraft ?? false);
     /*
     |--------------------------------------------------------------------------
     | SELECTED CELL
@@ -3819,68 +3281,179 @@ attachTimeCellEvents();
     */
 
     scheduleForm.addEventListener(
-        'submit',
-        function(event)
-        {
+    'submit',
+    function(event)
+    {
+        const submitter =
+            event.submitter;
+
+        /*
+        |--------------------------------------------------------------------------
+        | SAVE AS DRAFT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            submitter &&
+            submitter.value === 'draft'
+        ) {
 
             const count =
                 prepareSchedule();
 
-
             if (count === 0) {
 
                 event.preventDefault();
-
 
                 alert(
                     'There is no schedule entry to save. Select an editable or empty cell, enter a valid course code, and click Save Cell first.'
                 );
 
                 return;
-
             }
 
+            scheduleForm.action =
+                "{{ route('chair.save.draft') }}";
 
-            const submitter =
-                event.submitter;
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | SAVE DRAFT
-            |--------------------------------------------------------------------------
-            */
-
-            if (
-                submitter &&
-                submitter.value ===
-                    'draft'
-            ) {
-
-                scheduleForm.action =
-                    "{{ route(
-                        'chair.save.draft'
-                    ) }}";
-
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | UPLOAD
-            |--------------------------------------------------------------------------
-            */
-
-            else {
-
-                scheduleForm.action =
-                    "{{ route(
-                        'chair.save.schedule'
-                    ) }}";
-
-            }
-
+            return;
         }
-    );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | NORMAL UPLOAD
+        |--------------------------------------------------------------------------
+        */
+
+        if (!isEditingDraft) {
+
+            const count =
+                prepareSchedule();
+
+            if (count === 0) {
+
+                event.preventDefault();
+
+                alert(
+                    'There is no schedule entry to save. Select an editable or empty cell, enter a valid course code, and click Save Cell first.'
+                );
+
+                return;
+            }
+
+            scheduleForm.action =
+                "{{ route('chair.save.schedule') }}";
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | EDITING A DRAFT
+        |--------------------------------------------------------------------------
+        |
+        | Do NOT immediately send the draft to saveSchedule().
+        |
+        | First check whether this room already contains
+        | a published schedule.
+        |
+        */
+
+        event.preventDefault();
+
+        const count =
+            prepareSchedule();
+
+        if (count === 0) {
+
+            alert(
+                'There is no schedule entry to publish. Select an editable or empty cell, enter a valid course code, and click Save Cell first.'
+            );
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ASK FOR OVERRIDE
+        |--------------------------------------------------------------------------
+        */
+
+        const confirmed =
+            confirm(
+                'This room already has a published schedule.\n\n' +
+                'Publishing this edited draft will replace the existing schedule in this room.\n\n' +
+                'Do you want to override the existing schedule and publish this draft?'
+            );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CANCEL
+        |--------------------------------------------------------------------------
+        */
+
+        if (!confirmed) {
+
+            return;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | OVERRIDE AND PUBLISH
+        |--------------------------------------------------------------------------
+        */
+
+        scheduleForm.action =
+            "{{ route(
+                'chair.drafts.publish',
+                $room->id
+            ) }}";
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADD OVERRIDE FLAG
+        |--------------------------------------------------------------------------
+        */
+
+        let overrideInput =
+            scheduleForm.querySelector(
+                'input[name="override"]'
+            );
+
+        if (!overrideInput) {
+
+            overrideInput =
+                document.createElement('input');
+
+            overrideInput.type =
+                'hidden';
+
+            overrideInput.name =
+                'override';
+
+            scheduleForm.appendChild(
+                overrideInput
+            );
+        }
+
+        overrideInput.value =
+            '1';
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUBMIT AGAIN
+        |--------------------------------------------------------------------------
+        */
+
+        scheduleForm.submit();
+    }
+);
 
     // =====================================================
 // EDITABLE TIME CELLS
@@ -4072,10 +3645,17 @@ const params =
                             '<div class="merge-result-info">' +
 
                             '<strong>Department:</strong> ' +
-
                             escapeHtml(
-                                existingClass.department
-                            ) +
+                                 existingClass.department
+                                ) +
+
+                            '<br>' +
+
+                            '<strong>Program:</strong> ' +
+                                escapeHtml(
+                            existingClass.program ||
+                            'Unknown Program'
+                                ) +
 
                             '<br>' +
 
@@ -4146,7 +3726,228 @@ escapeHtml(
 
 
                 mergeResults.style.display =
-                    'block';
+    'block';
+
+/*
+|--------------------------------------------------------------------------
+| SEARCH RESULT — SELECT CLASS
+|--------------------------------------------------------------------------
+*/
+
+mergeResults
+    .querySelectorAll('.merge-select-btn')
+    .forEach(function(button)
+    {
+        button.addEventListener(
+            'click',
+            function()
+            {
+                const scheduleId =
+                    this.dataset.scheduleId;
+
+                const existingClass =
+                    data.classes.find(
+                        function(item)
+                        {
+                            return String(item.id) ===
+                                String(scheduleId);
+                        }
+                    );
+
+                if (!existingClass) {
+                    alert(
+                        'Unable to load the selected class.'
+                    );
+                    return;
+                }
+
+                const existingProgram =
+                    existingClass.program ||
+                    'Unknown Program';
+
+                const mergeProgramSelection =
+    document.getElementById(
+        'mergeProgramSelection'
+    );
+
+const mergeProgramSelect =
+    document.getElementById(
+        'mergeProgramSelect'
+    );
+
+if (
+    !mergeProgramSelection ||
+    !mergeProgramSelect
+) {
+    alert(
+        'Program selection is unavailable.'
+    );
+    return;
+}
+
+/*
+|--------------------------------------------------------------------------
+| SAVE SEARCHED CLASS TEMPORARILY
+|--------------------------------------------------------------------------
+*/
+
+window.selectedMergeSchedule = {
+    id: existingClass.id,
+    course_code: existingClass.course_code,
+    subject: existingClass.subject,
+    instructor: existingClass.instructor,
+    department: existingClass.department,
+    building: existingClass.building,
+    room: existingClass.room,
+    day: existingClass.day,
+    time: existingClass.time,
+    program:
+        existingClass.program ||
+        'Unknown Program'
+};
+
+/*
+|--------------------------------------------------------------------------
+| OPEN PROGRAM POPUP
+|--------------------------------------------------------------------------
+*/
+
+mergeProgramSelect.value = '';
+
+mergeProgramSelection.style.display =
+    'flex';
+
+loadMergePrograms();
+
+return;
+
+                const confirmed =
+                    confirm(
+                        'MERGE EXISTING CLASS?\n\n' +
+                        'Course Code: ' +
+                        existingClass.course_code +
+                        '\n' +
+                        'Subject: ' +
+                        existingClass.subject +
+                        '\n' +
+                        'Instructor: ' +
+                        existingClass.instructor +
+                        '\n' +
+                        'Department: ' +
+                        existingClass.department +
+                        '\n' +
+                        'Building: ' +
+                        existingClass.building +
+                        '\n' +
+                        'Room: ' +
+                        existingClass.room +
+                        '\n' +
+                        'Day: ' +
+                        existingClass.day +
+                        '\n' +
+                        'Time: ' +
+                        existingClass.time +
+                        '\n\n' +
+                        'Existing Program:\n' +
+                        existingProgram +
+                        '\n\n' +
+                        'Program to Add:\n' +
+                        mergingProgram.trim() +
+                        '\n\n' +
+                        'Result after approval:\n' +
+                        existingProgram +
+                        ' / ' +
+                        mergingProgram.trim() +
+                        '\n\n' +
+                        'The original room, instructor, and schedule will remain unchanged.\n\n' +
+                        'Send merge request to the owner department?'
+                    );
+
+                if (!confirmed) {
+                    return;
+                }
+
+                fetch(
+                    "{{ route('chair.merge.request') }}",
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'Accept':
+                                'application/json',
+
+                            'X-Requested-With':
+                                'XMLHttpRequest',
+
+                            'X-CSRF-TOKEN':
+                                document.querySelector(
+                                    'meta[name="csrf-token"]'
+                                ).getAttribute('content')
+                        },
+
+                        body: JSON.stringify({
+                            schedule_id:
+                                scheduleId,
+
+                            program:
+                                mergingProgram.trim()
+                        })
+                    }
+                )
+                .then(function(response)
+                {
+                    return response.json()
+                        .then(function(result)
+                        {
+                            if (!response.ok) {
+                                throw new Error(
+                                    result.message ||
+                                    'Unable to submit merge request.'
+                                );
+                            }
+
+                            return result;
+                        });
+                })
+                .then(function(result)
+                {
+                    if (!result.success) {
+                        throw new Error(
+                            result.message ||
+                            'Unable to submit merge request.'
+                        );
+                    }
+
+                    alert(
+                        'Merge request submitted successfully!\n\n' +
+                        'Course: ' +
+                        existingClass.course_code +
+                        '\n' +
+                        'Program: ' +
+                        mergingProgram.trim() +
+                        '\n' +
+                        'Status: Pending'
+                    );
+
+                    button.disabled = true;
+                    button.textContent =
+                        'Merge Request Sent';
+                })
+                .catch(function(error)
+                {
+                    console.error(error);
+
+                    alert(
+                        error.message ||
+                        'Unable to submit merge request.'
+                    );
+                });
+            }
+        );
+    });
 
             })
             .catch(function(error) {
@@ -5088,6 +4889,18 @@ const existingProgram =
         ? cell.dataset.program.trim()
         : 'Unknown Program';
 
+        window.selectedMergeSchedule = {
+    id: scheduleId,
+
+    course_code: course,
+
+    subject: subject,
+
+    instructor: instructor,
+
+    program: existingProgram
+};
+
 console.log(
     'Selected schedule ID:',
     scheduleId
@@ -5132,7 +4945,8 @@ if (
 
 programSelection.style.display = 'block';
 
-mergeProgramSelect.value = '';
+mergeProgramSelect.innerHTML =
+    '<option value="">Loading your programs...</option>';
 
 loadMergePrograms();
 
@@ -5140,67 +4954,305 @@ programSelection.scrollIntoView({
     behavior: 'smooth',
     block: 'nearest'
 });
-
 /*
 |--------------------------------------------------------------------------
 | WHEN PROGRAM IS SELECTED
 |--------------------------------------------------------------------------
 */
 
-mergeProgramSelect.onchange =
-    function()
-    {
-        const mergingProgram =
-            this.value.trim();
+/*
+|--------------------------------------------------------------------------
+| CONTINUE BUTTON — SUBMIT MERGE REQUEST
+|--------------------------------------------------------------------------
+*/
 
-        if (!mergingProgram) {
-            return;
-        }
+const confirmMergeProgram =
+    document.getElementById(
+        'confirmMergeProgram'
+    );
 
-        /*
-        |--------------------------------------------------------------------------
-        | CONFIRM MERGE
-        |--------------------------------------------------------------------------
-        */
+if (confirmMergeProgram) {
 
-        const confirmed = confirm(
-            'Merge Existing Class?\n\n' +
-            'Course: ' +
-            course +
-            '\n' +
-            'Subject: ' +
-            subject +
-            '\n' +
-            'Instructor: ' +
-            instructor +
-            '\n\n' +
-            'Existing Program: ' +
-            existingProgram +
-            '\n' +
-            'Your Program: ' +
-            mergingProgram +
-            '\n\n' +
-            'After merging:\n' +
-            existingProgram +
-            ' / ' +
-            mergingProgram +
-            '\n\n' +
-            'Do you want to request this merge?'
-        );
+    confirmMergeProgram.onclick =
+        function()
+        {
+            const mergingProgram =
+                mergeProgramSelect.value.trim();
 
-        if (confirmed) {
+            if (!mergingProgram) {
 
-            alert(
-                'Ready to create merge request for schedule ID: ' +
-                scheduleId
-            );
+                alert(
+                    'Please select a program first.'
+                );
 
-            programSelection.style.display =
+                return;
+            }
+
+            const selectedMerge =
+                window.selectedMergeSchedule;
+
+            if (!selectedMerge) {
+
+                alert(
+                    'No class has been selected for merging.'
+                );
+
+                return;
+            }
+
+            const course =
+                selectedMerge.course_code || '';
+
+            const subject =
+                selectedMerge.subject || '';
+
+            const instructor =
+                selectedMerge.instructor ||
+                'Unknown Instructor';
+
+            const existingProgram =
+                selectedMerge.program ||
+                'Unknown Program';
+
+            const scheduleId =
+                selectedMerge.id;
+
+            if (!scheduleId) {
+
+                alert(
+                    'The selected class is invalid.'
+                );
+
+                return;
+            }
+
+            const confirmed =
+                confirm(
+                    'MERGE EXISTING CLASS?\n\n' +
+
+                    'Course Code: ' +
+                    course +
+                    '\n' +
+
+                    'Subject: ' +
+                    subject +
+                    '\n' +
+
+                    'Instructor: ' +
+                    instructor +
+                    '\n\n' +
+
+                    'Existing Program:\n' +
+                    existingProgram +
+                    '\n\n' +
+
+                    'Program to Add:\n' +
+                    mergingProgram +
+                    '\n\n' +
+
+                    'Result after approval:\n' +
+                    existingProgram +
+                    ' / ' +
+                    mergingProgram +
+                    '\n\n' +
+
+                    'The original room, instructor, and class schedule will remain unchanged.\n\n' +
+
+                    'Send merge request to the owner department?'
+                );
+
+            if (!confirmed) {
+                return;
+            }
+
+            confirmMergeProgram.disabled = true;
+
+            fetch(
+                "{{ route('chair.merge.request') }}",
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json',
+
+                        'Accept':
+                            'application/json',
+
+                        'X-Requested-With':
+                            'XMLHttpRequest',
+
+                        'X-CSRF-TOKEN':
+                            document.querySelector(
+                                'meta[name="csrf-token"]'
+                            ).getAttribute('content')
+                    },
+
+                    body: JSON.stringify({
+                        schedule_id:
+                            scheduleId,
+
+                        program:
+                            mergingProgram
+                    })
+                }
+            )
+            .then(function(response)
+            {
+                return response.json()
+                    .then(function(data)
+                    {
+                        return {
+                            ok:
+                                response.ok,
+
+                            data:
+                                data
+                        };
+                    });
+            })
+
+            .then(function(result)
+            {
+                if (
+                    !result.ok ||
+                    !result.data.success
+                ) {
+
+                    alert(
+                        result.data.message ||
+                        'Unable to create merge request.'
+                    );
+
+                    return;
+                }
+
+                alert(
+                    'Merge request submitted successfully!\n\n' +
+
+                    'Course: ' +
+                    course +
+                    '\n' +
+
+                    'Program: ' +
+                    mergingProgram +
+                    '\n' +
+
+                    'Status: Pending'
+                );
+
+                programSelection.style.display =
+                    'none';
+
+                mergeProgramSelect.value = '';
+
+                window.selectedMergeSchedule =
+                    null;
+            })
+
+            .catch(function(error)
+            {
+                console.error(
+                    'Merge request error:',
+                    error
+                );
+
+                alert(
+                    'An error occurred while submitting the merge request.'
+                );
+            })
+
+            .finally(function()
+            {
+                confirmMergeProgram.disabled =
+                    false;
+            });
+        };
+}
+
+
+    /*
+|--------------------------------------------------------------------------
+| CLOSE PROGRAM POPUP
+|--------------------------------------------------------------------------
+*/
+
+const closeMergeProgramPopup =
+    document.getElementById(
+        'closeMergeProgramPopup'
+    );
+
+const cancelMergeProgram =
+    document.getElementById(
+        'cancelMergeProgram'
+    );
+
+const mergeProgramModal =
+    document.getElementById(
+        'mergeProgramSelection'
+    );
+
+
+/*
+|--------------------------------------------------------------------------
+| X BUTTON
+|--------------------------------------------------------------------------
+*/
+
+if (closeMergeProgramPopup) {
+
+    closeMergeProgramPopup.onclick =
+        function()
+        {
+            mergeProgramModal.style.display =
                 'none';
 
             mergeProgramSelect.value = '';
-        }
-    };
+        };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| CANCEL BUTTON
+|--------------------------------------------------------------------------
+*/
+
+if (cancelMergeProgram) {
+
+    cancelMergeProgram.onclick =
+        function()
+        {
+            mergeProgramModal.style.display =
+                'none';
+
+            mergeProgramSelect.value = '';
+        };
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| CLICK OUTSIDE POPUP
+|--------------------------------------------------------------------------
+*/
+
+const mergeProgramOverlay =
+    document.querySelector(
+        '.program-popup-overlay'
+    );
+
+if (mergeProgramOverlay) {
+
+    mergeProgramOverlay.onclick =
+        function()
+        {
+            mergeProgramModal.style.display =
+                'none';
+
+            mergeProgramSelect.value = '';
+        };
+}
     }
 );
 // ------------------------------------------------------------
@@ -5213,6 +5265,66 @@ loadMergeDepartments();
 // Existing time-cell events
 attachTimeCellEvents();
 
+// ============================================================
+// MERGE CLASS TOGGLE
+// ============================================================
+
+const mergeClassToggleBtn =
+    document.getElementById('mergeClassToggleBtn');
+
+const mergeExistingClass =
+    document.getElementById('mergeExistingClass');
+
+if (
+    mergeClassToggleBtn &&
+    mergeExistingClass
+) {
+    mergeClassToggleBtn.addEventListener(
+        'click',
+        function () {
+
+            if (
+                mergeExistingClass.style.display === 'none'
+            ) {
+
+                // SHOW MERGE EXISTING CLASS
+                mergeExistingClass.style.display = 'block';
+
+            } else {
+
+                // HIDE MERGE EXISTING CLASS
+                mergeExistingClass.style.display = 'none';
+
+            }
+
+        }
+    );
+    const cancelScheduleConflict =
+    document.getElementById(
+        'cancelScheduleConflict'
+    );
+
+const scheduleConflictModal =
+    document.getElementById(
+        'scheduleConflictModal'
+    );
+
+
+if (
+    cancelScheduleConflict &&
+    scheduleConflictModal
+) {
+
+    cancelScheduleConflict.addEventListener(
+        'click',
+        function()
+        {
+            scheduleConflictModal.remove();
+        }
+    );
+
+}
+}
 </script>
 
 

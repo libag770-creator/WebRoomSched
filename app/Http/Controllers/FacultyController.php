@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Models\Reservation;
 use App\Models\Room;
+use App\Models\Department;
+use App\Models\Schedule;
+use App\Models\ScheduleMerge;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -179,5 +183,371 @@ public function vacantRooms(Request $request)
         'faculty.vacant-rooms',
         compact('rooms', 'results')
     );
+}
+
+public function schedule()
+{
+    $rooms = Room::with([
+        'department',
+        'schedules' => function ($query) {
+            $query
+                ->orderBy('row_position')
+                ->orderBy('id');
+        }
+    ])
+    ->orderBy('department_id')
+    ->orderBy('building_id')
+    ->orderBy('room_name')
+    ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Group Rooms by Department
+    |--------------------------------------------------------------------------
+    */
+
+    $departments = $rooms
+        ->groupBy('department_id')
+        ->map(function ($departmentRooms, $departmentId) {
+
+            $department =
+                $departmentRooms->first()->department;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Group Rooms by Building
+            |--------------------------------------------------------------------------
+            */
+
+            $buildings = $departmentRooms
+                ->groupBy('building_id')
+                ->map(function ($buildingRooms, $buildingId) {
+
+                    $firstRoom =
+                        $buildingRooms->first();
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Building Name
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $buildingName =
+                        is_string($firstRoom->building)
+                            ? $firstRoom->building
+                            : (
+                                $firstRoom->building?->building_name
+                                ?? $firstRoom->building?->name
+                                ?? 'Building'
+                            );
+
+
+                    return [
+                        'id' => $buildingId,
+                        'name' => $buildingName,
+                        'rooms' => $buildingRooms,
+                    ];
+
+                })
+                ->values();
+
+
+            return [
+                'id' => $departmentId,
+
+                'name' =>
+                    $department?->name
+                    ?? 'Department',
+
+                'rooms' => $departmentRooms,
+
+                'buildings' => $buildings,
+            ];
+
+        })
+        ->values();
+
+
+    return view(
+        'faculty.schedules',
+        compact(
+            'rooms',
+            'departments'
+        )
+    );
+}
+public function viewSchedule(Room $room)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD ROOM
+    |--------------------------------------------------------------------------
+    */
+
+    $room->load([
+        'department',
+        'building',
+    ]);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD SCHEDULES
+    |--------------------------------------------------------------------------
+    */
+
+    $schedules = Schedule::where(
+        'room_id',
+        $room->id
+    )
+    ->orderByRaw(
+        'CASE WHEN row_position IS NULL THEN 999 ELSE row_position END'
+    )
+    ->orderBy('id')
+    ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | LOAD APPROVED MERGES
+    |--------------------------------------------------------------------------
+    */
+
+    $merges = ScheduleMerge::with([
+        'department',
+        'facultySubject',
+    ])
+    ->whereIn(
+        'schedule_id',
+        $schedules->pluck('id')
+    )
+    ->where(
+        'status',
+        'approved'
+    )
+    ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | GROUP MERGED PROGRAMS BY SCHEDULE
+    |--------------------------------------------------------------------------
+    */
+
+    $mergedPrograms = [];
+
+
+    foreach ($merges as $merge) {
+
+        if (!$merge->facultySubject) {
+            continue;
+        }
+
+
+        $scheduleId =
+            $merge->schedule_id;
+
+
+        $program =
+            trim(
+                (string)
+                $merge
+                    ->facultySubject
+                    ->program
+            );
+
+
+        if ($program === '') {
+            continue;
+        }
+
+
+        if (
+            !isset(
+                $mergedPrograms[
+                    $scheduleId
+                ]
+            )
+        ) {
+
+            $mergedPrograms[
+                $scheduleId
+            ] = [];
+
+        }
+
+
+        if (
+            !in_array(
+                $program,
+                $mergedPrograms[
+                    $scheduleId
+                ]
+            )
+        ) {
+
+            $mergedPrograms[
+                $scheduleId
+            ][] =
+                $program;
+
+        }
+
+    }
+
+
+  /*
+|--------------------------------------------------------------------------
+| FORMAT SCHEDULE DATA
+|--------------------------------------------------------------------------
+*/
+
+$scheduleData =
+    $schedules->map(
+        function ($schedule)
+        use ($mergedPrograms) {
+
+            return [
+
+               
+                'id' =>
+                    $schedule->id,
+
+                'course_code' =>
+                    $schedule->course_code,
+
+                'subject' =>
+                    $schedule->subject,
+
+              
+                'subject_type' =>
+                    $schedule->subject_type,
+
+               
+                'program' =>
+                    $schedule->program,
+
+                
+                'major' =>
+                    $schedule->major,
+
+                
+                'day' =>
+                    strtoupper(
+                        trim(
+                            (string)
+                            $schedule->day
+                        )
+                    ),
+
+                'time' =>
+                    trim(
+                        (string)
+                        $schedule->time
+                    ),
+
+               
+                'row_position' =>
+                    $schedule->row_position !== null
+                        ? (int)
+                            $schedule->row_position
+                        : null,
+
+                
+                'instructor' =>
+                    $schedule->instructor,
+
+              
+                'color' =>
+                    $schedule->color
+                    ?? '#ffffff',
+
+             
+                'merged_programs' =>
+                    $mergedPrograms[
+                        $schedule->id
+                    ] ?? [],
+
+            ];
+
+        }
+    )
+    ->values();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | BUILDING NAME
+    |--------------------------------------------------------------------------
+    */
+
+    $buildingName =
+        'Building';
+
+
+    if ($room->building) {
+
+        if (
+            is_object(
+                $room->building
+            )
+        ) {
+
+            $buildingName =
+                $room
+                    ->building
+                    ->name
+                ??
+                $room
+                    ->building
+                    ->building_name
+                ??
+                'Building';
+
+        }
+        else {
+
+            $buildingName =
+                $room->building;
+
+        }
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RETURN JSON
+    |--------------------------------------------------------------------------
+    */
+
+    return response()->json([
+
+        'success' => true,
+
+        'room' => [
+
+            'id' =>
+                $room->id,
+
+            'room_name' =>
+                $room->room_name,
+
+            'building' =>
+                $buildingName,
+
+            'department' =>
+                $room->department?->name
+                ?? 'Department',
+
+        ],
+
+        'schedules' =>
+            $scheduleData,
+
+    ]);
 }
 }

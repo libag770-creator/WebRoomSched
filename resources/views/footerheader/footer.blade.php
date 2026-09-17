@@ -5,6 +5,3 @@
     WebRoom Scheduling System
 
 </footer>
-
-</body>
-</html>

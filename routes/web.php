@@ -252,16 +252,12 @@ Route::middleware('auth')->group(function () {
     ])->name('faculty.dashboard');
 
     // schedules
-    Route::get('/faculty/schedules', [
-        ChairController::class,
-        'facultySchedules'
-    ])->name('faculty.schedules');
+   Route::get('/faculty/schedules', [
+    FacultyController::class,
+    'schedule'
+])->name('faculty.schedules');
 
-    // view vacant rooms
-    Route::get('/faculty/view-schedule/{room}', [
-        ChairController::class,
-        'viewSchedule'
-    ])->name('faculty.view.schedule');
+
 
     // vacantrooms
     Route::get('/faculty/vacant-rooms', [
@@ -304,6 +300,15 @@ Route::middleware('auth')->group(function () {
         'decline'
     ])->name('faculty.room.swap.decline');
 
+    Route::get('/faculty/schedule', [
+    FacultyController::class,
+    'schedule'
+])->name('faculty.schedule');
+
+Route::get('/faculty/schedule/room/{room}', [
+    FacultyController::class,
+    'viewSchedule'
+])->name('faculty.view.schedule');
 });
 
 
@@ -368,6 +373,27 @@ Route::post(
     '/chair/merge-request',
     [ChairController::class, 'createMergeRequest']
 )->name('chair.merge.request');
+
+
+Route::post(
+    '/chair/merge-request',
+    [ChairController::class, 'createMergeRequest']
+)->name('chair.merge.request');
+
+Route::post(
+    '/chair/merge-request/{merge}/approve',
+    [ChairController::class, 'approveMergeRequest']
+)->name('chair.merge.approve');
+
+Route::post(
+    '/chair/merge-request/{merge}/reject',
+    [ChairController::class, 'rejectMergeRequest']
+)->name('chair.merge.reject');
+
+Route::delete(
+    '/chair/merge-request/{merge}/remove',
+    [ChairController::class, 'removeMergeRequest']
+)->name('chair.merge.remove');
     /*
     |--------------------------------------------------------------------------
     | ROOM RESERVATIONS
@@ -519,6 +545,11 @@ Route::post(
         ChairController::class,
         'editDraft'
     ])->name('chair.drafts.edit');
+
+    Route::post('/chair/drafts/{room}/publish', [
+    ChairController::class,
+    'publishDraft'
+])->name('chair.drafts.publish');
 
 
     /*

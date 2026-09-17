@@ -2,14 +2,9 @@
     use Illuminate\Support\Facades\Auth;
 @endphp
 
+@include('footerheader.header')
+
 <div class="wrapper">
-
-    @include('footerheader.header')
-
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    >
 
     <style>
 
@@ -17,9 +12,6 @@
            DASHBOARD
         ========================= */
 
-        .content {
-            padding: 30px;
-        }
 
         .dashboard-header {
             margin-bottom: 25px;
@@ -617,57 +609,362 @@
                 </div>
 
 
-                <!-- =========================
-                     TABS
-                ========================= -->
+               <div class="reservation-tabs">
 
-                <div class="reservation-tabs">
+    <!-- =====================================================
+         ROOM REQUESTS
+    ====================================================== -->
+
+    <button
+        class="tab-btn active"
+        onclick="showTab('reserved', this)"
+    >
+
+        <i class="fas fa-calendar-check"></i>
+
+        Room Requests
+
+        @if($reservations->count() > 0)
+
+            <span
+                style="
+                    background:#f9a825;
+                    color:#fff;
+                    border-radius:20px;
+                    padding:2px 7px;
+                    font-size:11px;
+                    margin-left:5px;
+                "
+            >
+                {{ $reservations->count() }}
+            </span>
+
+        @endif
+
+    </button>
 
 
-                    <button
-                        class="tab-btn active"
-                        onclick="showTab('reserved', this)"
-                    >
+    <!-- =====================================================
+         MERGE APPROVALS
+    ====================================================== -->
 
-                        <i class="fas fa-calendar-check"></i>
+    <button
+        class="tab-btn"
+        onclick="showTab('mergeApprovals', this)"
+    >
 
-                        Room Requests
+        <i class="fas fa-code-branch"></i>
 
-                        @if($reservations->count() > 0)
+        Merge Approvals
 
-                            <span
-                                style="
-                                    background:#f9a825;
-                                    color:#fff;
-                                    border-radius:20px;
-                                    padding:2px 7px;
-                                    font-size:11px;
-                                    margin-left:5px;
-                                "
-                            >
-                                {{ $reservations->count() }}
-                            </span>
+        @if(isset($mergeRequests) && $mergeRequests->count() > 0)
 
-                        @endif
+            <span
+                style="
+                    background:#f9a825;
+                    color:#fff;
+                    border-radius:20px;
+                    padding:2px 7px;
+                    font-size:11px;
+                    margin-left:5px;
+                "
+            >
+                {{ $mergeRequests->count() }}
+            </span>
 
-                    </button>
+        @endif
+
+    </button>
 
 
-                    <button
-                        class="tab-btn"
-                        onclick="showTab('swapped', this)"
-                    >
+    <!-- =====================================================
+         ROOM SWAP HISTORY
+    ====================================================== -->
 
-                        <i class="fas fa-exchange-alt"></i>
+    <button
+        class="tab-btn"
+        onclick="showTab('swapped', this)"
+    >
 
-                        Room Swap History
+        <i class="fas fa-exchange-alt"></i>
 
-                    </button>
+        Room Swap History
 
+    </button>
+
+</div>
+
+<!-- =========================================================
+     MERGE APPROVALS
+========================================================= -->
+
+<div
+    id="mergeApprovals"
+    class="tab-content"
+>
+
+    <div class="section-intro">
+
+        <strong>
+            Merge Approval Requests
+        </strong>
+
+        <span>
+            Review requests from other departments to merge
+            their program with your existing class.
+        </span>
+
+    </div>
+
+
+    @if(isset($mergeRequests) && $mergeRequests->count() > 0)
+
+        @foreach($mergeRequests as $merge)
+
+            <div class="reservation-card">
+
+                <div class="reservation-top">
+
+                    <div>
+
+                        <h3 class="reservation-title">
+
+                            <i
+                                class="fas fa-code-branch"
+                                style="color:#2e7d32;"
+                            ></i>
+
+                            {{ $merge->facultySubject->course_code
+                                ?? $merge->schedule->course_code
+                                ?? 'Unknown Course' }}
+
+                        </h3>
+
+                        <div class="reservation-subtitle">
+
+                            {{ $merge->schedule->subject
+                                ?? 'Unknown Subject' }}
+
+                        </div>
+
+                    </div>
+
+
+                    <span class="status-badge status-pending">
+
+                        Pending
+
+                    </span>
 
                 </div>
 
 
+                <div class="reservation-details">
+
+                    <div class="detail-item">
+
+                        <strong>
+                            Existing Program:
+                        </strong>
+
+                        {{ $merge->schedule->program
+                            ?? 'N/A' }}
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <strong>
+                            Requested Program:
+                        </strong>
+
+                        {{ $merge->facultySubject->program
+                            ?? 'N/A' }}
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <strong>
+                            Department:
+                        </strong>
+
+                        {{ $merge->department->name
+                            ?? 'N/A' }}
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <strong>
+                            Room:
+                        </strong>
+
+                        {{ $merge->schedule->room->room_name
+                            ?? 'N/A' }}
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <strong>
+                            Instructor:
+                        </strong>
+
+                        {{ $merge->schedule->instructor
+                            ?? 'N/A' }}
+
+                    </div>
+
+
+                    <div class="detail-item">
+
+                        <strong>
+                            Time:
+                        </strong>
+
+                        {{ $merge->schedule->time
+                            ?? 'N/A' }}
+
+                    </div>
+
+                </div>
+
+
+                <!-- ACTIONS WILL BE CONNECTED NEXT -->
+
+               <div class="reservation-actions">
+
+    @if($merge->status === 'pending')
+
+        {{-- APPROVE --}}
+
+        <form
+            action="{{ route(
+                'chair.merge.approve',
+                $merge->id
+            ) }}"
+            method="POST"
+        >
+
+            @csrf
+
+            <button
+                type="submit"
+                class="btn-approve"
+                onclick="
+                    return confirm(
+                        'Approve this merge request?'
+                    );
+                "
+            >
+
+                <i class="fas fa-check"></i>
+
+                Approve Merge
+
+            </button>
+
+        </form>
+
+
+        {{-- REJECT --}}
+
+        <form
+            action="{{ route(
+                'chair.merge.reject',
+                $merge->id
+            ) }}"
+            method="POST"
+        >
+
+            @csrf
+
+            <button
+                type="submit"
+                class="btn-decline"
+                onclick="
+                    return confirm(
+                        'Reject this merge request?'
+                    );
+                "
+            >
+
+                <i class="fas fa-times"></i>
+
+                Reject
+
+            </button>
+
+        </form>
+
+    @elseif($merge->status === 'approved')
+
+        {{-- REMOVE APPROVED MERGE --}}
+
+        <form
+            action="{{ route(
+                'chair.merge.remove',
+                $merge->id
+            ) }}"
+            method="POST"
+        >
+
+            @csrf
+
+            @method('DELETE')
+
+            <button
+                type="submit"
+                class="btn-decline"
+                onclick="
+                    return confirm(
+                        'Remove this merged program?\n\n' +
+                        'The original class will remain unchanged.'
+                    );
+                "
+            >
+
+                <i class="fas fa-unlink"></i>
+
+                Remove Merge
+
+            </button>
+
+        </form>
+
+    @endif
+
+</div>
+
+            </div>
+
+        @endforeach
+
+    @else
+
+        <div class="empty-room">
+
+            <i class="fas fa-code-branch"></i>
+
+            <h3>
+                No Pending Merge Requests
+            </h3>
+
+            <p>
+                Merge requests from other departments
+                will appear here.
+            </p>
+
+        </div>
+
+    @endif
+
+</div>
                 <!-- =========================
                      ROOM REQUESTS
                 ========================= -->
@@ -1050,11 +1347,11 @@
     </div>
 
 
-    @include('footerheader.footer')
+    
 
 </div>
 
-
+@include('footerheader.footer')
 <script>
 
 function showTab(tabId, button)

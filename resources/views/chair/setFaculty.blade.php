@@ -1,6 +1,7 @@
+@include('footerheader.header')
 <div class="wrapper">
 
-    @include('footerheader.header')
+    
 
     <div class="main-layout">
 
@@ -958,16 +959,15 @@
 <div>
 
     <label>
-        Major
-    </label>
+    Major <span style="color:#777;font-weight:normal;">(Optional)</span>
+</label>
 
-    <input
-        type="text"
-        name="major"
-        placeholder="Automotive"
-        value="{{ old('major') }}"
-        required
-    >
+<input
+    type="text"
+    name="major"
+    placeholder="Enter major if applicable"
+    value="{{ old('major') }}"
+>
 
 </div>
 
@@ -1119,14 +1119,14 @@
 >
 
 <label>
-    Major
+    Major <span style="color:#777;font-weight:normal;">(Optional)</span>
 </label>
 
 <input
     type="text"
     id="editSubjectMajor"
     name="major"
-    required
+    placeholder="Enter major if applicable"
 >
 
 <br><br>
@@ -1332,6 +1332,8 @@ facultyCourseCode.addEventListener(
 
     </div>
 
-    @include('footerheader.footer')
+    
 
 </div>
+
+@include('footerheader.footer')
