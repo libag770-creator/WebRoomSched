@@ -26,7 +26,7 @@ class Room extends Model
    protected $casts = [
     'has_tv' => 'boolean',
     'has_projector' => 'boolean',
-    'computers' => 'boolean',
+    'computers' => 'integer',
     'capacity' => 'integer',
     'allow_other_departments' => 'boolean',
 ];
@@ -52,10 +52,13 @@ class Room extends Model
         return $this->belongsTo(Building::class);
     }
 
-    public function schedules()
-    {
-        return $this->hasMany(Schedule::class);
-    }
+   public function schedules()
+{
+    return $this->hasMany(
+        Schedule::class,
+        'room_id'
+    );
+}
 
     public function buildingRelation()
     {

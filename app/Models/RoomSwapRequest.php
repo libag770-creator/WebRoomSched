@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\User;
+
 class RoomSwapRequest extends Model
 {
     use HasFactory;
@@ -31,35 +31,35 @@ class RoomSwapRequest extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Faculty A - Requester
+    | FACULTY A — REQUESTER
     |--------------------------------------------------------------------------
     */
-public function user()
-{
-    return $this->belongsTo(
-        User::class,
-        'requester_id'
-    );
-}
+
     public function requester()
     {
-        return $this->belongsTo(User::class, 'requester_id');
+        return $this->belongsTo(
+            User::class,
+            'requester_id'
+        );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Faculty B - Target Faculty
+    | FACULTY B — TARGET FACULTY
     |--------------------------------------------------------------------------
     */
 
     public function targetUser()
     {
-        return $this->belongsTo(User::class, 'target_user_id');
+        return $this->belongsTo(
+            User::class,
+            'target_user_id'
+        );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Faculty A's Schedule
+    | FACULTY A — SCHEDULE
     |--------------------------------------------------------------------------
     */
 
@@ -73,7 +73,7 @@ public function user()
 
     /*
     |--------------------------------------------------------------------------
-    | Faculty B's Schedule
+    | FACULTY B — SCHEDULE
     |--------------------------------------------------------------------------
     */
 
@@ -87,7 +87,7 @@ public function user()
 
     /*
     |--------------------------------------------------------------------------
-    | Faculty A's Room
+    | FACULTY A — ORIGINAL ROOM
     |--------------------------------------------------------------------------
     */
 
@@ -101,7 +101,7 @@ public function user()
 
     /*
     |--------------------------------------------------------------------------
-    | Faculty B's Room
+    | FACULTY B — ORIGINAL ROOM
     |--------------------------------------------------------------------------
     */
 
@@ -113,34 +113,72 @@ public function user()
         );
     }
 
-    
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK IF APPROVED SWAP IS CURRENTLY ACTIVE
+    |--------------------------------------------------------------------------
+    */
+
     public function isActive()
-{
-    if ($this->status !== 'approved') {
-        return false;
+    {
+        if ($this->status !== 'approved') {
+            return false;
+        }
+
+        if (!$this->swap_date) {
+            return false;
+        }
+
+        if (!$this->start_time || !$this->end_time) {
+            return false;
+        }
+
+        $now = now();
+
+        $start = \Carbon\Carbon::parse(
+            $this->swap_date->format('Y-m-d')
+            . ' '
+            . $this->start_time
+        );
+
+        $end = \Carbon\Carbon::parse(
+            $this->swap_date->format('Y-m-d')
+            . ' '
+            . $this->end_time
+        );
+
+        return $now->between(
+            $start,
+            $end
+        );
     }
 
-    $now = now();
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK IF APPROVED SWAP HAS EXPIRED
+    |--------------------------------------------------------------------------
+    */
 
-    $start = \Carbon\Carbon::parse(
-        $this->swap_date->format('Y-m-d') . ' ' . $this->start_time
-    );
+    public function isExpired()
+    {
+        if (!$this->swap_date) {
+            return false;
+        }
 
-    $end = \Carbon\Carbon::parse(
-        $this->swap_date->format('Y-m-d') . ' ' . $this->end_time
-    );
+        if (!$this->end_time) {
+            return false;
+        }
 
-    return $now->between($start, $end);
-}
+        $now = now();
 
-public function isExpired()
-{
-    $now = now();
+        $end = \Carbon\Carbon::parse(
+            $this->swap_date->format('Y-m-d')
+            . ' '
+            . $this->end_time
+        );
 
-    $end = \Carbon\Carbon::parse(
-        $this->swap_date->format('Y-m-d') . ' ' . $this->end_time
-    );
-
-    return $now->greaterThanOrEqualTo($end);
-}
+        return $now->greaterThanOrEqualTo(
+            $end
+        );
+    }
 }

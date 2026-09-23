@@ -900,6 +900,177 @@
    PROGRAM
 ========================================================= */
 
+/* =========================================================
+   ROOM SWAP STATUS
+========================================================= */
+
+.room-swap-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: fit-content;
+    margin-top: 7px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: #fff7e6;
+    border: 1px solid #f2d18b;
+    color: #8a5a00;
+    font-size: 8px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: .35px;
+    text-transform: uppercase;
+}
+
+.room-swap-badge i {
+    font-size: 8px;
+}
+
+.room-swap-details {
+    margin-top: 4px;
+    color: #8a5a00;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.room-swap-original {
+    color: #667085;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.temporary-reservation-entry {
+    width: 100%;
+    min-height: 68px;
+    padding: 9px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #fff8e8;
+    border: 1px solid #f2d18b;
+}
+
+.temporary-reservation-entry.pending {
+    background: #f5f7ff;
+    border-color: #b8c4f2;
+}
+
+.reservation-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: fit-content;
+    margin-bottom: 5px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: #fff0c7;
+    color: #8a5a00;
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.temporary-reservation-entry.pending .reservation-badge {
+    background: #e9edff;
+    color: #4656a3;
+}
+
+.reservation-course {
+    color: #8a5a00;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.temporary-reservation-entry.pending .reservation-course {
+    color: #4656a3;
+}
+
+.reservation-purpose {
+    margin-top: 4px;
+    color: #344054;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.reservation-requester {
+    margin-top: 4px;
+    color: #667085;
+    font-size: 9px;
+    line-height: 1.2;
+}
+
+.reservation-expiration {
+    margin-top: 6px;
+    color: #8a5a00;
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.temporary-reservation-entry.pending .reservation-expiration {
+    color: #4656a3;
+}
+
+.schedule-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 11px 18px;
+    background: #fbfdfc;
+    border-bottom: 1px solid #e5ebe7;
+    color: #667085;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.schedule-legend-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: #fff7e6;
+    border: 1px solid #f2d18b;
+    color: #8a5a00;
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.schedule-panel-subtitle .swap-live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 8px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.28);
+    color: #ffffff;
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.schedule-panel-subtitle .swap-live-indicator i {
+    color: #ffd166;
+}
+
+@media (max-width: 600px) {
+    .schedule-legend {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
 .class-program {
     margin-top: 5px;
 
@@ -1364,6 +1535,24 @@
 
                     </div>
 
+                    <div class="schedule-legend">
+                        <span class="schedule-legend-badge">
+                            <i class="fa-solid fa-right-left"></i>
+                            Room Swap Active
+                        </span>
+                        <span>
+                            This class is temporarily using a different room.
+                        </span>
+
+                        <span class="schedule-legend-badge reservation-legend-badge">
+                            <i class="fa-solid fa-calendar-check"></i>
+                            Temporary Reservation
+                        </span>
+                        <span>
+                            The room is temporarily reserved until the requested time ends.
+                        </span>
+                    </div>
+
 
                     <div id="scheduleContent">
 
@@ -1381,6 +1570,8 @@
 
 
             <script>
+
+                let reservationExpiryTimer = null;
 
                 /* =========================================================
                    SHOW DEPARTMENT
@@ -1815,8 +2006,17 @@ function loadRoomSchedule(
             ------------------------------------------------- */
 
             renderSchedule(
-                data.schedules || []
+                data.schedules || [],
+                data.reservations || []
             );
+
+            scheduleReservationExpiry(
+                data.reservations || [],
+                roomId,
+                roomName,
+                buildingName
+            );
+
 
 
             /* -------------------------------------------------
@@ -1902,8 +2102,89 @@ function loadRoomSchedule(
    RENDER SCHEDULE
 ========================================================= */
 
+function scheduleReservationExpiry(
+    reservations,
+    roomId,
+    roomName,
+    buildingName
+)
+{
+    if (reservationExpiryTimer) {
+        clearTimeout(reservationExpiryTimer);
+        reservationExpiryTimer = null;
+    }
+
+    const now = new Date();
+
+    const expirationTimes =
+        (reservations || [])
+            .map(function(reservation) {
+
+                if (!reservation.end_time) {
+                    return null;
+                }
+
+                const endParts =
+                    String(reservation.end_time)
+                        .split(':');
+
+                if (endParts.length < 2) {
+                    return null;
+                }
+
+                const expiration = new Date();
+
+                expiration.setHours(
+                    Number(endParts[0]),
+                    Number(endParts[1]),
+                    endParts[2]
+                        ? Number(endParts[2])
+                        : 0,
+                    0
+                );
+
+                return expiration;
+            })
+            .filter(function(date) {
+                return date && date > now;
+            })
+            .sort(function(a, b) {
+                return a - b;
+            });
+
+    if (!expirationTimes.length) {
+        return;
+    }
+
+    const millisecondsUntilExpiry =
+        expirationTimes[0].getTime() -
+        now.getTime();
+
+    reservationExpiryTimer =
+        setTimeout(
+            function() {
+
+                const activeRoom =
+                    document.querySelector(
+                        '.room-card.active'
+                    );
+
+                loadRoomSchedule(
+                    roomId,
+                    activeRoom,
+                    roomName,
+                    buildingName
+                );
+
+            },
+            millisecondsUntilExpiry + 1000
+        );
+}
+
+
 function renderSchedule(
-    schedules
+    schedules,
+    reservations = []
 ) {
 
     const content =
@@ -1968,7 +2249,13 @@ function renderSchedule(
 
             TUE: null,
 
-            THU: null
+            THU: null,
+
+            MON_RESERVATION: null,
+            WED_RESERVATION: null,
+            FRI_RESERVATION: null,
+            TUE_RESERVATION: null,
+            THU_RESERVATION: null
 
         };
 
@@ -2174,6 +2461,80 @@ function renderSchedule(
 
 
     /* ---------------------------------------------------------
+       ADD ACTIVE ROOM RESERVATIONS
+       These are temporary date-specific entries.
+       They disappear automatically after end_time.
+    --------------------------------------------------------- */
+
+    (reservations || []).forEach(
+        function(reservation)
+        {
+            const day =
+                String(reservation.day || '')
+                    .trim()
+                    .toUpperCase();
+
+            const reservationStart =
+                normalizeScheduleStartTime(
+                    reservation.start_time || reservation.time || ''
+                );
+
+            if (!reservationStart) {
+                return;
+            }
+
+            const reservationTarget = {
+                reservation: reservation,
+                start: reservationStart
+            };
+
+            const dayKeyMap = {
+                MON: 'MON_RESERVATION',
+                WED: 'WED_RESERVATION',
+                FRI: 'FRI_RESERVATION',
+                TUE: 'TUE_RESERVATION',
+                THU: 'THU_RESERVATION'
+            };
+
+            const reservationKey =
+                dayKeyMap[day];
+
+            if (!reservationKey) {
+                return;
+            }
+
+            for (let position = 0; position < 9; position++) {
+
+                const row = rows[position];
+
+                const schedule =
+                    row[
+                        day === 'MON' ? 'MON' :
+                        day === 'WED' ? 'WED' :
+                        day === 'FRI' ? 'FRI' :
+                        day === 'TUE' ? 'TUE' :
+                        'THU'
+                    ];
+
+                if (!schedule) {
+                    continue;
+                }
+
+                const scheduleStart =
+                    normalizeScheduleStartTime(
+                        schedule.time || ''
+                    );
+
+                if (scheduleStart === reservationStart) {
+                    row[reservationKey] = reservationTarget;
+                    break;
+                }
+            }
+        }
+    );
+
+
+    /* ---------------------------------------------------------
        BUILD TABLE
     --------------------------------------------------------- */
 
@@ -2263,17 +2624,20 @@ function renderSchedule(
 
 
                 ${buildScheduleCell(
-                    row.MON
+                    row.MON,
+                    row.MON_RESERVATION
                 )}
 
 
                 ${buildScheduleCell(
-                    row.WED
+                    row.WED,
+                    row.WED_RESERVATION
                 )}
 
 
                 ${buildScheduleCell(
-                    row.FRI
+                    row.FRI,
+                    row.FRI_RESERVATION
                 )}
 
 
@@ -2285,12 +2649,14 @@ function renderSchedule(
 
 
                 ${buildScheduleCell(
-                    row.TUE
+                    row.TUE,
+                    row.TUE_RESERVATION
                 )}
 
 
                 ${buildScheduleCell(
-                    row.THU
+                    row.THU,
+                    row.THU_RESERVATION
                 )}
 
             </tr>
@@ -2323,8 +2689,110 @@ function renderSchedule(
                    BUILD SCHEDULE CELL
                 ========================================================= */
 
+                function normalizeScheduleStartTime(value)
+                {
+                    const raw =
+                        String(value || '')
+                            .trim()
+                            .replace(/–/g, '-')
+                            .replace(/—/g, '-');
+
+                    if (!raw) {
+                        return '';
+                    }
+
+                    const start =
+                        raw.split('-')[0].trim();
+
+                    const match =
+                        start.match(/^(\d{1,2}):(\d{2})/);
+
+                    if (!match) {
+                        return start.toUpperCase();
+                    }
+
+                    return (
+                        String(
+                            Number(match[1])
+                        ).padStart(2, '0') +
+                        ':' +
+                        match[2]
+                    );
+                }
+
+
+                function buildReservationCell(
+                    reservation
+                )
+                {
+                    const status =
+                        String(
+                            reservation.status || 'Approved'
+                        ).toLowerCase();
+
+                    const pending =
+                        status === 'pending';
+
+                    const badge =
+                        pending
+                            ? 'Reservation Requested'
+                            : 'Temporary Reservation';
+
+                    const requester =
+                        reservation.user_name ||
+                        reservation.requested_by ||
+                        'Faculty';
+
+                    const purpose =
+                        reservation.purpose ||
+                        'Room Reservation';
+
+                    const time =
+                        reservation.time ||
+                        (
+                            (reservation.start_time || '') +
+                            ' - ' +
+                            (reservation.end_time || '')
+                        );
+
+                    return `
+                        <td>
+                            <div class="temporary-reservation-entry ${pending ? 'pending' : ''}">
+
+                                <div class="reservation-badge">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                    ${escapeHtml(badge)}
+                                </div>
+
+                                <div class="reservation-course">
+                                    ${escapeHtml(purpose)}
+                                </div>
+
+                                <div class="reservation-purpose">
+                                    Reserved: ${escapeHtml(requester)}
+                                </div>
+
+                                <div class="reservation-requester">
+                                    ${escapeHtml(time)}
+                                </div>
+
+                                <div class="reservation-expiration">
+                                    <i class="fa-solid fa-hourglass-half"></i>
+                                    ${pending
+                                        ? 'Waiting for Chair approval'
+                                        : 'Temporary until ' + escapeHtml(reservation.end_time || '')
+                                    }
+                                </div>
+
+                            </div>
+                        </td>
+                    `;
+                }
+
+
                 function buildScheduleCell(
-                    schedule
+                    schedule,
+                    reservation = null
                 )
                 {
 
@@ -2333,6 +2801,24 @@ function renderSchedule(
                     | Empty cell
                     |--------------------------------------------------------------------------
                     */
+
+                    const scheduleOccupied =
+                        schedule &&
+                        (
+                            String(schedule.course_code || '').trim() !== '' ||
+                            String(schedule.subject || '').trim() !== '' ||
+                            String(schedule.instructor || '').trim() !== ''
+                        );
+
+                    if (
+                        reservation &&
+                        reservation.reservation &&
+                        !scheduleOccupied
+                    ) {
+                        return buildReservationCell(
+                            reservation.reservation
+                        );
+                    }
 
                     if (!schedule) {
 
@@ -2444,6 +2930,44 @@ if (
 
                     /*
                     |--------------------------------------------------------------------------
+                    | ROOM SWAP STATUS
+                    |--------------------------------------------------------------------------
+                    */
+
+                    let roomSwapHtml = '';
+
+                    if (
+                        schedule.room_swap &&
+                        schedule.room_swap.active
+                    ) {
+
+                        const originalRoom =
+                            schedule.room_swap.original_room_name ||
+                            'Original room';
+
+                        const endTime =
+                            schedule.room_swap.end_time ||
+                            '';
+
+                        roomSwapHtml = `
+                            <div class="room-swap-badge">
+                                <i class="fa-solid fa-right-left"></i>
+                                Room Swap Active
+                            </div>
+
+                            <div class="room-swap-details">
+                                Temporary room until ${escapeHtml(endTime)}
+                            </div>
+
+                            <div class="room-swap-original">
+                                Original: ${escapeHtml(originalRoom)}
+                            </div>
+                        `;
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
                     | Color
                     |--------------------------------------------------------------------------
                     */
@@ -2491,6 +3015,8 @@ ${typeHtml}
 
                                 ${majorHtml}
 
+                                ${roomSwapHtml}
+
                             </div>
 
                         </td>
@@ -2505,6 +3031,11 @@ ${typeHtml}
 
 function closeSchedule()
 {
+
+    if (reservationExpiryTimer) {
+        clearTimeout(reservationExpiryTimer);
+        reservationExpiryTimer = null;
+    }
 
     const panel =
         document.getElementById(

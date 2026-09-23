@@ -245,32 +245,31 @@ Route::get('/', function () {
 
 Route::middleware('auth')->group(function () {
 
-    // dashboard
+    // Dashboard
     Route::get('/faculty/dashboard', [
-        FacultyLoginController::class,
-        'dashboard'
-    ])->name('faculty.dashboard');
-
-    // schedules
-   Route::get('/faculty/schedules', [
     FacultyController::class,
-    'schedule'
-])->name('faculty.schedules');
+    'dashboard'
+])->name('faculty.dashboard');
+
+    // Schedules
+    Route::get('/faculty/schedules', [
+        FacultyController::class,
+        'schedule'
+    ])->name('faculty.schedules');
 
 
+    // Vacant Rooms
+   Route::get('/faculty/vacant-rooms', [
+    FacultyController::class,
+    'vacantRooms'
+])->name('faculty.vacant');
 
-    // vacantrooms
-    Route::get('/faculty/vacant-rooms', [
-        ChairController::class,
-        'vacantRooms'
-    ])->name('faculty.vacant');
 
-    // mybookings
-    Route::get('/faculty/my-bookings', function () {
-        return view('faculty.my-bookings');
-    })->name('faculty.bookings');
+    // =====================================================
+    // ROOM SWAP
+    // =====================================================
 
-    // roomSwap page
+    // Room Swap Page
     Route::get('/faculty/room-swap', [
         RoomSwapRequestController::class,
         'create'
@@ -282,33 +281,41 @@ Route::middleware('auth')->group(function () {
         'store'
     ])->name('faculty.room.swap.store');
 
-    // View received swap requests
+    // Optional separate page for received requests
     Route::get('/faculty/room-swap-requests', [
         RoomSwapRequestController::class,
         'receivedRequests'
     ])->name('faculty.room.swap.requests');
 
-    // Approve request
+    // Accept Room Swap Request from Faculty Dashboard
     Route::post('/faculty/room-swap/{id}/approve', [
         RoomSwapRequestController::class,
         'approve'
-    ])->name('faculty.room.swap.approve');
+    ])->name('faculty.room-swap.approve');
 
-    //  Decline request
+    // Decline Room Swap Request from Faculty Dashboard
     Route::post('/faculty/room-swap/{id}/decline', [
         RoomSwapRequestController::class,
         'decline'
-    ])->name('faculty.room.swap.decline');
+    ])->name('faculty.room-swap.decline');
+
+
+    // =====================================================
+    // FACULTY SCHEDULE
+    // =====================================================
 
     Route::get('/faculty/schedule', [
-    FacultyController::class,
-    'schedule'
-])->name('faculty.schedule');
+        FacultyController::class,
+        'schedule'
+    ])->name('faculty.schedule');
 
-Route::get('/faculty/schedule/room/{room}', [
-    FacultyController::class,
-    'viewSchedule'
-])->name('faculty.view.schedule');
+
+    // View Specific Room Schedule
+    Route::get('/faculty/schedule/room/{room}', [
+        FacultyController::class,
+        'viewSchedule'
+    ])->name('faculty.view.schedule');
+
 });
 
 
@@ -374,11 +381,6 @@ Route::post(
     [ChairController::class, 'createMergeRequest']
 )->name('chair.merge.request');
 
-
-Route::post(
-    '/chair/merge-request',
-    [ChairController::class, 'createMergeRequest']
-)->name('chair.merge.request');
 
 Route::post(
     '/chair/merge-request/{merge}/approve',

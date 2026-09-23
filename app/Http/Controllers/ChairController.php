@@ -50,13 +50,18 @@ class ChairController extends Controller
     */
 
     $reservations = Reservation::with([
-        'room',
-        'user'
-    ])
-    ->where('status', 'Pending')
-    ->latest()
-    ->get();
-
+    'room.department',
+    'user'
+])
+->where('status', 'Pending')
+->whereHas('room', function ($query) {
+    $query->where(
+        'department_id',
+        Auth::user()->department_id
+    );
+})
+->latest()
+->get();
 
     /*
     |--------------------------------------------------------------------------
@@ -67,10 +72,13 @@ class ChairController extends Controller
     |
     */
 
-   $swapRequests = RoomSwapRequest::with([
-    'user',
+  $swapRequests = RoomSwapRequest::with([
+    'requester',
+    'targetUser',
     'requesterRoom',
-    'targetRoom'
+    'targetRoom',
+    'requesterSchedule',
+    'targetSchedule',
 ])
 ->latest()
 ->get();
@@ -603,6 +611,35 @@ $schedules =
 
     /*
     |--------------------------------------------------------------------------
+    | LOAD ACTIVE/PENDING ROOM RESERVATIONS
+    |--------------------------------------------------------------------------
+    |
+    | A faculty reservation temporarily blocks the matching room/day/time
+    | slot. It must not be overwritten by the Chair.
+    |
+    */
+
+    $reservations = Reservation::with('user')
+        ->where('room_id', $room->id)
+        ->whereIn('status', ['Pending', 'Approved'])
+        ->where(function ($query) {
+            $today = now()->format('Y-m-d');
+            $nowTime = now()->format('H:i:s');
+
+            $query
+                ->whereDate('date', '>', $today)
+                ->orWhere(function ($query) use ($today, $nowTime) {
+                    $query
+                        ->whereDate('date', $today)
+                        ->where('end_time', '>', $nowTime);
+                });
+        })
+        ->orderBy('date')
+        ->orderBy('start_time')
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
     | GET SEMESTER
     |--------------------------------------------------------------------------
     |
@@ -648,6 +685,7 @@ $schedules =
             'room',
             'facultySubjects',
             'schedules',
+            'reservations',
             'semester',
             'academicYear',
             'isEditingDraft'
@@ -899,8 +937,112 @@ if (!$room->save()) {
     $academicYear =
         $request->input('academic_year');
 
+    /*
+    |--------------------------------------------------------------------------
+    | BLOCK CHAIR SCHEDULES THAT OVERLAP FACULTY RESERVATIONS
+    |--------------------------------------------------------------------------
+    |
+    | Check this BEFORE deleting/updating any existing schedules.
+    | Pending and Approved reservations both block the slot so a Chair
+    | cannot create a duplicate schedule while a request is waiting.
+    |
+    */
 
-        $submittedSlots = collect(
+    $timeToMinutes = function ($time) {
+        $time = trim((string) $time);
+
+        if ($time === '') {
+            return null;
+        }
+
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $time, $matches)) {
+            $hour = (int) $matches[1];
+            $minute = (int) $matches[2];
+
+            // Timetable convention: 1:00-5:00 means afternoon.
+            if ($hour >= 1 && $hour <= 5) {
+                $hour += 12;
+            }
+
+            return ($hour * 60) + $minute;
+        }
+
+        return null;
+    };
+
+    foreach ($request->input('schedule', []) as $data) {
+        $slotDay = strtoupper(trim($data['day'] ?? ''));
+        $slotTime = trim($data['time'] ?? '');
+
+        $slotParts = explode('-', $slotTime, 2);
+        $slotStart = $timeToMinutes($slotParts[0] ?? '');
+        $slotEnd = $timeToMinutes($slotParts[1] ?? '');
+
+        if (!$slotDay || $slotStart === null || $slotEnd === null) {
+            continue;
+        }
+
+        if ($slotEnd <= $slotStart) {
+            continue;
+        }
+
+        $reservationConflict = Reservation::where('room_id', $room->id)
+            ->whereIn('status', ['Pending', 'Approved'])
+            ->whereRaw('UPPER(day) = ?', [$slotDay])
+            ->where(function ($query) {
+                $today = now()->format('Y-m-d');
+                $nowTime = now()->format('H:i:s');
+
+                $query
+                    ->whereDate('date', '>', $today)
+                    ->orWhere(function ($query) use ($today, $nowTime) {
+                        $query
+                            ->whereDate('date', $today)
+                            ->where('end_time', '>', $nowTime);
+                    });
+            })
+            ->get()
+            ->first(function ($reservation) use ($slotStart, $slotEnd, $timeToMinutes) {
+                $reservationStart = $timeToMinutes(
+                    Carbon::parse($reservation->start_time)->format('H:i')
+                );
+
+                $reservationEnd = $timeToMinutes(
+                    Carbon::parse($reservation->end_time)->format('H:i')
+                );
+
+                if ($reservationStart === null || $reservationEnd === null) {
+                    return false;
+                }
+
+                return $slotStart < $reservationEnd
+                    && $slotEnd > $reservationStart;
+            });
+
+        if ($reservationConflict) {
+            $requestDate = Carbon::parse($reservationConflict->date)->format('M d, Y');
+            $requesterName = $reservationConflict->user?->name ?? 'Faculty';
+
+            return back()
+                ->with('error',
+                    'Cannot set this schedule. Room ' .
+                    $room->room_name .
+                    ' has a ' .
+                    strtolower($reservationConflict->status) .
+                    ' reservation for ' .
+                    $requesterName .
+                    ' on ' .
+                    $requestDate .
+                    ' at ' .
+                    $reservationConflict->time .
+                    '. The reservation must end or be declined before this slot can be scheduled.'
+                )
+                ->withInput();
+        }
+    }
+
+
+    $submittedSlots = collect(
     $request->input('schedule', [])
 )->map(function ($item) {
     return strtoupper(trim($item['day'] ?? ''))
@@ -1256,6 +1398,29 @@ public function reservations()
 public function approveReservation(Reservation $reservation)
 {
 
+    if (
+    !Auth::check() ||
+    Auth::user()->role !== 'chair'
+) {
+    abort(403, 'Unauthorized.');
+}
+
+$chair = Auth::user();
+
+$reservation->load('room');
+
+if (
+    !$reservation->room ||
+    (int) $reservation->room->department_id !==
+    (int) $chair->department_id
+) {
+    return redirect()
+        ->route('chair.dashboard')
+        ->with(
+            'error',
+            'You can only approve reservations for rooms in your department.'
+        );
+}
 
     if ($reservation->status !== 'Pending') {
 
@@ -1345,15 +1510,54 @@ public function approveReservation(Reservation $reservation)
         'room_id',
         $reservation->room_id
     )
-    ->where(
-        'day',
-        $day
-    )
-    ->where(
-        'time',
-        $reservation->time
-    )
-    ->exists();
+    ->whereRaw('UPPER(day) = ?', [$day])
+    ->get()
+    ->contains(function ($schedule) use ($reservation) {
+
+        $parts = explode('-', trim((string) $schedule->time), 2);
+
+        if (count($parts) !== 2) {
+            return false;
+        }
+
+        $toMinutes = function ($time) {
+            $time = trim((string) $time);
+
+            if (!preg_match('/^(\d{1,2}):(\d{2})$/', $time, $matches)) {
+                return null;
+            }
+
+            $hour = (int) $matches[1];
+            $minute = (int) $matches[2];
+
+            if ($hour >= 1 && $hour <= 5) {
+                $hour += 12;
+            }
+
+            return ($hour * 60) + $minute;
+        };
+
+        $scheduleStart = $toMinutes($parts[0]);
+        $scheduleEnd = $toMinutes($parts[1]);
+        $reservationStart = $toMinutes(
+            Carbon::parse($reservation->start_time)->format('H:i')
+        );
+        $reservationEnd = $toMinutes(
+            Carbon::parse($reservation->end_time)->format('H:i')
+        );
+
+        if (
+            $scheduleStart === null ||
+            $scheduleEnd === null ||
+            $reservationStart === null ||
+            $reservationEnd === null
+        ) {
+            return false;
+        }
+
+        return $scheduleStart < $reservationEnd
+            && $scheduleEnd > $reservationStart;
+    });
 
 
     /*Don't approve if room has a class*/
@@ -1389,13 +1593,49 @@ public function approveReservation(Reservation $reservation)
 
 public function declineReservation(Reservation $reservation)
 {
+    if (
+        !Auth::check() ||
+        Auth::user()->role !== 'chair'
+    ) {
+        abort(403, 'Unauthorized.');
+    }
+
+    $chair = Auth::user();
+
+    $reservation->load('room');
+
+    if (
+        !$reservation->room ||
+        (int) $reservation->room->department_id !==
+        (int) $chair->department_id
+    ) {
+        return redirect()
+            ->route('chair.dashboard')
+            ->with(
+                'error',
+                'You can only decline reservations for rooms in your department.'
+            );
+    }
+
+    if ($reservation->status !== 'Pending') {
+        return redirect()
+            ->route('chair.dashboard')
+            ->with(
+                'error',
+                'This reservation has already been processed.'
+            );
+    }
+
     $reservation->update([
         'status' => 'Declined'
     ]);
 
     return redirect()
         ->route('chair.dashboard')
-        ->with('success', 'Reservation declined.');
+        ->with(
+            'success',
+            'Reservation declined successfully.'
+        );
 }
 
 
@@ -1418,15 +1658,22 @@ public function vacantRooms(Request $request)
 
         $timeParts = explode('-', $request->time);
 
-        $searchStart = Carbon::createFromFormat(
-            'H:i',
-            trim($timeParts[0])
-        );
+       $searchStart = Carbon::createFromFormat(
+    'H:i',
+    trim($timeParts[0])
+);
 
-        $searchEnd = Carbon::createFromFormat(
-            'H:i',
-            trim($timeParts[1])
-        );
+
+
+$searchEnd = null;
+
+if (isset($timeParts[1]) && trim($timeParts[1]) !== '') {
+
+    $searchEnd = Carbon::createFromFormat(
+        'H:i',
+        trim($timeParts[1])
+    );
+}
 
 
         /*Check every room*/

@@ -10,626 +10,583 @@ use App\Models\Building;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class RoomSwapRequestController extends Controller
 {
-    
-    // showsroomswap page
-   public function create()
-{
-    $user = Auth::user();
+    /*
+    |--------------------------------------------------------------------------
+    | SHOW ROOM SWAP PAGE
+    |--------------------------------------------------------------------------
+    */
 
-    // shows schedule
-    $mySchedules = Schedule::with('room')
-        ->where('instructor', $user->name)
-        ->get();
-
-
-    // shows approved reservations
-    $myReservations = Reservation::with('room')
-        ->where('user_id', $user->id)
-        ->where('status', 'Approved')
-        ->get();
-
-    // departments
-    $departments = Department::orderBy('name')->get();
-
-    // buildings
-    $buildings = Building::orderBy('name')->get();
-
-
-    // faculty schedule 2
-    $otherSchedules = Schedule::with([
-        'room',
-    ])
-    ->where('instructor', '!=', $user->name)
-    ->get();
-
-
-    // approved reservation 2
-    $otherReservations = Reservation::with([
-        'room',
-        'user',
-    ])
-    ->where('user_id', '!=', $user->id)
-    ->where('status', 'Approved')
-    ->get();
-
-
-    //    build targetbookings
-    $targetBookings = collect();
-
-    // faculty schedule 2
-    foreach ($otherSchedules as $schedule) {
-
-        $faculty = User::where(
-            'name',
-            $schedule->instructor
-        )->first();
-
-        if (!$faculty) {
-            continue;
+    public function create()
+    {
+        if (!Auth::check()) {
+            abort(403, 'Unauthorized.');
         }
 
-        $targetBookings->push([
-
-            'type' => 'schedule',
-
-            'id' => $schedule->id,
-
-            'room_id' => $schedule->room_id,
-
-            'room_name' => $schedule->room->room_name ?? 'Unknown Room',
-
-            'user_id' => $faculty->id,
-
-            'user_name' => $faculty->name,
-
-            'department_id' =>
-                $schedule->room->department_id ?? null,
-
-            'department_name' =>
-                $schedule->room->department->name ?? 'Unknown Department',
-
-            'building_id' =>
-                $schedule->room->building_id ?? null,
-
-            'date' => now()->format('Y-m-d'),
-
-            'time' => $schedule->time,
-
-        ]);
-    }
-
-
-    // faculty reservations 2
-    foreach ($otherReservations as $reservation) {
-
-        $targetBookings->push([
-
-            'type' => 'reservation',
-
-            'id' => $reservation->id,
-
-            'room_id' => $reservation->room_id,
-
-            'room_name' =>
-                $reservation->room->room_name ?? 'Unknown Room',
-
-            'user_id' => $reservation->user_id,
-
-            'user_name' =>
-                $reservation->user->name ?? 'Unknown Faculty',
-
-            'department_id' =>
-                $reservation->room->department_id ?? null,
-
-            'department_name' =>
-                $reservation->room->department->name ?? 'Unknown Department',
-
-            'building_id' =>
-                $reservation->room->building_id ?? null,
-
-            'date' => $reservation->date,
-
-            'time' => $reservation->time,
-
-        ]);
-    }
-
-
-    // return room swap page
-    return view(
-        'faculty.room-swap',
-        compact(
-            'mySchedules',
-            'myReservations',
-            'targetBookings',
-            'departments',
-            'buildings'
-        )
-    );
-}
-
-
-
-    //    sends room swao request
-   public function store(Request $request)
-{
-    $user = Auth::user();
-
-    // validate request
-    $request->validate([
-
-        // Faculty B
-        'target_user_id' =>
-            'required|exists:users,id',
-
-        // Booking types
-        'requester_type' =>
-            'required|in:schedule,reservation',
-
-        'target_type' =>
-            'required|in:schedule,reservation',
-
-        // Schedule IDs
-        'requester_schedule_id' =>
-            'nullable|exists:schedules,id',
-
-        'target_schedule_id' =>
-            'nullable|exists:schedules,id',
-
-        // Reservation IDs
-        'requester_reservation_id' =>
-            'nullable|exists:reservations,id',
-
-        'target_reservation_id' =>
-            'nullable|exists:reservations,id',
-
-        // Rooms
-        'requester_room_id' =>
-            'required|exists:rooms,id',
-
-        'target_room_id' =>
-            'required|exists:rooms,id',
-
-        // Swap date/time
-        'swap_date' =>
-            'required|date',
-
-        'start_time' =>
-            'required',
-
-        'end_time' =>
-            'required|after:start_time',
-
-        // Reason
-        'reason' =>
-            'nullable|string|max:255',
-    ]);
-
-
-    /*
-    | Prevent Faculty A From Requesting Themselves
-    */
-
-    if ($request->target_user_id == $user->id) {
-
-        return back()->with(
-            'error',
-            'You cannot request a room swap with yourself.'
-        );
-    }
-
-
-    /*
-    | Prevent Swapping The Same Room
-    */
-
-    if ($request->requester_room_id == $request->target_room_id) {
-
-        return back()->with(
-            'error',
-            'You cannot swap the same room.'
-        );
-    }
-
-
-    /*
-    | FACULTY A'S BOOKING
-    */
-
-    if ($request->requester_type === 'schedule') {
+        $user = Auth::user();
 
         /*
-        | Faculty A Selected A Schedule
+        |--------------------------------------------------------------------------
+        | STEP 1 — MY SCHEDULES
+        |--------------------------------------------------------------------------
         */
 
-        if (!$request->requester_schedule_id) {
+        $mySchedules = Schedule::with([
+            'room.department',
+            'room.building',
+        ])
+            ->where('instructor', $user->name)
+            ->orderBy('day')
+            ->orderBy('time')
+            ->get();
 
-            return back()->with(
-                'error',
-                'Please select your scheduled class.'
-            );
-        }
+        /*
+        |--------------------------------------------------------------------------
+        | STEP 2 — ALL DEPARTMENTS
+        |--------------------------------------------------------------------------
+        |
+        | Loads departments, buildings, rooms, schedules,
+        | and approved merge information.
+        |
+        */
+
+        $departments = Department::with([
+            'buildings.rooms.schedules.merges.facultySubject',
+        ])
+            ->orderBy('name')
+            ->get();
+
+        return view(
+            'faculty.room-swap',
+            compact(
+                'mySchedules',
+                'departments'
+            )
+        );
+    }
 
 
-        $requesterSchedule = Schedule::where(
-            'id',
-            $request->requester_schedule_id
-        )
-        ->where(
-            'room_id',
-            $request->requester_room_id
-        )
-        ->where(
-            'instructor',
-            $user->name
-        )
-        ->first();
+    /*
+    |--------------------------------------------------------------------------
+    | SEND ROOM SWAP REQUEST
+    |--------------------------------------------------------------------------
+    */
+
+    public function store(Request $request)
+    {
+        $user = Auth::user();
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDATE REQUEST
+        |--------------------------------------------------------------------------
+        */
+
+        $request->validate([
+
+            'requester_schedule_id' => [
+                'required',
+                'exists:schedules,id',
+            ],
+
+            'target_schedule_id' => [
+                'required',
+                'exists:schedules,id',
+            ],
+
+            'requester_room_id' => [
+                'required',
+                'exists:rooms,id',
+            ],
+
+            'target_room_id' => [
+                'required',
+                'exists:rooms,id',
+            ],
+
+            'target_user_id' => [
+                'required',
+                'exists:users,id',
+            ],
+
+            'swap_date' => [
+                'required',
+                'date',
+            ],
+
+            'start_time' => [
+                'required',
+            ],
+
+            'end_time' => [
+                'required',
+                'after:start_time',
+            ],
+
+            'reason' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | GET REQUESTER SCHEDULE
+        |--------------------------------------------------------------------------
+        */
+
+        $requesterSchedule =
+            Schedule::where(
+                'id',
+                $request->requester_schedule_id
+            )
+            ->where(
+                'room_id',
+                $request->requester_room_id
+            )
+            ->where(
+                'instructor',
+                $user->name
+            )
+            ->first();
 
 
         if (!$requesterSchedule) {
 
-            return back()->with(
-                'error',
-                'The selected schedule does not belong to you.'
-            );
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'The selected schedule does not belong to you.'
+                );
         }
 
-    } else {
 
         /*
-        | Faculty A Selected A Reservation
+        |--------------------------------------------------------------------------
+        | GET TARGET SCHEDULE
+        |--------------------------------------------------------------------------
         */
 
-        if (!$request->requester_reservation_id) {
-
-            return back()->with(
-                'error',
-                'Please select your reservation.'
-            );
-        }
-
-
-        $requesterReservation = Reservation::where(
-            'id',
-            $request->requester_reservation_id
-        )
-        ->where(
-            'user_id',
-            $user->id
-        )
-        ->where(
-            'room_id',
-            $request->requester_room_id
-        )
-        ->where(
-            'date',
-            $request->swap_date
-        )
-        ->where(
-            'status',
-            'Approved'
-        )
-        ->first();
-
-
-        if (!$requesterReservation) {
-
-            return back()->with(
-                'error',
-                'The selected reservation is not a valid approved reservation belonging to you.'
-            );
-        }
-    }
-
-
-    /*
-    | STEP 5
-    | Determine Faculty A's Booking Time
-    */
-
-    $requesterStart = null;
-    $requesterEnd = null;
-
-
-    if ($request->requester_type === 'schedule') {
-
-        $parsed = $this->parseScheduleTime(
-            $requesterSchedule->time
-        );
-
-    } else {
-
-        $parsed = $this->parseReservationTime(
-            $requesterReservation->time
-        );
-    }
-
-
-    if (!$parsed) {
-
-        return back()->with(
-            'error',
-            'The selected booking has an invalid time format.'
-        );
-    }
-
-
-    $requesterStart = $parsed['start'];
-    $requesterEnd = $parsed['end'];
-
-
-    /*
-    | FACULTY B'S BOOKING
-    */
-
-    if ($request->target_type === 'schedule') {
-
-        /*
-        | Faculty B Selected A Schedule
-        */
-
-        if (!$request->target_schedule_id) {
-
-            return back()->with(
-                'error',
-                'Please select the target schedule.'
-            );
-        }
-
-
-        $targetSchedule = Schedule::where(
-            'id',
-            $request->target_schedule_id
-        )
-        ->where(
-            'room_id',
-            $request->target_room_id
-        )
-        ->where(
-            'instructor',
-            '!=',
-            $user->name
-        )
-        ->first();
+        $targetSchedule =
+            Schedule::where(
+                'id',
+                $request->target_schedule_id
+            )
+            ->where(
+                'room_id',
+                $request->target_room_id
+            )
+            ->first();
 
 
         if (!$targetSchedule) {
 
-            return back()->with(
-                'error',
-                'The selected target schedule is invalid.'
-            );
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'The selected target schedule is invalid.'
+                );
         }
 
 
         /*
-        | Make Sure Target User Owns The Schedule
+        |--------------------------------------------------------------------------
+        | GET TARGET FACULTY
+        |--------------------------------------------------------------------------
         */
 
-        $targetFaculty = \App\Models\User::where(
-            'name',
-            $targetSchedule->instructor
-        )->first();
+        $targetFaculty =
+            User::find(
+                $request->target_user_id
+            );
 
 
         if (!$targetFaculty) {
 
-            return back()->with(
-                'error',
-                'The owner of the selected schedule could not be found.'
-            );
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'The target faculty could not be found.'
+                );
         }
 
-
-        if ($targetFaculty->id != $request->target_user_id) {
-
-            return back()->with(
-                'error',
-                'The selected faculty does not own this schedule.'
-            );
-        }
-
-    } else {
 
         /*
-        | Faculty B Selected A Reservation
+        |--------------------------------------------------------------------------
+        | TARGET FACULTY MUST OWN TARGET SCHEDULE
+        |--------------------------------------------------------------------------
         */
 
-        if (!$request->target_reservation_id) {
+        if (
+            trim(
+                (string) $targetSchedule->instructor
+            )
+            !==
+            trim(
+                (string) $targetFaculty->name
+            )
+        ) {
 
-            return back()->with(
-                'error',
-                'Please select the target reservation.'
-            );
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'The selected schedule does not belong to the selected faculty.'
+                );
         }
 
 
-        $targetReservation = Reservation::where(
-            'id',
-            $request->target_reservation_id
-        )
-        ->where(
-            'user_id',
-            $request->target_user_id
-        )
-        ->where(
-            'room_id',
-            $request->target_room_id
-        )
-        ->where(
-            'date',
-            $request->swap_date
-        )
-        ->where(
-            'status',
-            'Approved'
-        )
-        ->first();
+        /*
+        |--------------------------------------------------------------------------
+        | SAME SCHEDULE
+        |--------------------------------------------------------------------------
+        */
 
+        if (
+            (int) $requesterSchedule->id ===
+            (int) $targetSchedule->id
+        ) {
 
-        if (!$targetReservation) {
-
-            return back()->with(
-                'error',
-                'The selected target reservation is not a valid approved reservation.'
-            );
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'You cannot swap a schedule with itself.'
+                );
         }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SAME DAY
+        |--------------------------------------------------------------------------
+        */
+
+        $requesterDay =
+            strtoupper(
+                trim(
+                    (string) $requesterSchedule->day
+                )
+            );
+
+        $targetDay =
+            strtoupper(
+                trim(
+                    (string) $targetSchedule->day
+                )
+            );
+
+
+        if (
+            $requesterDay !==
+            $targetDay
+        ) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Room swap is only allowed when both schedules are on the same day.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SAME EXACT TIME
+        |--------------------------------------------------------------------------
+        */
+
+        $requesterTime =
+            preg_replace(
+                '/\s+/',
+                '',
+                strtolower(
+                    trim(
+                        (string) $requesterSchedule->time
+                    )
+                )
+            );
+
+        $targetTime =
+            preg_replace(
+                '/\s+/',
+                '',
+                strtolower(
+                    trim(
+                        (string) $targetSchedule->time
+                    )
+                )
+            );
+
+
+        if (
+            $requesterTime !==
+            $targetTime
+        ) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Room swap is only allowed when both schedules have the same time.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DIFFERENT ROOM
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            (int) $requesterSchedule->room_id ===
+            (int) $targetSchedule->room_id
+        ) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Both schedules already use the same room. There is no room to exchange.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK REQUESTER'S NEW ROOM
+        |--------------------------------------------------------------------------
+        |
+        | Faculty A will receive Faculty B's room.
+        |
+        | IMPORTANT:
+        | Exclude BOTH schedules because they are the two schedules
+        | being exchanged.
+        |
+        */
+
+        $requesterConflict =
+            Schedule::where(
+                'room_id',
+                $targetSchedule->room_id
+            )
+            ->where(
+                'day',
+                $requesterSchedule->day
+            )
+            ->where(
+                'time',
+                $requesterSchedule->time
+            )
+            ->whereNotIn(
+                'id',
+                [
+                    $requesterSchedule->id,
+                    $targetSchedule->id,
+                ]
+            )
+            ->exists();
+
+
+        if ($requesterConflict) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'The target room is already occupied by another schedule at this day and time.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK TARGET FACULTY'S NEW ROOM
+        |--------------------------------------------------------------------------
+        |
+        | Faculty B will receive Faculty A's room.
+        |
+        | IMPORTANT:
+        | Exclude BOTH schedules because they are the two schedules
+        | being exchanged.
+        |
+        */
+
+        $targetConflict =
+            Schedule::where(
+                'room_id',
+                $requesterSchedule->room_id
+            )
+            ->where(
+                'day',
+                $targetSchedule->day
+            )
+            ->where(
+                'time',
+                $targetSchedule->time
+            )
+            ->whereNotIn(
+                'id',
+                [
+                    $requesterSchedule->id,
+                    $targetSchedule->id,
+                ]
+            )
+            ->exists();
+
+
+        if ($targetConflict) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Your room is already occupied by another schedule at this day and time.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PREVENT DUPLICATE PENDING REQUEST
+        |--------------------------------------------------------------------------
+        */
+
+        $duplicate =
+            RoomSwapRequest::where(
+                'requester_id',
+                $user->id
+            )
+            ->where(
+                'target_user_id',
+                $targetFaculty->id
+            )
+            ->where(
+                'requester_schedule_id',
+                $requesterSchedule->id
+            )
+            ->where(
+                'target_schedule_id',
+                $targetSchedule->id
+            )
+            ->where(
+                'status',
+                'pending'
+            )
+            ->exists();
+
+
+        if ($duplicate) {
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'You already have a pending room swap request for these schedules.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE ROOM SWAP REQUEST
+        |--------------------------------------------------------------------------
+        */
+
+        RoomSwapRequest::create([
+
+            'requester_id' =>
+                $user->id,
+
+            'target_user_id' =>
+                $targetFaculty->id,
+
+            'requester_schedule_id' =>
+                $requesterSchedule->id,
+
+            'target_schedule_id' =>
+                $targetSchedule->id,
+
+            'requester_room_id' =>
+                $requesterSchedule->room_id,
+
+            'target_room_id' =>
+                $targetSchedule->room_id,
+
+            'swap_date' =>
+                $request->swap_date,
+
+            'start_time' =>
+                $request->start_time,
+
+            'end_time' =>
+                $request->end_time,
+
+            'reason' =>
+                $request->reason,
+
+            'status' =>
+                'pending',
+
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUCCESS
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()
+            ->route(
+                'faculty.room-swap'
+            )
+            ->with(
+                'success',
+                'Room swap request sent successfully.'
+            );
     }
 
 
     /*
-    | STEP 6
-    | Determine Faculty B's Booking Time
-    */
-
-    $targetStart = null;
-    $targetEnd = null;
-
-
-    if ($request->target_type === 'schedule') {
-
-        $parsed = $this->parseScheduleTime(
-            $targetSchedule->time
-        );
-
-    } else {
-
-        $parsed = $this->parseReservationTime(
-            $targetReservation->time
-        );
-    }
-
-
-    if (!$parsed) {
-
-        return back()->with(
-            'error',
-            'The target booking has an invalid time format.'
-        );
-    }
-
-
-    $targetStart = $parsed['start'];
-    $targetEnd = $parsed['end'];
-
-
-    /*
-    | STEP 7
-    | Check If Faculty A and Faculty B Times Overlap
-    */
-
-    if (!$this->timesOverlap(
-        $requesterStart,
-        $requesterEnd,
-        $targetStart,
-        $targetEnd
-    )) {
-
-        return back()->with(
-            'error',
-            'The selected rooms are not occupied during the same time period.'
-        );
-    }
-
-
-    /*
-    | Make Sure Target Faculty Exists
-    */
-
-    $targetUser = \App\Models\User::find(
-        $request->target_user_id
-    );
-
-
-    if (!$targetUser) {
-
-        return back()->with(
-            'error',
-            'Target faculty could not be found.'
-        );
-    }
-
-
-    /*
-    | Create Room Swap Request
-    */
-
-    RoomSwapRequest::create([
-
-        'requester_id' =>
-            $user->id,
-
-        'target_user_id' =>
-            $request->target_user_id,
-
-        'requester_schedule_id' =>
-            $request->requester_type === 'schedule'
-                ? $request->requester_schedule_id
-                : null,
-
-        'target_schedule_id' =>
-            $request->target_type === 'schedule'
-                ? $request->target_schedule_id
-                : null,
-
-        'requester_room_id' =>
-            $request->requester_room_id,
-
-        'target_room_id' =>
-            $request->target_room_id,
-
-        'swap_date' =>
-            $request->swap_date,
-
-        'start_time' =>
-            $request->start_time,
-
-        'end_time' =>
-            $request->end_time,
-
-        'reason' =>
-            $request->reason,
-
-        'status' =>
-            'pending',
-    ]);
-
-
-    return redirect()
-        ->route('faculty.room-swap')
-        ->with(
-            'success',
-            'Room swap request sent successfully.'
-        );
-}
-
-
-
-    /*
-    | Requests Received by Faculty B
+    |--------------------------------------------------------------------------
+    | RECEIVED ROOM SWAP REQUESTS
+    |--------------------------------------------------------------------------
     */
 
     public function receivedRequests()
     {
         $user = Auth::user();
 
-        $requests = RoomSwapRequest::where(
-            'target_user_id',
-            $user->id
-        )
-        ->with([
-            'requester',
-            'requesterRoom',
-            'targetRoom',
-            'requesterSchedule',
-            'targetSchedule'
-        ])
-        ->where('status', 'pending')
-        ->latest()
-        ->get();
+        $requests =
+            RoomSwapRequest::where(
+                'target_user_id',
+                $user->id
+            )
+            ->with([
+                'requester',
+                'requesterRoom',
+                'targetRoom',
+                'requesterSchedule',
+                'targetSchedule'
+            ])
+            ->where(
+                'status',
+                'pending'
+            )
+            ->latest()
+            ->get();
 
 
         return view(
@@ -640,141 +597,582 @@ class RoomSwapRequestController extends Controller
 
 
     /*
-    | Faculty B Approves Request
+    |--------------------------------------------------------------------------
+    | APPROVE ROOM SWAP
+    |--------------------------------------------------------------------------
     */
 
     public function approve($id)
     {
         $user = Auth::user();
 
-        $swap = RoomSwapRequest::findOrFail($id);
+        /*
+        |--------------------------------------------------------------------------
+        | GET REQUEST
+        |--------------------------------------------------------------------------
+        */
+
+        $swap =
+            RoomSwapRequest::with([
+                'requesterSchedule',
+                'targetSchedule',
+            ])
+            ->findOrFail($id);
 
 
         /*
-        | Only Faculty B can approve
+        |--------------------------------------------------------------------------
+        | ONLY TARGET FACULTY CAN APPROVE
+        |--------------------------------------------------------------------------
         */
 
-        if ($swap->target_user_id != $user->id) {
+        if (
+            (int) $swap->target_user_id !==
+            (int) $user->id
+        ) {
 
-            abort(403, 'Unauthorized.');
-        }
-
-
-        if ($swap->status !== 'pending') {
-
-            return back()->with(
-                'error',
-                'This room swap request has already been processed.'
+            abort(
+                403,
+                'Unauthorized.'
             );
         }
 
 
-        $swap->update([
-            'status' => 'approved'
-        ]);
+        /*
+        |--------------------------------------------------------------------------
+        | REQUEST MUST STILL BE PENDING
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $swap->status !==
+            'pending'
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'This room swap request has already been processed.'
+                );
+        }
 
 
-        return back()->with(
-            'success',
-            'Room swap request approved.'
+        /*
+        |--------------------------------------------------------------------------
+        | GET BOTH SCHEDULES
+        |--------------------------------------------------------------------------
+        */
+
+        $requesterSchedule =
+            $swap->requesterSchedule;
+
+        $targetSchedule =
+            $swap->targetSchedule;
+
+
+        if (
+            !$requesterSchedule ||
+            !$targetSchedule
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'One of the selected schedules no longer exists.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DO NOT SWAP A SCHEDULE WITH ITSELF
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            (int) $requesterSchedule->id ===
+            (int) $targetSchedule->id
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'You cannot swap a schedule with itself.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | RECHECK SAME DAY
+        |--------------------------------------------------------------------------
+        */
+
+        $requesterDay =
+            strtoupper(
+                trim(
+                    (string) $requesterSchedule->day
+                )
+            );
+
+        $targetDay =
+            strtoupper(
+                trim(
+                    (string) $targetSchedule->day
+                )
+            );
+
+
+        if (
+            $requesterDay !==
+            $targetDay
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'This room swap cannot be approved because the schedules are not on the same day.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | RECHECK SAME TIME
+        |--------------------------------------------------------------------------
+        */
+
+        $requesterTime =
+            preg_replace(
+                '/\s+/',
+                '',
+                strtolower(
+                    trim(
+                        (string) $requesterSchedule->time
+                    )
+                )
+            );
+
+        $targetTime =
+            preg_replace(
+                '/\s+/',
+                '',
+                strtolower(
+                    trim(
+                        (string) $targetSchedule->time
+                    )
+                )
+            );
+
+
+        if (
+            $requesterTime !==
+            $targetTime
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'This room swap cannot be approved because the schedules do not have the same time.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | GET CURRENT ROOMS
+        |--------------------------------------------------------------------------
+        */
+
+        $requesterRoomId =
+            $requesterSchedule->room_id;
+
+        $targetRoomId =
+            $targetSchedule->room_id;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | VERIFY ORIGINAL ROOM VALUES
+        |--------------------------------------------------------------------------
+        |
+        | These values are stored in the request when the request
+        | was created. They are needed to restore the rooms later.
+        |
+        */
+
+        if (
+            !$swap->requester_room_id ||
+            !$swap->target_room_id
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'The original room information for this swap is missing.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SAME ROOM
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            (int) $requesterRoomId ===
+            (int) $targetRoomId
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'Both selected schedules are already assigned to the same room. There is no different room to exchange.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK REQUESTER'S NEW ROOM
+        |--------------------------------------------------------------------------
+        |
+        | Faculty A receives Faculty B's room.
+        |
+        | IMPORTANT:
+        | Exclude BOTH schedules.
+        |
+        */
+
+        $requesterConflict =
+            Schedule::where(
+                'room_id',
+                $targetRoomId
+            )
+            ->where(
+                'day',
+                $requesterSchedule->day
+            )
+            ->where(
+                'time',
+                $requesterSchedule->time
+            )
+            ->whereNotIn(
+                'id',
+                [
+                    $requesterSchedule->id,
+                    $targetSchedule->id,
+                ]
+            )
+            ->exists();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CHECK TARGET FACULTY'S NEW ROOM
+        |--------------------------------------------------------------------------
+        |
+        | Faculty B receives Faculty A's room.
+        |
+        | IMPORTANT:
+        | Exclude BOTH schedules.
+        |
+        */
+
+        $targetConflict =
+            Schedule::where(
+                'room_id',
+                $requesterRoomId
+            )
+            ->where(
+                'day',
+                $targetSchedule->day
+            )
+            ->where(
+                'time',
+                $targetSchedule->time
+            )
+            ->whereNotIn(
+                'id',
+                [
+                    $requesterSchedule->id,
+                    $targetSchedule->id,
+                ]
+            )
+            ->exists();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | STOP IF A THIRD SCHEDULE CREATES A CONFLICT
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $requesterConflict ||
+            $targetConflict
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'The room swap cannot be completed because another schedule is already using one of the rooms at this day and time.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | APPROVE AND EXCHANGE ROOMS
+        |--------------------------------------------------------------------------
+        */
+
+        DB::transaction(
+            function () use (
+                $requesterSchedule,
+                $targetSchedule,
+                $targetRoomId,
+                $requesterRoomId,
+                $swap
+            ) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | LOCK BOTH SCHEDULES
+                |--------------------------------------------------------------------------
+                */
+
+                $lockedRequesterSchedule =
+                    Schedule::where(
+                        'id',
+                        $requesterSchedule->id
+                    )
+                    ->lockForUpdate()
+                    ->first();
+
+                $lockedTargetSchedule =
+                    Schedule::where(
+                        'id',
+                        $targetSchedule->id
+                    )
+                    ->lockForUpdate()
+                    ->first();
+
+
+                if (
+                    !$lockedRequesterSchedule ||
+                    !$lockedTargetSchedule
+                ) {
+
+                    throw new \Exception(
+                        'One of the schedules no longer exists.'
+                    );
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | EXCHANGE ROOMS
+                |--------------------------------------------------------------------------
+                */
+
+                $lockedRequesterSchedule->update([
+                    'room_id' =>
+                        $targetRoomId,
+                ]);
+
+                $lockedTargetSchedule->update([
+                    'room_id' =>
+                        $requesterRoomId,
+                ]);
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | MARK AS APPROVED
+                |--------------------------------------------------------------------------
+                */
+
+                $swap->update([
+                    'status' =>
+                        'approved',
+                ]);
+            }
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUCCESS
+        |--------------------------------------------------------------------------
+        */
+
+        return back()
+            ->with(
+                'success',
+                'Room swap approved. The two room assignments have been exchanged temporarily until the scheduled end time.'
+            );
     }
 
 
     /*
-    | Faculty B Declines Request
+    |--------------------------------------------------------------------------
+    | DECLINE ROOM SWAP
+    |--------------------------------------------------------------------------
     */
 
     public function decline($id)
     {
         $user = Auth::user();
 
-        $swap = RoomSwapRequest::findOrFail($id);
+        $swap =
+            RoomSwapRequest::findOrFail(
+                $id
+            );
 
 
         /*
-        | Only Faculty B can decline
+        |--------------------------------------------------------------------------
+        | ONLY TARGET FACULTY CAN DECLINE
+        |--------------------------------------------------------------------------
         */
 
-        if ($swap->target_user_id != $user->id) {
+        if (
+            (int) $swap->target_user_id !==
+            (int) $user->id
+        ) {
 
-            abort(403, 'Unauthorized.');
-        }
-
-
-        if ($swap->status !== 'pending') {
-
-            return back()->with(
-                'error',
-                'This room swap request has already been processed.'
+            abort(
+                403,
+                'Unauthorized.'
             );
         }
 
 
+        /*
+        |--------------------------------------------------------------------------
+        | REQUEST MUST STILL BE PENDING
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $swap->status !==
+            'pending'
+        ) {
+
+            return back()
+                ->with(
+                    'error',
+                    'This room swap request has already been processed.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DECLINE
+        |--------------------------------------------------------------------------
+        */
+
         $swap->update([
-            'status' => 'declined'
+            'status' =>
+                'declined'
         ]);
 
 
-        return back()->with(
-            'success',
-            'Room swap request declined.'
-        );
+        return back()
+            ->with(
+                'success',
+                'Room swap request declined.'
+            );
     }
 
-    private function timesOverlap($startA, $endA, $startB, $endB)
-{
-    return $startA < $endB && $endA > $startB;
-}
 
+    /*
+    |--------------------------------------------------------------------------
+    | PARSE RESERVATION TIME
+    |--------------------------------------------------------------------------
+    */
 
-private function parseReservationTime($time)
-{
-  
+    private function parseReservationTime($time)
+    {
+        $parts =
+            preg_split(
+                '/\s*-\s*/',
+                trim($time)
+            );
 
-    $parts = preg_split('/\s*-\s*/', trim($time));
+        if (
+            count($parts) !== 2
+        ) {
+            return null;
+        }
 
-    if (count($parts) !== 2) {
-        return null;
+        try {
+
+            $start =
+                \Carbon\Carbon::parse(
+                    trim($parts[0])
+                );
+
+            $end =
+                \Carbon\Carbon::parse(
+                    trim($parts[1])
+                );
+
+            return [
+                'start' => $start,
+                'end' => $end,
+            ];
+
+        } catch (\Exception $e) {
+
+            return null;
+        }
     }
 
-    try {
 
-        $start = \Carbon\Carbon::parse(trim($parts[0]));
-        $end   = \Carbon\Carbon::parse(trim($parts[1]));
+    /*
+    |--------------------------------------------------------------------------
+    | PARSE SCHEDULE TIME
+    |--------------------------------------------------------------------------
+    */
 
-        return [
-            'start' => $start,
-            'end' => $end,
-        ];
+    private function parseScheduleTime($time)
+    {
+        $parts =
+            preg_split(
+                '/\s*-\s*/',
+                trim($time)
+            );
 
-    } catch (\Exception $e) {
+        if (
+            count($parts) !== 2
+        ) {
+            return null;
+        }
 
-        return null;
+        try {
+
+            $start =
+                \Carbon\Carbon::parse(
+                    trim($parts[0])
+                );
+
+            $end =
+                \Carbon\Carbon::parse(
+                    trim($parts[1])
+                );
+
+            return [
+                'start' => $start,
+                'end' => $end,
+            ];
+
+        } catch (\Exception $e) {
+
+            return null;
+        }
     }
-}
-
-private function parseScheduleTime($time)
-{
-    $parts = preg_split('/\s*-\s*/', trim($time));
-
-    if (count($parts) !== 2) {
-        return null;
-    }
-
-    try {
-
-        $start = \Carbon\Carbon::parse(trim($parts[0]));
-        $end   = \Carbon\Carbon::parse(trim($parts[1]));
-
-        return [
-            'start' => $start,
-            'end' => $end,
-        ];
-
-    } catch (\Exception $e) {
-
-        return null;
-    }
-}
 }

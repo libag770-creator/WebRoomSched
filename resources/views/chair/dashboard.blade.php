@@ -119,6 +119,39 @@
     transition: 0.2s;
 }
 
+.reservation-details {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.detail-item {
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border-radius: 7px;
+    border: 1px solid #eeeeee;
+}
+
+.detail-item strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: #2e7d32;
+}
+
+.detail-item strong i {
+    margin-right: 5px;
+}
+
+@media(max-width: 1000px) {
+    .reservation-details {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media(max-width: 600px) {
+    .reservation-details {
+        grid-template-columns: 1fr;
+    }
+}
         .summary-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.09);
@@ -1034,16 +1067,135 @@
 
                                 <div class="reservation-details">
 
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-user"></i>
+            Requested by:
+        </strong>
 
-                                    <div class="detail-item">
+        {{ $reservation->user->name ?? 'Unknown Faculty' }}
+    </div>
 
-                                        <strong>
-                                            Requested by:
-                                        </strong>
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-building"></i>
+            Department:
+        </strong>
 
-                                        {{ $reservation->user->name }}
+        {{ $reservation->room->department->name ?? 'N/A' }}
+    </div>
 
-                                    </div>
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-city"></i>
+            Building:
+        </strong>
+
+        @if(is_object($reservation->room->building))
+            {{ $reservation->room->building->name ?? 'N/A' }}
+        @else
+            {{ $reservation->room->building ?? 'N/A' }}
+        @endif
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-door-open"></i>
+            Room:
+        </strong>
+
+        {{ $reservation->room->room_name ?? 'N/A' }}
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-calendar"></i>
+            Date:
+        </strong>
+
+        {{ \Carbon\Carbon::parse($reservation->date)->format('F d, Y') }}
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-clock"></i>
+            Time:
+        </strong>
+
+        @if($reservation->start_time && $reservation->end_time)
+
+            {{ \Carbon\Carbon::parse($reservation->start_time)->format('g:i A') }}
+            -
+            {{ \Carbon\Carbon::parse($reservation->end_time)->format('g:i A') }}
+
+        @else
+
+            {{ $reservation->time ?? 'N/A' }}
+
+        @endif
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-users"></i>
+            Capacity:
+        </strong>
+
+        {{ $reservation->room->capacity ?? 0 }} persons
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-desktop"></i>
+            Computers:
+        </strong>
+
+        {{ $reservation->room->computers ?? 0 }}
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-tv"></i>
+            TV:
+        </strong>
+
+        {{ $reservation->room->has_tv ? 'Available' : 'None' }}
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-video"></i>
+            Projector:
+        </strong>
+
+        {{ $reservation->room->has_projector ? 'Available' : 'None' }}
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-flask"></i>
+            Room Type:
+        </strong>
+
+        @if(strtolower($reservation->room->purpose ?? '') === 'lab')
+            Laboratory
+        @elseif(strtolower($reservation->room->purpose ?? '') === 'lecture')
+            Lecture Room
+        @else
+            {{ $reservation->room->purpose ?? 'N/A' }}
+        @endif
+    </div>
+
+    <div class="detail-item">
+        <strong>
+            <i class="fas fa-info-circle"></i>
+            Purpose:
+        </strong>
+
+        {{ $reservation->purpose ?? 'N/A' }}
+    </div>
+
+</div>
 
 
                                     <div class="detail-item">

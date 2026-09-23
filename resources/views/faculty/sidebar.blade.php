@@ -86,25 +86,6 @@
         </li>
 
 
-        <!-- =========================================
-             MY BOOKINGS
-        ========================================== -->
-
-        <li class="{{ request()->routeIs('faculty.bookings') ? 'active' : '' }}">
-
-            <a href="{{ route('faculty.bookings') }}">
-
-                <span class="sidebar-icon">
-                    <i class="fa-solid fa-book"></i>
-                </span>
-
-                <span class="sidebar-text">
-                    My Bookings
-                </span>
-
-            </a>
-
-        </li>
 
     </ul>
 

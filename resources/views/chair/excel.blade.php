@@ -21,6 +21,13 @@
 
 
 
+<style>
+.schedule-cell.reserved-cell{background:#fff7ed!important;border:2px solid #f59e0b!important;cursor:not-allowed!important;position:relative}
+.reservation-cell-label{display:inline-block;margin-top:6px;padding:3px 7px;border-radius:999px;background:#f59e0b;color:#fff;font-size:9px;font-weight:800;letter-spacing:.3px}
+.reservation-cell-user{margin-top:4px;color:#92400e;font-size:10px;font-weight:800}
+.reservation-cell-time{margin-top:2px;color:#92400e;font-size:9px;font-weight:700}
+.reservation-cell-note{margin-top:4px;color:#92400e;font-size:9px;line-height:1.25}
+</style>
 </head>
 
 
@@ -706,6 +713,30 @@
 
     $drafts = $drafts ?? collect();
     $schedules = $schedules ?? collect();
+    $reservations = $reservations ?? collect();
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESERVATION TIME HELPER
+    |--------------------------------------------------------------------------
+    */
+
+    $timeToMinutes = function ($time) {
+        $time = trim((string) $time);
+
+        if (!preg_match('/^(\d{1,2}):(\d{2})$/', $time, $matches)) {
+            return null;
+        }
+
+        $hour = (int) $matches[1];
+        $minute = (int) $matches[2];
+
+        if ($hour >= 1 && $hour <= 5) {
+            $hour += 12;
+        }
+
+        return ($hour * 60) + $minute;
+    };
 
     /*
     |--------------------------------------------------------------------------
@@ -932,20 +963,46 @@ $rightTimes = $rightTimes
                     $scheduleMap[$key]
                     ?? null;
 
+                $reservation = $reservations->first(function ($item) use ($day, $leftTime, $timeToMinutes) {
+                    if (strtoupper(trim((string) $item->day)) !== $day) {
+                        return false;
+                    }
+
+                    $slotParts = explode('-', trim($leftTime), 2);
+                    if (count($slotParts) !== 2) {
+                        return false;
+                    }
+
+                    $slotStart = $timeToMinutes($slotParts[0]);
+                    $slotEnd = $timeToMinutes($slotParts[1]);
+                    $reservationStart = $timeToMinutes(\Carbon\Carbon::parse($item->start_time)->format('H:i'));
+                    $reservationEnd = $timeToMinutes(\Carbon\Carbon::parse($item->end_time)->format('H:i'));
+
+                    if ($slotStart === null || $slotEnd === null || $reservationStart === null || $reservationEnd === null) {
+                        return false;
+                    }
+
+                    return $slotStart < $reservationEnd && $slotEnd > $reservationStart;
+                });
+
                 $isLocked =
-                    $schedule
-                    &&
-                    isset($schedule->department_id)
-                    &&
-                    (int) $schedule->department_id
-                    !==
-                    (int) $chairDepartmentId;
+                    (bool) $reservation
+                    ||
+                    (
+                        $schedule
+                        &&
+                        isset($schedule->department_id)
+                        &&
+                        (int) $schedule->department_id
+                        !==
+                        (int) $chairDepartmentId
+                    );
 
             @endphp
 
 
             <td
-                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }}"
+                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }} {{ $reservation ? 'reserved-cell' : '' }}"
 
                 data-schedule-id="{{ $schedule ? $schedule->id : '' }}"
 
@@ -974,6 +1031,8 @@ $rightTimes = $rightTimes
                 data-color="{{ $schedule ? ($schedule->color ?? '#ffffff') : '#ffffff' }}"
 
                 data-locked="{{ $isLocked ? '1' : '0' }}"
+
+                data-reservation-id="{{ $reservation ? $reservation->id : '' }}"
 
                 data-subject-type="{{ $schedule ? ($schedule->subject_type ?? '') : '' }}"
 
@@ -1082,6 +1141,21 @@ $rightTimes = $rightTimes
                         </div>
                     @endif
 
+                    @if($reservation)
+                        <div class="reservation-cell-label">
+                            {{ $reservation->status === 'Pending' ? 'RESERVATION REQUESTED' : 'TEMPORARY RESERVATION' }}
+                        </div>
+                        <div class="reservation-cell-user">
+                            {{ $reservation->user?->name ?? 'Faculty' }}
+                        </div>
+                        <div class="reservation-cell-time">
+                            {{ \Carbon\Carbon::parse($reservation->date)->format('M d, Y') }} · {{ $reservation->time }}
+                        </div>
+                        <div class="reservation-cell-note">
+                            This slot is temporarily blocked and cannot be scheduled.
+                        </div>
+                    @endif
+
                     @if($isLocked)
                         <div class="locked-label">
                             🔒 LOCKED
@@ -1127,20 +1201,46 @@ $rightTimes = $rightTimes
                     $scheduleMap[$key]
                     ?? null;
 
+                $reservation = $reservations->first(function ($item) use ($day, $rightTime, $timeToMinutes) {
+                    if (strtoupper(trim((string) $item->day)) !== $day) {
+                        return false;
+                    }
+
+                    $slotParts = explode('-', trim($rightTime), 2);
+                    if (count($slotParts) !== 2) {
+                        return false;
+                    }
+
+                    $slotStart = $timeToMinutes($slotParts[0]);
+                    $slotEnd = $timeToMinutes($slotParts[1]);
+                    $reservationStart = $timeToMinutes(\Carbon\Carbon::parse($item->start_time)->format('H:i'));
+                    $reservationEnd = $timeToMinutes(\Carbon\Carbon::parse($item->end_time)->format('H:i'));
+
+                    if ($slotStart === null || $slotEnd === null || $reservationStart === null || $reservationEnd === null) {
+                        return false;
+                    }
+
+                    return $slotStart < $reservationEnd && $slotEnd > $reservationStart;
+                });
+
                 $isLocked =
-                    $schedule
-                    &&
-                    isset($schedule->department_id)
-                    &&
-                    (int) $schedule->department_id
-                    !==
-                    (int) $chairDepartmentId;
+                    (bool) $reservation
+                    ||
+                    (
+                        $schedule
+                        &&
+                        isset($schedule->department_id)
+                        &&
+                        (int) $schedule->department_id
+                        !==
+                        (int) $chairDepartmentId
+                    );
 
             @endphp
 
 
             <td
-                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }}"
+                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }} {{ $reservation ? 'reserved-cell' : '' }}"
 
                 data-schedule-id="{{ $schedule ? $schedule->id : '' }}"
 
@@ -1169,6 +1269,8 @@ $rightTimes = $rightTimes
                 data-color="{{ $schedule ? ($schedule->color ?? '#ffffff') : '#ffffff' }}"
 
                 data-locked="{{ $isLocked ? '1' : '0' }}"
+
+                data-reservation-id="{{ $reservation ? $reservation->id : '' }}"
 
                 data-subject-type="{{ $schedule ? ($schedule->subject_type ?? '') : '' }}"
 
@@ -1211,6 +1313,21 @@ $rightTimes = $rightTimes
                     @if($schedule->subject_type)
                         <div class="cell-subject-type">
                             {{ $schedule->subject_type }}
+                        </div>
+                    @endif
+
+                    @if($reservation)
+                        <div class="reservation-cell-label">
+                            {{ $reservation->status === 'Pending' ? 'RESERVATION REQUESTED' : 'TEMPORARY RESERVATION' }}
+                        </div>
+                        <div class="reservation-cell-user">
+                            {{ $reservation->user?->name ?? 'Faculty' }}
+                        </div>
+                        <div class="reservation-cell-time">
+                            {{ \Carbon\Carbon::parse($reservation->date)->format('M d, Y') }} · {{ $reservation->time }}
+                        </div>
+                        <div class="reservation-cell-note">
+                            This slot is temporarily blocked and cannot be scheduled.
                         </div>
                     @endif
 
@@ -1945,6 +2062,18 @@ subjectTypeInput.value =
                     function()
                     {
 
+                        // Do nothing if the cell has a faculty reservation
+                        if (
+                            this.classList.contains(
+                                'reserved-cell'
+                            )
+                        ) {
+                            alert(
+                                'This timetable cell is blocked by a faculty room reservation and cannot be scheduled.'
+                            );
+                            return;
+                        }
+
                         // Do nothing if the cell is locked
                         if (
                             this.classList.contains(
@@ -2102,9 +2231,20 @@ function saveCell()
 
     if (lockedCells.length > 0) {
 
-        alert(
-            'One or more selected cells belong to another department and are locked.'
-        );
+        const reservationCells =
+            lockedCells.filter(
+                cell => cell.dataset.reservationId
+            );
+
+        if (reservationCells.length > 0) {
+            alert(
+                'One or more selected cells have a faculty room reservation. The reservation must end before this slot can be scheduled.'
+            );
+        } else {
+            alert(
+                'One or more selected cells belong to another department and are locked.'
+            );
+        }
 
         return;
     }
