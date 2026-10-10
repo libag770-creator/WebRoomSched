@@ -3,256 +3,172 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Department;
+use Illuminate\Validation\Rule;
 
 class ManageUserController extends Controller
 {
+    public function index()
+    {
+        $users = User::with('department')->orderBy('name')->get();
 
-public function showResetPassword($id)
-{
-    $user = User::findOrFail($id);
+        $archivedUsers = User::onlyTrashed()
+            ->with('department')
+            ->orderBy('name')
+            ->get();
 
-    return view('admin.resetpassword', compact('user'));
-}
+        $departments = Department::orderBy('name')->get();
 
-public function resetPassword(Request $request, $id)
-{
-    $request->validate([
-        'password' => 'required|min:6|confirmed',
-    ]);
-
-    $user = User::findOrFail($id);
-
-    $user->password = Hash::make($request->password);
-
-    $user->save();
-
-    return redirect()->route('admin.manageusers')
-        ->with('success', 'Password reset successfully.');
-}
-
-public function destroy($id)
-{
-    $user = User::findOrFail($id);
-
-    $user->delete();
-
-    return redirect()->route('admin.manageusers')
-        ->with('success', 'User deleted successfully.');
-}
-
-
-   public function edit($id)
-{
-    $user = User::findOrFail($id);
-
-    $departments = Department::orderBy('name')->get();
-
-    return view(
-        'admin.edituser',
-        compact(
-            'user',
+        return view('admin.manageusers', compact(
+            'users',
+            'archivedUsers',
             'departments'
-        )
-    );
-}
-
-public function update(
-    Request $request,
-    $id
-) {
-    $user = User::findOrFail($id);
-
-
-    $request->validate([
-
-        'name' =>
-            'required|string|max:255',
-
-        'username' =>
-            'required|string|max:255|unique:users,username,' . $id,
-
-        'email' =>
-            'required|email|max:255|unique:users,email,' . $id,
-
-        'role' =>
-            'required|in:admin,chair,faculty',
-
-        'department_id' =>
-            'nullable|exists:departments,id',
-
-    ]);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Chair / Faculty must have department
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-        in_array($request->role, ['chair', 'faculty'])
-        && !$request->department_id
-    ) {
-
-        return back()
-            ->withErrors([
-                'department_id' =>
-                    'Please select a department for this user.'
-            ])
-            ->withInput();
+        ));
     }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Admin doesn't need department
-    |--------------------------------------------------------------------------
-    */
-
-    $departmentId =
-        $request->role === 'admin'
-            ? null
-            : $request->department_id;
-
-
-    $user->update([
-
-        'name' =>
-            $request->name,
-
-        'username' =>
-            $request->username,
-
-        'email' =>
-            $request->email,
-
-        'role' =>
-            $request->role,
-
-        'department_id' =>
-            $departmentId,
-
-    ]);
-
-
-    return redirect()
-        ->route('admin.manageusers')
-        ->with(
-            'success',
-            'User updated successfully.'
-        );
-}
-
- public function index()
-{
-    $users = User::with('department')
-        ->orderBy('name')
-        ->get();
-
-    return view(
-        'admin.manageusers',
-        compact('users')
-    );
-}
 
     public function create()
-{
-    $departments = Department::orderBy('name')->get();
-
-    return view(
-        'admin.adduser',
-        compact('departments')
-    );
-}
-
-   public function store(Request $request)
-{
-    $request->validate([
-
-        'name' =>
-            'required|string|max:255',
-
-        'username' =>
-            'required|string|max:255|unique:users,username',
-
-        'email' =>
-            'required|email|max:255|unique:users,email',
-
-        'password' =>
-            'required|min:6',
-
-        'role' =>
-            'required|in:admin,chair,faculty',
-
-        'department_id' =>
-            'nullable|exists:departments,id',
-
-    ]);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | Department required for Chair and Faculty
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-        in_array($request->role, ['chair', 'faculty'])
-        && !$request->department_id
-    ) {
-
-        return back()
-            ->withErrors([
-                'department_id' =>
-                    'Please select a department for this user.'
-            ])
-            ->withInput();
+    {
+        // Legacy route only. The combined page contains its own Add User modal.
+        return redirect()->route('admin.manageusers');
     }
 
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6'],
+            'role' => ['required', Rule::in(['admin', 'chair', 'faculty'])],
+            'department_id' => ['nullable', 'exists:departments,id'],
+        ]);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Admin does not need department
-    |--------------------------------------------------------------------------
-    */
+        if (in_array($validated['role'], ['chair', 'faculty'], true)
+            && empty($validated['department_id'])) {
+            return back()->withErrors([
+                'department_id' => 'Please select a department for this user.',
+            ])->withInput()->with('open_modal', 'add');
+        }
 
-    $departmentId =
-        $request->role === 'admin'
-            ? null
-            : $request->department_id;
+        User::create([
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+            'department_id' => $validated['role'] === 'admin'
+                ? null
+                : ($validated['department_id'] ?? null),
+            'status' => 'active',
+        ]);
 
+        return redirect()->route('admin.manageusers')
+            ->with('success', 'User added successfully.');
+    }
 
-    User::create([
+    public function edit($id)
+    {
+        return redirect()->route('admin.manageusers')
+            ->with('info', 'Use the Edit button on the Manage Users page.');
+    }
 
-        'name' =>
-            $request->name,
+    public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
 
-        'username' =>
-            $request->username,
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => [
+                'required', 'string', 'max:255',
+                Rule::unique('users', 'username')->ignore($user->id),
+            ],
+            'email' => [
+                'required', 'email', 'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'role' => ['required', Rule::in(['admin', 'chair', 'faculty'])],
+            'department_id' => ['nullable', 'exists:departments,id'],
+            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+        ]);
 
-        'email' =>
-            $request->email,
+        if (in_array($validated['role'], ['chair', 'faculty'], true)
+            && empty($validated['department_id'])) {
+            return back()->withErrors([
+                'department_id' => 'Please select a department for this user.',
+            ])->withInput()->with('open_modal', 'edit-' . $user->id);
+        }
 
-        'password' =>
-            Hash::make($request->password),
+        $user->update([
+            'name' => $validated['name'],
+            'username' => $validated['username'],
+            'email' => $validated['email'],
+            'role' => $validated['role'],
+            'department_id' => $validated['role'] === 'admin'
+                ? null
+                : ($validated['department_id'] ?? null),
+            'status' => $validated['status'] ?? $user->status ?? 'active',
+        ]);
 
-        'role' =>
-            $request->role,
+        return redirect()->route('admin.manageusers')
+            ->with('success', 'User updated successfully.');
+    }
 
-        'department_id' =>
-            $departmentId,
+    public function showResetPassword($id)
+    {
+        return redirect()->route('admin.manageusers')
+            ->with('open_modal', 'reset-' . $id);
+    }
 
-    ]);
+    public function resetPassword(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
 
+        $user = User::findOrFail($id);
+        $user->password = Hash::make($validated['password']);
+        $user->save();
 
-    return redirect()
-        ->route('admin.manageusers')
-        ->with(
+        return redirect()->route('admin.manageusers')
+            ->with('success', 'Password reset successfully.');
+    }
+
+    public function toggleStatus($id)
+    {
+        $user = User::findOrFail($id);
+        $user->status = ($user->status ?? 'active') === 'active'
+            ? 'inactive'
+            : 'active';
+        $user->save();
+
+        return redirect()->route('admin.manageusers')->with(
             'success',
-            'User added successfully.'
+            $user->status === 'active'
+                ? 'User account activated successfully.'
+                : 'User account deactivated successfully.'
         );
-}
+    }
+
+    public function destroy($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Soft-delete the user account only. Do not delete related buildings,
+        // rooms, schedules, or reservations from this controller.
+        $user->delete();
+
+        return redirect()->route('admin.manageusers')
+            ->with('success', 'User archived. Related records were not deleted.');
+    }
+
+    public function restore($id)
+    {
+        $user = User::onlyTrashed()->findOrFail($id);
+        $user->restore();
+
+        return redirect()->route('admin.manageusers')
+            ->with('success', 'User restored successfully.');
+    }
 }

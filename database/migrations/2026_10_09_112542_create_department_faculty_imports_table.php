@@ -1,0 +1,36 @@
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('department_faculty_imports', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('department_id')
+                ->constrained('departments')
+                ->cascadeOnDelete();
+
+            $table->foreignId('faculty_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->timestamps();
+
+            $table->unique(
+                ['department_id', 'faculty_id'],
+                'department_faculty_imports_unique'
+            );
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('department_faculty_imports');
+    }
+};

@@ -81,6 +81,36 @@
                     color: #2e7d32;
                 }
 
+                .room-schedule-meta {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 12px;
+                    margin-bottom: 15px;
+                }
+
+                .room-schedule-meta-item {
+                    background: #ffffff;
+                    border: 1px solid #dfe7e2;
+                    border-radius: 9px;
+                    padding: 11px 14px;
+                }
+
+                .room-schedule-meta-label {
+                    display: block;
+                    color: #667085;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: .4px;
+                    margin-bottom: 4px;
+                }
+
+                .room-schedule-meta-item strong {
+                    color: #176b3a;
+                    font-size: 14px;
+                }
+
+
                 .schedule-table {
                     width: 100%;
                     border-collapse: collapse;
@@ -963,6 +993,253 @@
 
 }
 
+
+                /* =========================================================
+                   EXCEL EDITOR CONTROLS
+                ========================================================= */
+
+                @keyframes modifyEditorReveal {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-8px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .editor-panel {
+                    animation: modifyEditorReveal .25s ease-out;
+                    background: #ffffff;
+                    border: 1px solid #e1e7e3;
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin-bottom: 18px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,.04);
+                }
+
+                .editor-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    color: #1f2937;
+                    font-size: 18px;
+                    font-weight: 700;
+                    margin-bottom: 5px;
+                }
+
+                .editor-title i { color: #2e7d32; }
+
+                .editor-subtitle {
+                    color: #667085;
+                    font-size: 12px;
+                    line-height: 1.55;
+                    margin-bottom: 18px;
+                }
+
+                .editor-grid {
+                    display: grid;
+                    grid-template-columns: repeat(6, minmax(0, 1fr));
+                    gap: 10px;
+                    align-items: end;
+                }
+
+                .editor-field label {
+                    display: block;
+                    color: #475467;
+                    font-size: 11px;
+                    font-weight: 700;
+                    margin-bottom: 5px;
+                }
+
+                .editor-field input,
+                .editor-field select {
+                    width: 100%;
+                    height: 39px;
+                    padding: 8px 10px;
+                    border: 1px solid #d0d5d2;
+                    border-radius: 7px;
+                    background: #ffffff;
+                    color: #1f2937;
+                    font-size: 12px;
+                    outline: none;
+                }
+
+                .editor-field input:focus,
+                .editor-field select:focus {
+                    border-color: #2e7d32;
+                    box-shadow: 0 0 0 3px rgba(46,125,50,.08);
+                }
+
+                .editor-field input[readonly] {
+                    background: #f7f9f8;
+                    color: #667085;
+                }
+
+                .editor-color {
+                    display: flex;
+                    align-items: flex-end;
+                }
+
+                .editor-color input[type="color"] {
+                    width: 52px;
+                    height: 39px;
+                    padding: 3px;
+                    border: 1px solid #d0d5d2;
+                    border-radius: 7px;
+                    background: #ffffff;
+                    cursor: pointer;
+                }
+
+                .editor-metadata {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    gap: 8px;
+                    margin-top: 12px;
+                }
+                .editor-meta-item {
+                    background: #f7f9f8;
+                    border: 1px solid #e1e7e3;
+                    border-radius: 7px;
+                    padding: 9px 10px;
+                    min-width: 0;
+                }
+                .editor-meta-label {
+                    display: block;
+                    color: #98a2b3;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: .3px;
+                    margin-bottom: 3px;
+                }
+                .editor-meta-value {
+                    display: block;
+                    color: #344054;
+                    font-size: 11px;
+                    font-weight: 700;
+                    line-height: 1.35;
+                    word-break: break-word;
+                }
+                .editor-color-inline {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 7px;
+                    padding: 7px 9px;
+                    border: 1px solid #d0d5d2;
+                    border-radius: 7px;
+                    background: #ffffff;
+                    color: #475467;
+                    font-size: 11px;
+                    font-weight: 700;
+                }
+                .editor-color-inline input[type="color"] {
+                    width: 32px;
+                    height: 28px;
+                    padding: 2px;
+                    border: 1px solid #d0d5d2;
+                    border-radius: 5px;
+                    background: #ffffff;
+                    cursor: pointer;
+                }
+                .editor-status {
+                    min-height: 36px;
+                    display: flex;
+                    align-items: center;
+                    padding: 9px 12px;
+                    margin-top: 12px;
+                    border-radius: 7px;
+                    background: #f7f9f8;
+                    color: #667085;
+                    font-size: 11px;
+                }
+
+                .editor-status.success {
+                    background: #e8f5e9;
+                    color: #2e7d32;
+                }
+
+                .editor-status.warning {
+                    background: #fff8e1;
+                    color: #6d4c00;
+                }
+
+                .editor-status.error {
+                    background: #ffebee;
+                    color: #b71c1c;
+                }
+
+                .editor-actions {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    margin-top: 15px;
+                }
+
+                .editor-actions-left,
+                .editor-actions-right {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                }
+
+                .editor-button {
+                    border: none;
+                    padding: 9px 14px;
+                    border-radius: 7px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    font-weight: 700;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                    transition: .15s ease;
+                }
+
+                .editor-button:hover { transform: translateY(-1px); }
+
+                .editor-save { background: #2e7d32; color: #ffffff; }
+                .editor-save:hover { background: #1b5e20; }
+
+                .editor-clear { background: #c62828; color: #ffffff; }
+                .editor-clear:hover { background: #a61b1b; }
+
+                .editor-cancel { background: #777; color: #ffffff; }
+                .editor-cancel:hover { background: #616161; }
+
+                .schedule-cell.editable-cell { cursor: pointer; }
+
+                .schedule-cell.editable-cell:hover {
+                    background: #f1f9f3 !important;
+                }
+
+                .schedule-cell.is-selected-edit {
+                    outline: 3px solid #2e7d32 !important;
+                    outline-offset: -3px;
+                    box-shadow: inset 0 0 0 2px rgba(46,125,50,.12);
+                }
+
+                @media (max-width: 1100px) {
+                    .editor-grid {
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                    }
+                }
+
+                @media (max-width: 700px) {
+                    .editor-grid {
+                        grid-template-columns: 1fr 1fr;
+                    }
+
+                    .editor-metadata {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
                 /* MODAL */
 
                 .modal {
@@ -1065,6 +1342,10 @@
                 <div class="subtitle">
                     View schedules from all departments and add
                     schedules to available empty slots.
+                </div>
+
+                <div style="margin:15px 0 20px;padding:12px 14px;background:#eef8ef;border:1px solid #d7e8da;border-radius:9px;color:#176b3a;font-size:12px;font-weight:700;">
+                    Active Term: {{ $activeTerm->academic_year ?? '-' }} • {{ $activeTerm->semester ?? '-' }} — Schedule Editor is working on this term only.
                 </div>
 
 
@@ -1299,7 +1580,168 @@
 </div>
 
 
-               {{-- =====================================================
+               
+{{-- =========================================================
+     EXCEL-STYLE MODIFY EDITOR
+========================================================= --}}
+
+@php
+    $modifyFacultySubjects = $facultySubjects ?? collect();
+@endphp
+
+<div class="editor-panel" id="modifyEditor" style="display:none;">
+
+    <div class="editor-title">
+        <i class="fa-solid fa-table-cells-large"></i>
+        Schedule Cell Editor
+    </div>
+
+    <div class="editor-subtitle">
+        Click an editable timetable cell. The course code uses the same
+        Faculty Setup entries used by Set Schedule Excel. Subject, year level,
+        faculty, major, and program are filled automatically.
+    </div>
+
+    <form
+        method="POST"
+        action="{{ route('chair.modify.schedule.store') }}"
+        id="modifyCellForm"
+    >
+        @csrf
+
+        <input type="hidden" name="room_id" id="modifyFormRoomId">
+        <input type="hidden" name="day" id="modifyFormDay">
+        <input type="hidden" name="time" id="modifyFormTime">
+        <input type="hidden" name="schedule_id" id="modifyFormScheduleId">
+
+        <div class="editor-grid">
+
+            <div class="editor-field">
+                <label for="modifyCourseCode">Course Code</label>
+
+                <input
+                    type="text"
+                    name="course_code"
+                    id="modifyCourseCode"
+                    list="modifyCourseCodeList"
+                    placeholder="Example: IT 111"
+                    autocomplete="off"
+                    required
+                >
+
+                <datalist id="modifyCourseCodeList">
+                    @foreach(
+                        $modifyFacultySubjects
+                            ->unique('course_code')
+                        as $facultySubject
+                    )
+                        <option value="{{ $facultySubject->course_code }}"></option>
+                    @endforeach
+                </datalist>
+            </div>
+
+            <div class="editor-field">
+                <label for="modifySubject">Subject</label>
+                <input type="text" id="modifySubject" readonly placeholder="Automatic">
+            </div>
+
+            <div class="editor-field">
+                <label for="modifyYearLevel">Year Level</label>
+                <input type="text" id="modifyYearLevel" readonly placeholder="Automatic">
+            </div>
+
+            <div class="editor-field">
+                <label for="modifyInstructor">Faculty</label>
+                <input type="text" id="modifyInstructor" readonly placeholder="Automatic">
+            </div>
+
+            <div class="editor-field">
+                <label for="modifyMajor">Major</label>
+                <input type="text" name="major" id="modifyMajor" readonly placeholder="Automatic" required>
+            </div>
+
+            <div class="editor-field">
+                <label for="modifyProgram">Program</label>
+                <input type="text" name="program" id="modifyProgram" readonly placeholder="Automatic" required>
+            </div>
+
+            <input type="hidden" name="semester" id="modifySemesterValue" value="">
+            <input type="hidden" name="academic_year" id="modifyAcademicYearValue" value="">
+
+        </div>
+
+        <div class="editor-status" id="modifyEditorStatus">
+            Select an editable cell from the timetable.
+        </div>
+
+        <div class="editor-actions">
+
+            <div class="editor-actions-left">
+                <button
+                    type="button"
+                    class="editor-button editor-cancel"
+                    id="modifyCancelButton"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                    Cancel Selection
+                </button>
+            </div>
+
+            <div class="editor-actions-right">
+
+                <label class="editor-color-inline" for="modifyColor">
+                    <span>Color</span>
+                    <input
+                        type="color"
+                        name="color"
+                        id="modifyColor"
+                        value="#ffffff"
+                        title="Choose cell color"
+                    >
+                </label>
+
+                <button
+                    type="button"
+                    class="editor-button editor-clear"
+                    id="modifyClearCellButton"
+                >
+                    <i class="fa-solid fa-eraser"></i>
+                    Clear Cell
+                </button>
+
+                <button
+                    type="submit"
+                    class="editor-button editor-save"
+                    id="modifySaveCellButton"
+                >
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Save Cell
+                </button>
+
+            </div>
+
+        </div>
+    </form>
+
+    <form
+        method="POST"
+        action="{{ route('chair.modify.schedule.clear') }}"
+        id="modifyClearForm"
+        style="display:none;"
+    >
+        @csrf
+
+        <input
+            type="hidden"
+            name="schedule_id"
+            id="modifyClearScheduleId"
+        >
+    </form>
+
+</div>
+
+
+{{-- =====================================================
      ROOM SCHEDULE
 ====================================================== --}}
 
@@ -1357,15 +1799,29 @@
     >
     </div>
 
+    <div class="room-schedule-meta" id="roomScheduleMeta">
+
+        <div class="room-schedule-meta-item">
+            <span class="room-schedule-meta-label">Semester</span>
+            <strong id="roomScheduleSemester">Not published</strong>
+        </div>
+
+        <div class="room-schedule-meta-item">
+            <span class="room-schedule-meta-label">Academic Year</span>
+            <strong id="roomScheduleAcademicYear">Not published</strong>
+        </div>
+
+    </div>
+
 
     <div class="permission-info">
 
         <i class="fa-solid fa-circle-info"></i>
 
         <span>
-            Filled schedules are locked.
-            Empty slots can be used when permission
-            is available.
+            Your department schedules can be modified.
+            Other departments' schedules are locked;
+            empty slots in other departments require permission.
         </span>
 
     </div>
@@ -1425,226 +1881,32 @@
 
 </div>
 
-{{-- =========================================================
-     ADD SCHEDULE MODAL
-========================================================== --}}
-
-<div
-    id="addScheduleModal"
-    class="modal"
->
-
-    <div class="modal-content">
-
-        <span
-            class="close"
-            onclick="closeModal()"
-        >
-            &times;
-        </span>
-
-
-        <div class="modal-title">
-            Add Schedule
-        </div>
-
-
-        <form
-            method="POST"
-            action="{{ route('chair.modify.schedule.store') }}"
-        >
-
-            @csrf
-
-
-            {{-- ROOM --}}
-
-            <input
-                type="hidden"
-                name="room_id"
-                id="formRoomId"
-            >
-
-
-            {{-- DAY --}}
-
-            <input
-                type="hidden"
-                name="day"
-                id="formDay"
-            >
-
-
-            {{-- TIME --}}
-
-            <input
-                type="hidden"
-                name="time"
-                id="formTime"
-            >
-
-
-            {{-- SEMESTER --}}
-
-            <div class="form-group">
-
-                <label for="modifySemester">
-                    Semester
-                </label>
-
-                <input
-                    type="text"
-                    name="semester"
-                    id="modifySemester"
-                    value="{{ $semester ?? '' }}"
-                    placeholder="Example: 1st Semester"
-                    required
-                >
-
-            </div>
-
-
-            {{-- ACADEMIC YEAR --}}
-
-            <div class="form-group">
-
-                <label for="modifyAcademicYear">
-                    Academic Year
-                </label>
-
-                <input
-                    type="text"
-                    name="academic_year"
-                    id="modifyAcademicYear"
-                    value="{{ $academicYear ?? '' }}"
-                    placeholder="Example: 2026-2027"
-                    required
-                >
-
-            </div>
-
-
-            {{-- DEPARTMENT --}}
-
-            <div class="form-group">
-
-                <label>
-                    Adding Department
-                </label>
-
-                <input
-                    type="text"
-                    value="{{ auth()->user()->department->name ?? 'Your Department' }}"
-                    readonly
-                >
-
-            </div>
-
-
-            {{-- COURSE CODE --}}
-
-            <div class="form-group">
-
-                <label for="modifyCourseCode">
-                    Course Code
-                </label>
-
-                <input
-                    type="text"
-                    name="course_code"
-                    id="modifyCourseCode"
-                    placeholder="Example: IT 111"
-                    required
-                >
-
-            </div>
-
-
-            {{-- SUBJECT TYPE --}}
-
-            <div class="form-group">
-
-                <label for="modifySubjectType">
-                    Subject Type
-                </label>
-
-                <select
-                    name="subject_type"
-                    id="modifySubjectType"
-                >
-
-                    <option value="">
-                        Optional
-                    </option>
-
-                    <option value="Major">
-                        Major
-                    </option>
-
-                    <option value="Non-major">
-                        Non-major
-                    </option>
-
-                </select>
-
-            </div>
-
-
-            {{-- DESCRIPTION --}}
-
-            <div class="form-group">
-
-                <label for="modifyDescription">
-                    Description
-                </label>
-
-                <input
-                    type="text"
-                    name="description"
-                    id="modifyDescription"
-                    placeholder="Optional"
-                >
-
-            </div>
-
-
-            {{-- COLOR --}}
-
-            <div class="form-group">
-
-                <label for="modifyColor">
-                    Color
-                </label>
-
-                <input
-                    type="color"
-                    name="color"
-                    id="modifyColor"
-                    value="#ffffff"
-                >
-
-            </div>
-
-
-            {{-- SUBMIT --}}
-
-            <button
-                type="submit"
-                class="save-button"
-            >
-                Add Schedule
-            </button>
-
-        </form>
-
-    </div>
-
-</div>
             <script>
 
                 /* =========================================================
    DATA
 ========================================================= */
+
+
+@php
+    $modifyFacultySubjectsData = ($facultySubjects ?? collect())
+        ->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'course_code' => $item->course_code,
+                'subject' => $item->subject,
+                'year_level' => $item->year_level,
+                'major' => $item->major ?? '',
+                'program' => $item->program ?? '',
+                'faculty_id' => $item->faculty_id ?? null,
+                'instructor' => optional($item->faculty)->name ?? '',
+            ];
+        })
+        ->values()
+        ->toArray();
+@endphp
+
+const modifyFacultySubjects = @json($modifyFacultySubjectsData);
 
 const departments =
     @json($departments);
@@ -1996,7 +2258,39 @@ function openRoom(roomId)
     `;
 
 
-    buildExcelSchedule(
+    const roomSchedules =
+        selectedRoom.schedules || [];
+
+    const roomMetaSchedule =
+        roomSchedules.find(function(item) {
+            return (
+                String(item.semester || '').trim() ||
+                String(item.academic_year || '').trim()
+            );
+        }) || roomSchedules[0] || null;
+
+    modifyRoomMeta = {
+        semester: roomMetaSchedule
+            ? (roomMetaSchedule.semester || '')
+            : '',
+        academic_year: roomMetaSchedule
+            ? (roomMetaSchedule.academic_year || '')
+            : ''
+    };
+
+    modifySemesterValue.value =
+        modifyRoomMeta.semester;
+
+    modifyAcademicYearValue.value =
+        modifyRoomMeta.academic_year;
+
+    document.getElementById('roomScheduleSemester').textContent =
+        modifyRoomMeta.semester || 'Not published';
+
+    document.getElementById('roomScheduleAcademicYear').textContent =
+        modifyRoomMeta.academic_year || 'Not published';
+
+buildExcelSchedule(
         selectedRoom
     );
 
@@ -2019,6 +2313,22 @@ function openRoom(roomId)
     document.getElementById(
         'scheduleSection'
     ).style.display = 'block';
+
+
+    /*
+     * SHOW THE SCHEDULE CELL EDITOR ONLY AFTER A ROOM IS OPENED
+     */
+
+    if (modifyEditor) {
+        modifyEditor.style.display = 'block';
+
+        modifyEditor.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+
+    clearModifyEditor();
 }
 
 
@@ -2053,6 +2363,12 @@ function backToDepartments()
     document.getElementById(
         'scheduleSection'
     ).style.display = 'none';
+
+    if (modifyEditor) {
+        modifyEditor.style.display = 'none';
+    }
+
+    clearModifyEditor();
 }
 
 
@@ -2085,6 +2401,12 @@ function backToBuildings()
     document.getElementById(
         'scheduleSection'
     ).style.display = 'none';
+
+    if (modifyEditor) {
+        modifyEditor.style.display = 'none';
+    }
+
+    clearModifyEditor();
 }
 
 
@@ -2115,6 +2437,12 @@ function backToRooms()
     document.getElementById(
         'scheduleSection'
     ).style.display = 'none';
+
+    if (modifyEditor) {
+        modifyEditor.style.display = 'none';
+    }
+
+    clearModifyEditor();
 }
 
 
@@ -2317,300 +2645,211 @@ function buildModifyCell(
         schedules.find(
             function(item)
             {
-
                 return (
-                    String(
-                        item.day || ''
-                    )
-                    .trim()
-                    .toUpperCase() === day &&
+                    String(item.day || '')
+                        .trim()
+                        .toUpperCase() === day &&
 
-                    String(
-                        item.time || ''
-                    )
-                    .trim() === time
+                    String(item.time || '')
+                        .trim() === time
                 );
-
             }
         );
 
-
-    /*
-     * EXISTING SCHEDULE
-     */
-
+    /* Existing schedule: editable only when it belongs to the logged-in chair's department. */
     if (schedule) {
 
         const scheduleDepartmentId =
-            Number(
-                schedule.department_id
-            );
+            Number(schedule.department_id || roomDepartmentId);
 
+        const isOwnSchedule =
+            scheduleDepartmentId === currentDepartmentId;
 
-        const isOwnDepartment =
-            scheduleDepartmentId ===
-            currentDepartmentId;
-
-
-        /*
-         * OWN DEPARTMENT
-         */
-
-        if (isOwnDepartment) {
+        if (isOwnSchedule) {
 
             return `
-
                 <td
-                    class="schedule-cell filled"
-                    onclick="openAddModal(
-                        ${room.id},
-                        '${day}',
-                        '${time}'
-                    )"
+                    class="schedule-cell filled editable-cell"
+                    data-day="${day}"
+                    data-time="${escapeHtml(time)}"
+                    data-schedule-id="${Number(schedule.id || 0)}"
+                    data-course="${escapeHtml(schedule.course_code || '')}"
+                    data-subject="${escapeHtml(schedule.subject || '')}"
+                    data-year="${escapeHtml(schedule.year_level || '')}"
+                    data-instructor="${escapeHtml(schedule.instructor || '')}"
+                    data-major="${escapeHtml(schedule.major || '')}"
+                    data-program="${escapeHtml(schedule.program || '')}"
+                    data-semester="${escapeHtml(schedule.semester || '')}"
+                    data-academic-year="${escapeHtml(schedule.academic_year || '')}"
+                    data-color="${escapeHtml(schedule.color || '#eaf6ed')}"
+                    onclick="openAddModal(${room.id}, '${day}', '${time}')"
+                    title="Your department schedule — click to modify"
+                    style="background-color:${escapeHtml(schedule.color || '#eaf6ed')};"
                 >
 
                     <div class="schedule-course">
-
-                        ${escapeHtml(
-                            schedule.course_code || ''
-                        )}
-
+                        ${escapeHtml(schedule.course_code || '')}
                     </div>
 
                     <div class="schedule-subject">
-
-                        ${escapeHtml(
-                            schedule.subject || ''
-                        )}
-
+                        ${escapeHtml(schedule.subject || '')}
                     </div>
 
                     <div class="schedule-instructor">
-
-                        ${escapeHtml(
-                            schedule.instructor || ''
-                        )}
-
+                        ${escapeHtml(schedule.instructor || '')}
                     </div>
 
                     <div class="schedule-year">
-
-                        ${escapeHtml(
-                            schedule.year_level || ''
-                        )}
-
+                        ${escapeHtml(schedule.year_level || '')}
                     </div>
 
                     ${
-                        schedule.subject_type
-                        ? `
-                            <div class="schedule-year">
-                                ${escapeHtml(
-                                    schedule.subject_type
-                                )}
-                            </div>
-                        `
-                        : ''
+                        schedule.major
+                            ? `<div class="schedule-year">${escapeHtml(schedule.major)}</div>`
+                            : ''
+                    }
+
+                    ${
+                        schedule.program
+                            ? `<div class="schedule-year">${escapeHtml(schedule.program)}</div>`
+                            : ''
                     }
 
                     <span class="editable-label">
-
-                        ✏️ Your Schedule
-
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        Your Schedule — Click to Edit
                     </span>
 
                 </td>
-
             `;
-
         }
 
-
-        /*
-         * OTHER DEPARTMENT
-         */
-
         return `
-
-            <td class="schedule-cell filled locked-cell">
+            <td
+                class="schedule-cell filled locked-cell"
+                data-day="${day}"
+                data-time="${escapeHtml(time)}"
+                data-schedule-id="${Number(schedule.id || 0)}"
+                title="This schedule belongs to another department and is locked."
+                style="background-color:${escapeHtml(schedule.color || '#eaf6ed')};"
+            >
 
                 <div class="schedule-course">
-
-                    ${escapeHtml(
-                        schedule.course_code || ''
-                    )}
-
+                    ${escapeHtml(schedule.course_code || '')}
                 </div>
 
                 <div class="schedule-subject">
-
-                    ${escapeHtml(
-                        schedule.subject || ''
-                    )}
-
+                    ${escapeHtml(schedule.subject || '')}
                 </div>
 
                 <div class="schedule-instructor">
-
-                    ${escapeHtml(
-                        schedule.instructor || ''
-                    )}
-
+                    ${escapeHtml(schedule.instructor || '')}
                 </div>
 
                 <div class="schedule-year">
-
-                    ${escapeHtml(
-                        schedule.year_level || ''
-                    )}
-
+                    ${escapeHtml(schedule.year_level || '')}
                 </div>
 
                 ${
-                    schedule.subject_type
-                    ? `
-                        <div class="schedule-year">
-                            ${escapeHtml(
-                                schedule.subject_type
-                            )}
-                        </div>
-                    `
-                    : ''
+                    schedule.major
+                        ? `<div class="schedule-year">${escapeHtml(schedule.major)}</div>`
+                        : ''
+                }
+
+                ${
+                    schedule.program
+                        ? `<div class="schedule-year">${escapeHtml(schedule.program)}</div>`
+                        : ''
                 }
 
                 <span class="locked">
-
-                    🔒 Locked
-
+                    <i class="fa-solid fa-lock"></i>
+                    Locked — Other Department
                 </span>
 
             </td>
-
         `;
-
     }
 
-
-    /*
-     * EMPTY OWN-DEPARTMENT ROOM
-     */
-
-    if (
-        roomDepartmentId ===
-        currentDepartmentId
-    ) {
+    /* Empty cell in chair's own room/department. */
+    if (roomDepartmentId === currentDepartmentId) {
 
         return `
-
             <td
-                class="schedule-cell empty-slot"
-                onclick="openAddModal(
-                    ${room.id},
-                    '${day}',
-                    '${time}'
-                )"
+                class="schedule-cell empty-slot editable-cell"
+                data-day="${day}"
+                data-time="${escapeHtml(time)}"
+                data-schedule-id=""
+                data-course=""
+                data-subject=""
+                data-year=""
+                data-instructor=""
+                data-major=""
+                data-program=""
+                data-semester=""
+                data-academic-year=""
+                data-color="#ffffff"
+                onclick="openAddModal(${room.id}, '${day}', '${time}')"
+                title="Click to add a schedule"
             >
 
-                Empty
-
+                <span class="empty-cell">Empty</span>
                 <br>
-
-                <button
-                    type="button"
-                    class="add-button"
-                    onclick="event.stopPropagation(); openAddModal(
-                        ${room.id},
-                        '${day}',
-                        '${time}'
-                    )"
-                >
-
-                    + Add Schedule
-
-                </button>
+                <span class="editable-label">
+                    <i class="fa-solid fa-plus"></i>
+                    Click to Add
+                </span>
 
             </td>
-
         `;
-
     }
 
-
-    /*
-     * EMPTY OTHER-DEPARTMENT ROOM
-     * WITH PERMISSION
-     */
-
+    /* Empty cell in another department's room: permission required. */
     if (allowOtherDepartments) {
 
         return `
-
             <td
-                class="schedule-cell empty-slot allowed-other"
-                onclick="openAddModal(
-                    ${room.id},
-                    '${day}',
-                    '${time}'
-                )"
+                class="schedule-cell empty-slot allowed-other editable-cell"
+                data-day="${day}"
+                data-time="${escapeHtml(time)}"
+                data-schedule-id=""
+                data-course=""
+                data-subject=""
+                data-year=""
+                data-instructor=""
+                data-major=""
+                data-program=""
+                data-semester=""
+                data-academic-year=""
+                data-color="#ffffff"
+                onclick="openAddModal(${room.id}, '${day}', '${time}')"
+                title="Permission allowed: click to add a schedule"
             >
 
-                Empty
-
+                <span class="empty-cell">Empty</span>
                 <br>
-
-                <button
-                    type="button"
-                    class="add-button"
-                    onclick="event.stopPropagation(); openAddModal(
-                        ${room.id},
-                        '${day}',
-                        '${time}'
-                    )"
-                >
-
-                    + Add Schedule
-
-                </button>
-
+                <span class="editable-label">
+                    <i class="fa-solid fa-unlock"></i>
+                    Click to Add
+                </span>
                 <br>
-
-                <span style="
-                    font-size:9px;
-                    color:#2e7d32;
-                ">
-
+                <span style="font-size:9px;color:#2e7d32;">
                     Allowed by room owner
-
                 </span>
 
             </td>
-
         `;
-
     }
 
-
-    /*
-     * EMPTY OTHER-DEPARTMENT ROOM
-     * WITHOUT PERMISSION
-     */
-
     return `
-
         <td class="schedule-cell empty-slot locked-cell">
-
-            Empty
-
+            <span class="empty-cell">Empty</span>
             <br>
-
             <span class="not-allowed">
-
-                🔒 Not allowed
-
+                <i class="fa-solid fa-lock"></i>
+                Not allowed
             </span>
-
         </td>
-
     `;
 }
 
@@ -2641,74 +2880,501 @@ window.chairDepartmentId =
 
                 /*
                 |--------------------------------------------------------------------------
-                | OPEN MODAL
+                | MODIFY EXCEL EDITOR
                 |--------------------------------------------------------------------------
                 */
+
+                let selectedModifyCell = null;
+
+                 let modifyRoomMeta = {
+                     semester: '',
+                     academic_year: ''
+                 };
+
+                const modifyFormRoomId =
+                    document.getElementById('modifyFormRoomId');
+
+                const modifyFormDay =
+                    document.getElementById('modifyFormDay');
+
+                const modifyFormTime =
+                    document.getElementById('modifyFormTime');
+
+                const modifyFormScheduleId =
+                    document.getElementById('modifyFormScheduleId');
+
+                const modifyClearScheduleId =
+                    document.getElementById('modifyClearScheduleId');
+
+                const modifyCourseCode =
+                    document.getElementById('modifyCourseCode');
+
+                const modifySubject =
+                    document.getElementById('modifySubject');
+
+                const modifyYearLevel =
+                    document.getElementById('modifyYearLevel');
+
+                const modifyInstructor =
+                    document.getElementById('modifyInstructor');
+
+                const modifyMajor =
+                    document.getElementById('modifyMajor');
+
+                const modifyProgram =
+                    document.getElementById('modifyProgram');
+
+                const modifySemesterValue =
+                     document.getElementById('modifySemesterValue');
+
+                 const modifyAcademicYearValue =
+                     document.getElementById('modifyAcademicYearValue');
+
+                 const modifyColor =
+                     document.getElementById('modifyColor');
+
+                const modifyEditor =
+                    document.getElementById('modifyEditor');
+
+                const modifyEditorStatus =
+                    document.getElementById('modifyEditorStatus');
+
+                const modifyCellForm =
+                    document.getElementById('modifyCellForm');
+
+                const modifyClearForm =
+                    document.getElementById('modifyClearForm');
+
+
+                function setModifyStatus(message, type = '')
+                {
+                    modifyEditorStatus.textContent =
+                        message;
+
+                    modifyEditorStatus.className =
+                        'editor-status' +
+                        (type ? ' ' + type : '');
+                }
+
+
+                function findModifyCourse(code)
+                {
+                    const searchCode =
+                        String(code || '')
+                            .trim()
+                            .toUpperCase();
+
+                    if (!searchCode) {
+                        return [];
+                    }
+
+                    return modifyFacultySubjects.filter(
+                        function(item)
+                        {
+                            return (
+                                String(item.course_code || '')
+                                    .trim()
+                                    .toUpperCase()
+                                ===
+                                searchCode
+                            );
+                        }
+                    );
+                }
+
+
+                function clearModifyEditor()
+                {
+                    if (selectedModifyCell) {
+                        selectedModifyCell.classList.remove(
+                            'is-selected-edit'
+                        );
+                    }
+
+                    selectedModifyCell = null;
+
+                    modifyFormRoomId.value = '';
+                    modifyFormDay.value = '';
+                    modifyFormTime.value = '';
+                    modifyFormScheduleId.value = '';
+
+                    modifyCourseCode.value = '';
+                    modifySubject.value = '';
+                    modifyYearLevel.value = '';
+                    modifyInstructor.value = '';
+                    modifyMajor.value = '';
+                    modifyProgram.value = '';
+                    modifySemesterValue.value = '';
+                    modifyAcademicYearValue.value = '';
+                    modifyColor.value = '#ffffff';
+
+                    setModifyStatus(
+                        'Select an editable cell from the timetable.'
+                    );
+                }
+
+
+                function populateModifyCourse()
+                {
+                    const matches =
+                        findModifyCourse(
+                            modifyCourseCode.value
+                        );
+
+                    modifySubject.value = '';
+                    modifyYearLevel.value = '';
+                    modifyInstructor.value = '';
+                    modifyMajor.value = '';
+                    modifyProgram.value = '';
+
+                    if (!modifyCourseCode.value.trim()) {
+                        setModifyStatus(
+                            'Enter a course code from Set Faculty.',
+                            'warning'
+                        );
+                        return;
+                    }
+
+                    if (matches.length === 0) {
+                        setModifyStatus(
+                            'Course code was not found in the Faculty Setup entries.',
+                            'error'
+                        );
+                        return;
+                    }
+
+                    if (matches.length > 1) {
+                        setModifyStatus(
+                            'This course code has multiple faculty assignments.',
+                            'warning'
+                        );
+                        return;
+                    }
+
+                    const match = matches[0];
+
+                    modifySubject.value =
+                        match.subject || '';
+
+                    modifyYearLevel.value =
+                        match.year_level || '';
+
+                    modifyInstructor.value =
+                        match.instructor || '';
+
+                    modifyMajor.value =
+                        match.major || '';
+
+                    modifyProgram.value =
+                        match.program || '';
+
+                    setModifyStatus(
+                        'Course loaded: ' +
+                        match.subject +
+                        ' — ' +
+                        match.instructor +
+                        ' — ' +
+                        match.year_level,
+                        'success'
+                    );
+                }
+
+
+                modifyCourseCode.addEventListener(
+                    'input',
+                    populateModifyCourse
+                );
+
 
                 function openAddModal(
-                    roomId,
-                    day,
-                    time
-                )
-                {
+    roomId,
+    day,
+    time
+)
+{
+    if (!selectedRoom) {
+        return;
+    }
 
-                    document.getElementById(
-                        'formRoomId'
-                    ).value = roomId;
+    const selector =
+        '#scheduleBody td.schedule-cell.editable-cell[data-day="' +
+        String(day).replace(/"/g, '\\"') +
+        '"][data-time="' +
+        String(time).replace(/"/g, '\\"') +
+        '"]';
 
+    const clickedCell =
+        document.querySelector(selector);
 
-                    document.getElementById(
-                        'formDay'
-                    ).value = day;
+    if (!clickedCell) {
+        return;
+    }
 
+    if (selectedModifyCell) {
+        selectedModifyCell.classList.remove('is-selected-edit');
+    }
 
-                    document.getElementById(
-                        'formTime'
-                    ).value = time;
+    selectedModifyCell = clickedCell;
+    selectedModifyCell.classList.add('is-selected-edit');
 
+    modifyFormRoomId.value = roomId;
+    modifyFormDay.value = day;
+    modifyFormTime.value = time;
 
-                    document.getElementById(
-                        'addScheduleModal'
-                    ).style.display = 'block';
+    modifySemesterValue.value =
+        modifyRoomMeta.semester || '';
 
+    modifyAcademicYearValue.value =
+        modifyRoomMeta.academic_year || '';
+
+    const scheduleId =
+        selectedModifyCell.dataset.scheduleId || '';
+
+    modifyFormScheduleId.value = scheduleId;
+
+    if (scheduleId) {
+
+        modifyCourseCode.value =
+            selectedModifyCell.dataset.course || '';
+
+        modifySubject.value =
+            selectedModifyCell.dataset.subject || '';
+
+        modifyYearLevel.value =
+            selectedModifyCell.dataset.year || '';
+
+        modifyInstructor.value =
+            selectedModifyCell.dataset.instructor || '';
+
+        modifyMajor.value =
+            selectedModifyCell.dataset.major || '';
+
+        modifyProgram.value =
+            selectedModifyCell.dataset.program || '';
+
+        modifyColor.value =
+            selectedModifyCell.dataset.color || '#ffffff';
+
+        setModifyStatus(
+            'Your department schedule is selected: ' +
+            day +
+            ' ' +
+            time +
+            '. You can modify it and click Save Cell.',
+            'success'
+        );
+
+    } else {
+
+        modifyCourseCode.value = '';
+        modifySubject.value = '';
+        modifyYearLevel.value = '';
+        modifyInstructor.value = '';
+        modifyMajor.value = '';
+        modifyProgram.value = '';
+        modifyColor.value = '#ffffff';
+
+        setModifyStatus(
+            'Empty cell selected: ' +
+            day +
+            ' ' +
+            time +
+            '. Enter a course code and click Save Cell.',
+            'warning'
+        );
+
+    }
+
+    modifyCourseCode.focus();
                 }
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | CLOSE MODAL
-                |--------------------------------------------------------------------------
-                */
-
-                function closeModal()
-                {
-
-                    document.getElementById(
-                        'addScheduleModal'
-                    ).style.display = 'none';
-
-                }
-
-
-                window.onclick =
+                modifyCellForm.addEventListener(
+                    'submit',
                     function(event)
                     {
+                        if (!selectedModifyCell) {
 
-                        const modal =
-                            document.getElementById(
-                                'addScheduleModal'
+                            event.preventDefault();
+
+                            setModifyStatus(
+                                'Please select an editable cell first.',
+                                'error'
                             );
 
-
-                        if (
-                            event.target === modal
-                        ) {
-
-                            closeModal();
-
+                            return;
                         }
 
-                    };
+                        const course =
+                            modifyCourseCode.value
+                                .trim()
+                                .toUpperCase();
+
+                        const matches =
+                            findModifyCourse(course);
+
+                        if (!course) {
+
+                            event.preventDefault();
+
+                            setModifyStatus(
+                                'Please enter a course code.',
+                                'error'
+                            );
+
+                            return;
+                        }
+
+                        if (matches.length === 0) {
+
+                            event.preventDefault();
+
+                            setModifyStatus(
+                                'This course code is not in the Set Faculty entries.',
+                                'error'
+                            );
+
+                            return;
+                        }
+
+                        if (matches.length > 1) {
+
+                            event.preventDefault();
+
+                            setModifyStatus(
+                                'This course code has multiple faculty assignments.',
+                                'warning'
+                            );
+
+                            return;
+                        }
+
+                        const match =
+                            matches[0];
+
+                        const confirmed =
+                            window.confirm(
+                                'Save this schedule to ' +
+                                modifyFormDay.value +
+                                ' ' +
+                                modifyFormTime.value +
+                                '?\n\nCourse: ' +
+                                match.course_code +
+                                '\nSubject: ' +
+                                (match.subject || '') +
+                                '\nFaculty: ' +
+                                (match.instructor || '')
+                            );
+
+                        if (!confirmed) {
+
+                            event.preventDefault();
+
+                            setModifyStatus(
+                                'Save cancelled. The cell was not changed.',
+                                'warning'
+                            );
+
+                            return;
+                        }
+
+                        modifySubject.value =
+                            match.subject || '';
+
+                        modifyYearLevel.value =
+                            match.year_level || '';
+
+                        modifyInstructor.value =
+                            match.instructor || '';
+
+                        modifyMajor.value =
+                            match.major || '';
+
+                        modifyProgram.value =
+                            match.program || '';
+
+                        modifyFormScheduleId.value =
+                            selectedModifyCell.dataset.scheduleId || '';
+
+                        setModifyStatus(
+                            'Confirmed. Saving ' +
+                            match.course_code +
+                            ' to ' +
+                            modifyFormDay.value +
+                            ' ' +
+                            modifyFormTime.value +
+                            '...',
+                            'success'
+                        );
+                    }
+                );
+
+
+                document
+                    .getElementById('modifyClearCellButton')
+                    .addEventListener(
+                        'click',
+                        function()
+                        {
+                            if (!selectedModifyCell) {
+
+                                setModifyStatus(
+                                    'Please select a cell first.',
+                                    'error'
+                                );
+
+                                return;
+                            }
+
+                            const scheduleId =
+                                selectedModifyCell.dataset.scheduleId || '';
+
+                            if (scheduleId) {
+
+                                if (
+                                    !confirm(
+                                        'Clear this saved schedule from the cell?'
+                                    )
+                                ) {
+                                    return;
+                                }
+
+                                modifyClearScheduleId.value =
+                                    scheduleId;
+
+                                modifyClearForm.submit();
+
+                                return;
+                            }
+
+                            clearModifyEditor();
+                        }
+                    );
+
+
+                document
+                    .getElementById('modifyCancelButton')
+                    .addEventListener(
+                        'click',
+                        clearModifyEditor
+                    );
+
+
+                modifyColor.addEventListener(
+                    'input',
+                    function()
+                    {
+                        if (!selectedModifyCell) {
+                            return;
+                        }
+
+                        selectedModifyCell.style.backgroundColor =
+                            this.value;
+                    }
+                );
+
+
+                clearModifyEditor();
 
             </script>
 

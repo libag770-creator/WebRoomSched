@@ -681,7 +681,182 @@
                 @endif
 
 
-                <div class="section">
+                
+
+                {{-- =============================================================
+                     AVAILABLE ACADEMIC TERMS
+                ============================================================== --}}
+
+                @php
+                    $availableTerms = $availableTerms ?? collect();
+                @endphp
+
+
+                {{-- =============================================================
+                     ACTIVE / VIEW ACADEMIC TERM
+                ============================================================== --}}
+
+                <div
+                    style="
+                        margin-bottom:18px;
+                        padding:14px 16px;
+                        background:#eef8ef;
+                        border:1px solid #d3e8d6;
+                        border-radius:10px;
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:14px;
+                        flex-wrap:wrap;
+                    "
+                >
+
+                    {{-- =====================================================
+                         CURRENT TERM INFORMATION
+                    ====================================================== --}}
+
+                    <div>
+
+                        <div
+                            style="
+                                font-size:11px;
+                                color:#667085;
+                                text-transform:uppercase;
+                                font-weight:800;
+                                letter-spacing:.3px;
+                            "
+                        >
+                            Active Academic Term
+                        </div>
+
+
+                        <div
+                            style="
+                                font-size:18px;
+                                color:#176b3a;
+                                font-weight:800;
+                            "
+                        >
+                            {{ $activeTerm->academic_year }}
+                            •
+                            {{ $activeTerm->semester }}
+                        </div>
+
+
+                        <div
+                            style="
+                                font-size:11px;
+                                color:#667085;
+                                margin-top:3px;
+                            "
+                        >
+                            All schedules you create here are saved under this active term.
+                        </div>
+
+                    </div>
+
+
+                    {{-- =====================================================
+                         TERM SELECTOR
+                    ====================================================== --}}
+
+                    <div
+                        style="
+                            display:flex;
+                            gap:8px;
+                            align-items:center;
+                            flex-wrap:wrap;
+                        "
+                    >
+
+                        <form
+                            method="GET"
+                            action="{{ route('chair.setschedule') }}"
+                            style="
+                                display:flex;
+                                gap:7px;
+                                align-items:center;
+                            "
+                        >
+
+                            <select
+                                name="term_id"
+                                aria-label="Choose academic term to activate"
+                                onchange="
+                                    this.form.submit();
+                                "
+                                style="
+                                    padding:9px 11px;
+                                    border:1px solid #2e7d32;
+                                    border-radius:8px;
+                                    min-width:230px;
+                                    background:#ffffff;
+                                    color:#1f2937;
+                                    font-size:12px;
+                                    font-weight:600;
+                                    outline:none;
+                                    cursor:pointer;
+                                "
+                            >
+
+                                <option value="">
+                                    Choose term to activate...
+                                </option>
+
+
+                                @foreach($availableTerms as $term)
+
+                                    <option
+                                        value="{{ $term->id }}"
+                                        {{ (int) $term->id === (int) $activeTerm->id ? 'selected' : '' }}
+                                    >
+
+                                        {{ $term->academic_year }}
+                                        •
+                                        {{ $term->semester }}
+
+                                        @if(
+                                            (int) $term->id ===
+                                            (int) $activeTerm->id
+                                        )
+                                            — Active
+                                        @endif
+
+                                    </option>
+
+                                @endforeach
+
+
+                            </select>
+
+                        </form>
+
+
+                        {{-- SCHEDULE LIBRARY --}}
+
+                        <a
+                            href="{{ route('chair.schedule.library') }}"
+                            style="
+                                padding:9px 12px;
+                                border-radius:7px;
+                                background:#2e7d32;
+                                color:#ffffff;
+                                text-decoration:none;
+                                font-size:12px;
+                                font-weight:700;
+                            "
+                        >
+
+                            Schedule Library
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+
+<div class="section">
 
 
                     {{-- =====================================================

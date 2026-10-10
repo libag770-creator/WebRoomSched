@@ -6,7 +6,7 @@
 
         @include('faculty.sidebar')
 
-        <main class="content">
+        <main class="content faculty-vacant-view">
 
             @if(session('success'))
                 <div class="alert success-alert">
@@ -366,41 +366,142 @@
                 }
 
 
-                /* =========================================================
-                   STATUS
-                ========================================================= */
+               /* =========================================================
+   ROOM STATUS
+========================================================= */
 
-                .room-status {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    padding: 6px 9px;
-                    border-radius: 20px;
-                    font-size: 11px;
-                    font-weight: 800;
-                    white-space: nowrap;
-                }
+.room-status {
+    display: block;
 
-                .status-available {
-                    background: #e8f7ed;
-                    color: #176b3a;
-                }
+    width: 100%;
 
-                .status-occupied {
-                    background: #fdecec;
-                    color: #b42318;
-                }
+    box-sizing: border-box;
 
-                .status-reserved {
-                    background: #fff3e5;
-                    color: #b54708;
-                }
+    margin-top: 14px;
 
-                .status-pending {
-                    background: #fff8d8;
-                    color: #8a6500;
-                }
+    padding: 12px;
 
+    border-radius: 10px;
+
+    border: 1px solid #e1e7e3;
+
+    background: #fafcfb;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   STATUS LABEL
+========================================================= */
+
+.room-status-label {
+    display: block;
+
+    font-size: 10px;
+
+    text-transform: uppercase;
+
+    letter-spacing: .04em;
+
+    font-weight: 800;
+
+    color: #667085;
+
+    line-height: 1.3;
+
+    white-space: normal;
+}
+
+
+/* =========================================================
+   STATUS VALUE
+========================================================= */
+
+.room-status-value {
+    display: block;
+
+    margin-top: 6px;
+
+    font-size: 15px;
+
+    font-weight: 900;
+
+    line-height: 1.3;
+
+    white-space: normal;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   STATUS HELP
+========================================================= */
+
+.room-status-help {
+    display: block;
+
+    margin-top: 6px;
+
+    font-size: 10px;
+
+    color: #667085;
+
+    line-height: 1.4;
+
+    white-space: normal;
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   AVAILABLE
+========================================================= */
+
+.room-status.available {
+    background: #f3fbf6;
+
+    border-color: #b9dfc7;
+}
+
+.room-status.available .room-status-value {
+    color: #176b3a;
+}
+
+
+/* =========================================================
+   OCCUPIED
+========================================================= */
+
+.room-status.occupied {
+    background: #fff5f5;
+
+    border-color: #f3c2c2;
+}
+
+.room-status.occupied .room-status-value {
+    color: #b42318;
+}
+
+
+/* =========================================================
+   RESERVED
+========================================================= */
+
+.room-status.reserved {
+    background: #fff8ef;
+
+    border-color: #f1d29e;
+}
+
+.room-status.reserved .room-status-value {
+    color: #b54708;
+}
+
+         
+              
 
                 /* =========================================================
                    ROOM FEATURES
@@ -570,104 +671,226 @@
 
                 }
 
+                /* Refined vacant-room search and results */
+                .faculty-vacant-view { background: #f5f8f6; }
+                .vacant-container { max-width: 1320px; padding: 12px 0 42px; }
+                .vacant-heading {
+                    position: relative;
+                    margin-bottom: 21px;
+                    padding: 25px 28px;
+                    overflow: hidden;
+                    border: 1px solid #dfeae2;
+                    border-radius: 20px;
+                    background: linear-gradient(115deg, #fff 0%, #f0f8f2 100%);
+                    box-shadow: 0 8px 24px rgba(22, 73, 45, .045);
+                }
+                .vacant-heading::after {
+                    position: absolute; top: -62px; right: -30px; width: 210px; height: 210px;
+                    border: 1px solid rgba(28,117,74,.10); border-radius: 50%;
+                    box-shadow: 0 0 0 24px rgba(28,117,74,.035), 0 0 0 48px rgba(28,117,74,.025); content: "";
+                }
+                .vacant-eyebrow { margin: 0 0 8px; color: #56816a; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
+                .vacant-title { margin: 0; color: #193e2d; font-size: 27px; font-weight: 760; letter-spacing: -.035em; }
+                .vacant-subtitle { max-width: 650px; margin: 7px 0 0; color: #708078; font-size: 12px; line-height: 1.65; }
+                .search-box { margin-bottom: 24px; padding: 20px; border-color: #e3ebe5; border-radius: 17px; box-shadow: 0 5px 18px rgba(25,57,39,.045); }
+                .search-row { align-items: flex-end; gap: 15px; }
+                .form-group { gap: 7px; }
+                .form-group label { color: #405348; font-size: 11px; font-weight: 750; }
+                .select-control { position: relative; width: 255px; }
+                .select-control > i:first-child { position: absolute; z-index: 1; top: 50%; left: 14px; transform: translateY(-50%); color: #538167; font-size: 13px; pointer-events: none; }
+                .form-group .select-control select {
+                    width: 100%; height: 48px; padding: 0 40px 0 40px; appearance: none; -webkit-appearance: none;
+                    border: 1px solid #dce6df; border-radius: 12px; outline: 0; background-color: #fbfdfb;
+                    color: #294638; font-size: 12px; font-weight: 650; cursor: pointer;
+                    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+                }
+                .form-group .select-control select:hover { border-color: #b5d0bd; background-color: #fff; }
+                .form-group .select-control select:focus { border-color: #278257; background-color: #fff; box-shadow: 0 0 0 4px rgba(39,130,87,.11); }
+                .form-group .select-control select:disabled { color: #9aa79f; background-color: #f3f6f4; cursor: not-allowed; }
+                .select-control::after { position: absolute; top: 50%; right: 15px; color: #75877b; content: ""; transform: translateY(-65%) rotate(45deg); width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; pointer-events: none; }
+                .search-button { height: 48px; padding: 0 22px; border-radius: 12px; background: #19764d; box-shadow: 0 5px 12px rgba(25,118,77,.15); font-size: 12px; }
+                .search-button:hover { background: #145f3d; }
+                .department-section { margin-bottom: 25px; }
+                .department-title { color: #284735; font-size: 16px; }
+                .building { border-color: #e3ebe5; border-radius: 15px; box-shadow: 0 5px 16px rgba(25,57,39,.04); }
+                .building-title { padding: 14px 17px; border-color: #e9efeb; background: #f7faf8; color: #334c3d; font-size: 13px; }
+                .rooms { gap: 13px; padding: 15px; }
+                .room-card { border-color: #e3ebe5; border-radius: 13px; box-shadow: 0 3px 10px rgba(25,57,39,.035); }
+                .room-card:hover { transform: translateY(-2px); border-color: #b9d7c4; box-shadow: 0 9px 20px rgba(25,80,49,.08); }
+                .room-name { color: #244b35; font-size: 15px; }
+                .room-features .feature { border-color: #e8efea; border-radius: 9px; background: #f8fbf9; }
+                .reserve-button { height: 42px; border-radius: 10px; background: #19764d; }
+                .reserve-button:hover { background: #145f3d; }
+                .no-results { border-color: #e3ebe5; border-radius: 14px; color: #708078; }
+                @media (max-width: 700px) {
+                    .vacant-container { padding-top: 4px; }
+                    .vacant-heading { margin-bottom: 16px; padding: 21px 19px; border-radius: 16px; }
+                    .vacant-heading::after { right: -115px; }
+                    .vacant-title { font-size: 23px; }
+                    .search-box { padding: 16px; }
+                    .select-control { width: 100%; }
+                    .form-group .select-control select { height: 46px; }
+                    .search-button { height: 46px; }
+                }
+
             </style>
 
 
             <div class="vacant-container">
 
-                <div class="vacant-title">
-                    View Rooms
+                <div class="vacant-heading">
+                    <p class="vacant-eyebrow">FACULTY WORKSPACE / ROOM AVAILABILITY</p>
+                    <h1 class="vacant-title">Find a vacant room</h1>
+                    <p class="vacant-subtitle">
+                        Choose a day and official time slot to check classroom availability. Time slots follow the Chair's schedule.
+                    </p>
                 </div>
 
-                <div class="vacant-subtitle">
-                    Search a date and time to view all room schedules and availability.
-                </div>
 
+            {{-- =====================================================
+                 SEARCH
+            ====================================================== --}}
 
-                {{-- =====================================================
-                     SEARCH
-                ====================================================== --}}
+            <div class="search-box">
 
-                <div class="search-box">
+                <form
+                    action="{{ route('faculty.vacant') }}"
+                    method="GET"
+                    id="vacantSearchForm"
+                >
 
-                    <form
-                        action="{{ route('faculty.vacant') }}"
-                        method="GET"
-                    >
+                    <div class="search-row">
 
-                        <div class="search-row">
+                        {{-- DAY --}}
+                        <div class="form-group">
 
-                            <div class="form-group">
+                            <label for="daySearch">
+                                Day
+                            </label>
 
-                                <label>Date</label>
+                            <div class="select-control">
+                                <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                                <select id="daySearch" name="day" required aria-label="Choose a day">
 
-                                <input
-                                    type="date"
-                                    name="date"
-                                    value="{{ request('date') }}"
-                                    required
-                                >
+                                <option value="">
+                                    Select Day
+                                </option>
 
-                            </div>
+                                @php
+                                    $dayNames = [
+                                        'MON' => 'Monday',
+                                        'TUE' => 'Tuesday',
+                                        'WED' => 'Wednesday',
+                                        'THU' => 'Thursday',
+                                        'FRI' => 'Friday',
+                                        'SAT' => 'Saturday',
+                                    ];
 
+                                    $selectedDayValue = strtoupper(
+                                        (string) ($selectedDay ?? request('day', ''))
+                                    );
+                                @endphp
 
-                            <div class="form-group">
+                                @foreach($dayNames as $dayCode => $dayName)
 
-                                <label>Time</label>
-
-                                <div class="time-search-wrap">
-                                    <i class="fa-regular fa-clock time-search-icon"></i>
-
-                                    <input
-                                        type="text"
-                                        id="timeSearch"
-                                        name="time"
-                                        value="{{ request('time') }}"
-                                        placeholder="Type start time, e.g. 8, 8:0, 8:30"
-                                        autocomplete="off"
-                                        inputmode="decimal"
-                                        required
+                                    <option
+                                        value="{{ $dayCode }}"
+                                        {{ $selectedDayValue === $dayCode ? 'selected' : '' }}
                                     >
+                                        {{ $dayName }}
+                                    </option>
 
-                                    <button
-                                        type="button"
-                                        id="clearTimeSearch"
-                                        class="clear-time-button"
-                                        aria-label="Clear time"
-                                        title="Clear time"
-                                        style="display:none;"
-                                    >
-                                        <i class="fa-solid fa-xmark"></i>
-                                    </button>
-                                </div>
+                                @endforeach
 
+                                </select>
                             </div>
-
-
-                            <button
-                                type="submit"
-                                class="search-button"
-                            >
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                                Search
-                            </button>
 
                         </div>
 
-                    </form>
 
-                </div>
+                        {{-- TIME SLOT --}}
+                        <div class="form-group">
+
+                            <label for="timeSlotSearch">
+                                Time
+                            </label>
+
+                            <div class="select-control">
+                                <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                                <select id="timeSlotSearch" name="time_slot_id" required aria-label="Choose a time slot">
+
+                                <option value="">
+                                    Select Day First
+                                </option>
+
+                                @foreach(($timeSlots ?? collect()) as $slot)
+
+                                    @php
+                                        $slotDay = strtoupper(
+                                            trim((string) $slot->day)
+                                        );
+
+                                        $slotStart = \Carbon\Carbon::parse(
+                                            $slot->start_time
+                                        )->format('H:i');
+
+                                        $slotEnd = \Carbon\Carbon::parse(
+                                            $slot->end_time
+                                        )->format('H:i');
+
+                                        $slotLabel =
+                                            \Carbon\Carbon::parse(
+                                                $slot->start_time
+                                            )->format('g:i A')
+                                            .
+                                            ' - '
+                                            .
+                                            \Carbon\Carbon::parse(
+                                                $slot->end_time
+                                            )->format('g:i A');
+                                    @endphp
+
+                                    <option
+                                        value="{{ $slot->id }}"
+                                        data-day="{{ $slotDay }}"
+                                        data-time="{{ $slotStart }}-{{ $slotEnd }}"
+                                        {{ (string) ($selectedTimeSlotId ?? request('time_slot_id', '')) === (string) $slot->id ? 'selected' : '' }}
+                                    >
+                                        {{ $slotLabel }}
+                                    </option>
+
+                                @endforeach
+
+                                </select>
+                            </div>
+
+                        </div>
 
 
-                {{-- =====================================================
-                     RESULTS
-                ====================================================== --}}
+                        {{-- SEARCH --}}
+                        <button
+                            type="submit"
+                            class="search-button"
+                            id="searchButton"
+                        >
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            Search
+                        </button>
 
-                <div id="vacantResults">
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            {{-- =====================================================
+                 RESULTS
+            ====================================================== --}}
+
+            <div id="vacantResults">
 
                 @include('faculty.partials.vacant-results')
-
-                </div>
 
             </div>
 
@@ -679,305 +902,397 @@
 
 
 <script>
-
 document.addEventListener('DOMContentLoaded', function () {
 
-    const timeSearch = document.getElementById('timeSearch');
-    const clearTimeSearch = document.getElementById('clearTimeSearch');
-    const dateInput = document.querySelector('input[name="date"]');
-    const searchForm = timeSearch
-        ? timeSearch.closest('form')
-        : null;
+    const daySearch =
+        document.getElementById('daySearch');
+
+    const timeSlotSearch =
+        document.getElementById('timeSlotSearch');
+
+    const searchForm =
+        document.getElementById('vacantSearchForm');
+
     const resultsContainer =
         document.getElementById('vacantResults');
 
-    let searchTimer = null;
     let activeRequest = null;
 
-    function updateClearButton() {
-        if (!timeSearch || !clearTimeSearch) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | FILTER TIME SLOTS BY DAY
+    |--------------------------------------------------------------------------
+    */
+
+    function filterTimeSlots() {
+
+        if (!daySearch || !timeSlotSearch) {
             return;
         }
 
-        clearTimeSearch.style.display =
-            timeSearch.value.trim() !== '' ? 'block' : 'none';
-    }
+        const selectedDay =
+            daySearch.value.trim().toUpperCase();
 
-    function validTimeSearch(value) {
+        const currentValue =
+            timeSlotSearch.value;
 
-        value = value.trim();
+        let hasVisibleSlot = false;
 
-        if (value === '') {
-            return false;
+        Array.from(
+            timeSlotSearch.options
+        ).forEach(function (option, index) {
+
+            if (index === 0) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+
+            const optionDay =
+                (option.dataset.day || '')
+                    .trim()
+                    .toUpperCase();
+
+            const matches =
+                selectedDay !== '' &&
+                optionDay === selectedDay;
+
+            option.hidden = !matches;
+            option.disabled = !matches;
+
+            if (matches) {
+                hasVisibleSlot = true;
+            }
+        });
+
+
+        const currentOption =
+            timeSlotSearch.querySelector(
+                'option[value="' +
+                CSS.escape(currentValue) +
+                '"]'
+            );
+
+
+        if (
+            !currentOption ||
+            currentOption.disabled ||
+            currentOption.hidden
+        ) {
+
+            timeSlotSearch.value = '';
+
         }
 
-        return /^(?:[0-9]|1[0-9]|2[0-3])(?::[0-5]?[0-9]?)?$/.test(value);
+
+        if (!selectedDay) {
+
+            timeSlotSearch.value = '';
+
+            timeSlotSearch.options[0].textContent =
+                'Select Day First';
+
+        } else if (!hasVisibleSlot) {
+
+            timeSlotSearch.value = '';
+
+            timeSlotSearch.options[0].textContent =
+                'No Time Slots Available';
+
+        } else {
+
+            timeSlotSearch.options[0].textContent =
+                'Select Time';
+
+        }
     }
 
-    function showLoading() {
-        if (!resultsContainer) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | INITIALIZE
+    |--------------------------------------------------------------------------
+    */
+
+    filterTimeSlots();
+
+
+    if (daySearch) {
+
+        daySearch.addEventListener(
+            'change',
+            function () {
+
+                filterTimeSlots();
+
+                /*
+                 * Search automatically when both
+                 * values are available.
+                 */
+                if (
+                    daySearch.value &&
+                    timeSlotSearch &&
+                    timeSlotSearch.value
+                ) {
+                    runSearch();
+                }
+            }
+        );
+
+    }
+
+
+    if (timeSlotSearch) {
+
+        timeSlotSearch.addEventListener(
+            'change',
+            function () {
+
+                if (
+                    daySearch &&
+                    daySearch.value &&
+                    timeSlotSearch.value
+                ) {
+                    runSearch();
+                }
+
+            }
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SEARCH
+    |--------------------------------------------------------------------------
+    */
+
+    function runSearch() {
+
+        if (
+            !searchForm ||
+            !daySearch ||
+            !timeSlotSearch ||
+            !resultsContainer
+        ) {
             return;
         }
+
+
+        const day =
+            daySearch.value.trim();
+
+        const timeSlotId =
+            timeSlotSearch.value.trim();
+
+
+        if (!day || !timeSlotId) {
+
+            return;
+
+        }
+
+
+        if (activeRequest) {
+
+            activeRequest.abort();
+
+        }
+
 
         resultsContainer.innerHTML = `
             <div class="no-results">
                 <i class="fa-solid fa-spinner fa-spin"></i>
                 <div style="margin-top:8px;">
-                    Loading room schedules...
+                    Loading room availability...
                 </div>
             </div>
         `;
-    }
 
-    function showInitialMessage() {
-        if (!resultsContainer) {
-            return;
-        }
 
-        resultsContainer.innerHTML = `
-            <div class="no-results">
-                <i class="fa-regular fa-calendar"></i>
-                <div style="margin-top:8px;">
-                    Select a date and type a start time to check room availability.
-                </div>
-            </div>
-        `;
-    }
+        const url =
+            new URL(
+                searchForm.action,
+                window.location.origin
+            );
 
-    function runTimeSearch() {
 
-        if (!timeSearch || !dateInput || !resultsContainer) {
-            return;
-        }
-
-        const date = dateInput.value;
-        const time = timeSearch.value.trim();
-
-        if (!date || !time) {
-            showInitialMessage();
-            return;
-        }
-
-        if (!validTimeSearch(time)) {
-            return;
-        }
-
-        if (activeRequest) {
-            activeRequest.abort();
-        }
-
-        showLoading();
-
-        const url = new URL(
-            searchForm.action,
-            window.location.origin
+        url.searchParams.set(
+            'day',
+            day
         );
 
-        url.searchParams.set('date', date);
-        url.searchParams.set('time', time);
-        url.searchParams.set('partial', '1');
+        url.searchParams.set(
+            'time_slot_id',
+            timeSlotId
+        );
 
-        activeRequest = new XMLHttpRequest();
+        url.searchParams.set(
+            'partial',
+            '1'
+        );
 
-        activeRequest.open('GET', url.toString(), true);
+
+        activeRequest =
+            new XMLHttpRequest();
+
+
+        activeRequest.open(
+            'GET',
+            url.toString(),
+            true
+        );
+
+
         activeRequest.setRequestHeader(
             'X-Requested-With',
             'XMLHttpRequest'
         );
+
+
         activeRequest.setRequestHeader(
             'Accept',
             'text/html'
         );
 
-        activeRequest.onload = function () {
 
-            if (activeRequest.status >= 200 &&
-                activeRequest.status < 300) {
+        activeRequest.onload =
+    function () {
 
-                resultsContainer.innerHTML =
-                    activeRequest.responseText;
+        if (
+            activeRequest.status >= 200 &&
+            activeRequest.status < 300
+        ) {
 
-                /* Reconnect status filter buttons after AJAX replacement. */
-                attachFilters();
-            } else {
-                resultsContainer.innerHTML = `
-                    <div class="no-results">
-                        Unable to load room schedules. Please try again.
-                    </div>
-                `;
-            }
-        };
-
-        activeRequest.onerror = function () {
-            resultsContainer.innerHTML = `
-                <div class="no-results">
-                    Unable to connect to the server. Please try again.
-                </div>
-            `;
-        };
-
-        activeRequest.send();
-    }
-
-    function attachFilters() {
-
-        const filterButtons =
-            document.querySelectorAll('#vacantResults .filter-btn');
-
-        const roomCards =
-            document.querySelectorAll('#vacantResults .room-card');
-
-        const departmentSections =
-            document.querySelectorAll(
-                '#vacantResults [data-department-section]'
-            );
-
-        const buildingSections =
-            document.querySelectorAll(
-                '#vacantResults [data-building-section]'
-            );
-
-        const noFilterResults =
-            document.getElementById('no-filter-results');
-
-        filterButtons.forEach(function (button) {
-
-            button.addEventListener('click', function () {
-
-                const selectedFilter = this.dataset.filter;
-
-                filterButtons.forEach(function (btn) {
-                    btn.classList.remove('active');
-                });
-
-                this.classList.add('active');
-
-                let visibleRooms = 0;
-
-                roomCards.forEach(function (card) {
-
-                    const status =
-                        card.dataset.roomStatus;
-
-                    if (
-                        selectedFilter === 'all' ||
-                        status === selectedFilter
-                    ) {
-                        card.classList.remove('hidden');
-                        visibleRooms++;
-                    } else {
-                        card.classList.add('hidden');
-                    }
-                });
-
-                buildingSections.forEach(function (building) {
-
-                    const visibleCards =
-                        building.querySelectorAll(
-                            '.room-card:not(.hidden)'
-                        );
-
-                    building.style.display =
-                        visibleCards.length === 0 ? 'none' : '';
-                });
-
-                departmentSections.forEach(function (department) {
-
-                    const visibleCards =
-                        department.querySelectorAll(
-                            '.room-card:not(.hidden)'
-                        );
-
-                    department.style.display =
-                        visibleCards.length === 0 ? 'none' : '';
-                });
-
-                if (noFilterResults) {
-                    noFilterResults.style.display =
-                        visibleRooms === 0 ? 'block' : 'none';
-                }
-            });
-        });
-    }
-
-    if (timeSearch) {
-
-        updateClearButton();
-
-        timeSearch.addEventListener('input', function () {
-
-            updateClearButton();
-            clearTimeout(searchTimer);
-
-            const value = this.value.trim();
-
-            if (!value) {
-                showInitialMessage();
-                return;
-            }
-
-            if (!validTimeSearch(value)) {
-                return;
-            }
+            const responseText =
+                activeRequest.responseText;
 
             /*
-            | 250ms keeps the search responsive while preventing a request
-            | for every individual keystroke.
+            |--------------------------------------------------------------------------
+            | CHECK IF SERVER RETURNED ONLY THE PARTIAL
+            |--------------------------------------------------------------------------
             */
-            searchTimer = setTimeout(function () {
-                runTimeSearch();
-            }, 250);
-        });
 
-        timeSearch.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                clearTimeout(searchTimer);
-                runTimeSearch();
-            }
-        });
-    }
+            const parser =
+                new DOMParser();
 
-    if (dateInput) {
+            const responseDocument =
+                parser.parseFromString(
+                    responseText,
+                    'text/html'
+                );
 
-        dateInput.addEventListener('change', function () {
+            /*
+            |--------------------------------------------------------------------------
+            | FIND THE ACTUAL VACANT RESULTS
+            |--------------------------------------------------------------------------
+            |
+            | If the controller accidentally returns the complete
+            | faculty.vacant page, extract only #vacantResults.
+            |
+            | This prevents the header/sidebar/page from appearing
+            | inside the existing page.
+            |--------------------------------------------------------------------------
+            */
 
-            clearTimeout(searchTimer);
+            const returnedResults =
+                responseDocument.querySelector(
+                    '#vacantResults'
+                );
 
-            if (
-                timeSearch &&
-                timeSearch.value.trim() &&
-                validTimeSearch(timeSearch.value.trim())
-            ) {
-                runTimeSearch();
+            if (returnedResults) {
+
+                resultsContainer.innerHTML =
+                    returnedResults.innerHTML;
+
             } else {
-                showInitialMessage();
-            }
-        });
-    }
 
-    if (clearTimeSearch && timeSearch) {
+                /*
+                |--------------------------------------------------------------------------
+                | NORMAL PARTIAL RESPONSE
+                |--------------------------------------------------------------------------
+                */
 
-        clearTimeSearch.addEventListener('click', function () {
+                resultsContainer.innerHTML =
+                    responseText;
 
-            timeSearch.value = '';
-            updateClearButton();
-
-            if (activeRequest) {
-                activeRequest.abort();
             }
 
-            clearTimeout(searchTimer);
-            showInitialMessage();
-            timeSearch.focus();
-        });
+        } else {
+
+            resultsContainer.innerHTML = `
+
+                <div class="no-results">
+
+                    <i class="fa-solid fa-circle-exclamation"></i>
+
+                    <div style="margin-top:8px;">
+
+                        Unable to load room availability.
+                        Please try again.
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }
+
+    };
+
+
+        activeRequest.onerror =
+            function () {
+
+                resultsContainer.innerHTML = `
+                    <div class="no-results">
+                        Unable to connect to the server.
+                        Please try again.
+                    </div>
+                `;
+
+            };
+
+
+        activeRequest.send();
+
     }
 
-    attachFilters();
+
+    /*
+    |--------------------------------------------------------------------------
+    | FORM SUBMIT
+    |--------------------------------------------------------------------------
+    */
+
+    if (searchForm) {
+
+        searchForm.addEventListener(
+            'submit',
+            function (event) {
+
+                event.preventDefault();
+
+                if (
+                    daySearch &&
+                    timeSlotSearch &&
+                    daySearch.value &&
+                    timeSlotSearch.value
+                ) {
+
+                    runSearch();
+
+                }
+
+            }
+        );
+
+    }
 
 });
-
 </script>
-
 
 @include('footerheader.footer')

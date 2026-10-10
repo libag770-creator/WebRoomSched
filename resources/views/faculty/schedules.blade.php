@@ -7,7 +7,7 @@
 
         @include('faculty.sidebar')
 
-        <main class="content">
+        <main class="content faculty-schedules-view">
 
             <style>
 
@@ -692,7 +692,7 @@
 .faculty-timetable {
     width: 100%;
 
-    min-width: 1180px;
+    min-width: 1300px;
 
     table-layout: fixed;
 
@@ -839,13 +839,44 @@
 
     border-radius: 8px;
 
-    text-align: left;
+    text-align: center;
 
     display: flex;
 
     flex-direction: column;
 
     justify-content: center;
+
+    align-items: center;
+}
+
+/* =========================================================
+   MERGED SCHEDULE CELL
+========================================================= */
+
+.merged-schedule-cell {
+    text-align: center !important;
+    vertical-align: middle !important;
+}
+
+.merged-schedule-cell .class-entry {
+    width: 100%;
+
+    text-align: center;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+.merged-schedule-cell .class-course,
+.merged-schedule-cell .class-subject,
+.merged-schedule-cell .class-instructor,
+.merged-schedule-cell .class-program,
+.merged-schedule-cell .class-type,
+.merged-schedule-cell .class-major {
+    width: 100%;
+    text-align: center;
 }
 
 
@@ -1177,6 +1208,92 @@
 
                 }
 
+                /* Refined faculty schedules workspace */
+                .faculty-schedules-view { background: #f5f8f6; }
+                .faculty-schedule-page { max-width: 1320px; padding: 12px 0 42px; }
+                .schedule-header {
+                    position: relative;
+                    margin-bottom: 25px;
+                    padding: 25px 28px;
+                    overflow: hidden;
+                    border: 1px solid #dfeae2;
+                    border-radius: 20px;
+                    background: linear-gradient(115deg, #fff 0%, #f0f8f2 100%);
+                    box-shadow: 0 8px 24px rgba(22, 73, 45, .045);
+                }
+                .schedule-header::after {
+                    position: absolute;
+                    top: -55px;
+                    right: -32px;
+                    width: 210px;
+                    height: 210px;
+                    border: 1px solid rgba(28, 117, 74, .10);
+                    border-radius: 50%;
+                    box-shadow: 0 0 0 24px rgba(28, 117, 74, .035), 0 0 0 48px rgba(28, 117, 74, .025);
+                    content: "";
+                }
+                .schedule-header::before {
+                    display: block;
+                    margin-bottom: 8px;
+                    color: #56816a;
+                    content: "FACULTY WORKSPACE  /  SCHEDULES";
+                    font-size: 9px;
+                    font-weight: 800;
+                    letter-spacing: .14em;
+                }
+                .schedule-title { color: #193e2d; font-size: 27px; font-weight: 760; letter-spacing: -.035em; }
+                .schedule-subtitle { max-width: 580px; margin-top: 7px; color: #708078; font-size: 12px; line-height: 1.65; }
+                .faculty-schedules-section-heading { margin: 0 0 12px; color: #284735; font-size: 14px; font-weight: 750; }
+                .department-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 25px; }
+                .department-card { border-color: #e4ebe6; border-radius: 16px; box-shadow: 0 4px 14px rgba(25, 57, 39, .04); }
+                .department-card:hover { transform: translateY(-2px); border-color: #b9d7c3; box-shadow: 0 12px 24px rgba(25, 80, 49, .08); }
+                .department-card.active { border: 1px solid #19764d; background: #f3faf5; box-shadow: 0 0 0 3px rgba(25, 118, 77, .08); }
+                .department-button { min-height: 136px; padding: 18px 19px; }
+                .department-icon { width: 39px; height: 39px; margin-bottom: 12px; border-radius: 12px; background: #edf6ef; color: #19764d; font-size: 16px; }
+                .department-name { color: #244b35; font-size: 14px; font-weight: 750; line-height: 1.45; }
+                .department-info { color: #829087; font-size: 10px; }
+                .department-arrow { color: #619175; font-size: 17px; }
+                .selected-department-header, .building-card, .schedule-panel { border-color: #e4ebe6; border-radius: 15px; box-shadow: 0 5px 16px rgba(25, 57, 39, .045); }
+                .selected-department-header { padding: 18px 20px; }
+                .selected-department-title { color: #244b35; font-size: 16px; }
+                .selected-department-subtitle { color: #829087; font-size: 11px; }
+                .building-list { gap: 10px; }
+                .building-card { overflow: hidden; }
+                .building-button { padding: 14px 18px; }
+                .building-button:hover, .building-button.active { background: #f1f8f3; }
+                .building-icon { border-radius: 11px; background: #edf6ef; color: #19764d; }
+                .building-name { color: #2d4738; font-size: 13px; font-weight: 750; }
+                .building-department { color: #89958d; font-size: 10px; }
+                .rooms-container { border-top-color: #e9efeb; background: #f8fbf9; }
+                .room-card { border-color: #e4ebe6; border-radius: 12px; box-shadow: 0 2px 8px rgba(25, 57, 39, .025); }
+                .room-card:hover { border-color: #b9d7c3; box-shadow: 0 8px 18px rgba(25, 80, 49, .07); }
+                .room-card.active { border-color: #19764d; background: #f1f8f3; }
+                .room-name { color: #244b35; font-size: 12px; }
+                .room-info { color: #7d8a81; font-size: 10px; line-height: 1.5; }
+                .room-action { color: #19764d; font-size: 10px; }
+                .department-placeholder, .empty-department { border-color: #dce7df; border-radius: 15px; background: #fff; }
+                .department-placeholder h3 { color: #244b35; }
+                .schedule-panel { overflow: hidden; }
+                .schedule-panel-header { background: linear-gradient(100deg, #176b45, #218457); padding: 17px 20px; }
+                .schedule-panel-title { font-size: 15px; }
+                .schedule-panel-subtitle { font-size: 10px; }
+                .faculty-timetable { border-color: #e3ebe5; border-radius: 12px; }
+                .faculty-timetable th { background: #f1f7f3; color: #315c43; font-size: 11px; }
+                .faculty-timetable th, .faculty-timetable td { border-color: #e6ede8; }
+                .faculty-timetable .time-column { background: #fafcfb; color: #526158; font-size: 11px; }
+                .class-entry { border-radius: 9px; }
+                .schedule-error-title { color: #294638; }
+                .retry-schedule-btn { border-radius: 9px; background: #19764d; }
+                @media (max-width: 900px) { .department-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+                @media (max-width: 600px) {
+                    .faculty-schedule-page { padding-top: 4px; }
+                    .schedule-header { margin-bottom: 19px; padding: 21px 19px; border-radius: 16px; }
+                    .schedule-header::after { right: -115px; }
+                    .schedule-title { font-size: 23px; }
+                    .department-list { grid-template-columns: 1fr; gap: 10px; }
+                    .department-button { min-height: 116px; }
+                }
+
             </style>
 
 
@@ -1199,6 +1316,8 @@
                     </div>
 
                 </div>
+
+                <h2 class="faculty-schedules-section-heading">Browse departments</h2>
 
 
                 <!-- =====================================================
@@ -1569,191 +1688,103 @@
             </div>
 
 
-            <script>
+          <script>
 
-                let reservationExpiryTimer = null;
-
-                /* =========================================================
-                   SHOW DEPARTMENT
-                ========================================================= */
-
-                function showDepartment(departmentId)
-                {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Hide all department contents
-                    |--------------------------------------------------------------------------
-                    */
-
-                    document
-                        .querySelectorAll(
-                            '.department-content'
-                        )
-                        .forEach(function(section) {
-
-                            section.classList.remove(
-                                'open'
-                            );
-
-                        });
+let reservationExpiryTimer = null;
 
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Remove active cards
-                    |--------------------------------------------------------------------------
-                    */
+/* =========================================================
+   SHOW DEPARTMENT
+========================================================= */
 
-                    document
-                        .querySelectorAll(
-                            '.department-card'
-                        )
-                        .forEach(function(card) {
+function showDepartment(departmentId)
+{
+    document
+        .querySelectorAll('.department-content')
+        .forEach(function(section) {
 
-                            card.classList.remove(
-                                'active'
-                            );
+            section.classList.remove('open');
 
-                        });
+        });
 
+    document
+        .querySelectorAll('.department-card')
+        .forEach(function(card) {
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Select department card
-                    |--------------------------------------------------------------------------
-                    */
+            card.classList.remove('active');
 
-                    const selectedCard =
-                        document.querySelector(
-                            '.department-card[data-department-id="' +
-                            departmentId +
-                            '"]'
-                        );
+        });
 
+    const selectedCard =
+        document.querySelector(
+            '.department-card[data-department-id="' +
+            departmentId +
+            '"]'
+        );
 
-                    if (selectedCard) {
+    if (selectedCard) {
 
-                        selectedCard.classList.add(
-                            'active'
-                        );
+        selectedCard.classList.add('active');
 
-                    }
+    }
 
+    const selectedDepartment =
+        document.getElementById(
+            'department-' +
+            departmentId
+        );
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Show selected department
-                    |--------------------------------------------------------------------------
-                    */
+    if (selectedDepartment) {
 
-                    const selectedDepartment =
-                        document.getElementById(
-                            'department-' +
-                            departmentId
-                        );
+        selectedDepartment.classList.add('open');
 
+    }
 
-                    if (selectedDepartment) {
+    const placeholder =
+        document.getElementById(
+            'departmentPlaceholder'
+        );
 
-                        selectedDepartment.classList.add(
-                            'open'
-                        );
+    if (placeholder) {
 
-                    }
+        placeholder.style.display =
+            'none';
 
+    }
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Hide placeholder
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const placeholder =
-                        document.getElementById(
-                            'departmentPlaceholder'
-                        );
+    closeSchedule();
+}
 
 
-                    if (placeholder) {
+/* =========================================================
+   BUILDING TOGGLE
+========================================================= */
 
-                        placeholder.style.display =
-                            'none';
+function toggleBuilding(button)
+{
+    const rooms =
+        button.nextElementSibling;
 
-                    }
+    const isOpen =
+        rooms.classList.contains('open');
 
+    if (isOpen) {
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Close previous schedule
-                    |--------------------------------------------------------------------------
-                    */
+        rooms.classList.remove('open');
 
-                    closeSchedule();
+        button.classList.remove('active');
 
-                }
+        return;
 
+    }
 
-                /* =========================================================
-                   BUILDING TOGGLE
-                ========================================================= */
+    rooms.classList.add('open');
 
-                function toggleBuilding(button)
-                {
-
-                    const rooms =
-                        button.nextElementSibling;
+    button.classList.add('active');
+}
 
 
-                    const isOpen =
-                        rooms.classList.contains(
-                            'open'
-                        );
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Close
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (isOpen) {
-
-                        rooms.classList.remove(
-                            'open'
-                        );
-
-                        button.classList.remove(
-                            'active'
-                        );
-
-                        return;
-
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Open
-                    |--------------------------------------------------------------------------
-                    */
-
-                    rooms.classList.add(
-                        'open'
-                    );
-
-                    button.classList.add(
-                        'active'
-                    );
-
-                }
-
-
-                /* =========================================================
-                   LOAD ROOM SCHEDULE
-                ========================================================= */
-
-             /* =========================================================
+/* =========================================================
    LOAD ROOM SCHEDULE
 ========================================================= */
 
@@ -1764,37 +1795,19 @@ function loadRoomSchedule(
     buildingName
 ) {
 
-    /* ---------------------------------------------------------
-       REMOVE ACTIVE ROOM
-    --------------------------------------------------------- */
-
     document
         .querySelectorAll('.room-card')
         .forEach(function(room) {
 
-            room.classList.remove(
-                'active'
-            );
+            room.classList.remove('active');
 
         });
 
-
-    /* ---------------------------------------------------------
-       ACTIVE ROOM
-    --------------------------------------------------------- */
-
     if (roomElement) {
 
-        roomElement.classList.add(
-            'active'
-        );
+        roomElement.classList.add('active');
 
     }
-
-
-    /* ---------------------------------------------------------
-       GET ELEMENTS
-    --------------------------------------------------------- */
 
     const schedulePanel =
         document.getElementById(
@@ -1816,11 +1829,6 @@ function loadRoomSchedule(
             'scheduleRoomBuilding'
         );
 
-
-    /* ---------------------------------------------------------
-       CHECK ELEMENTS
-    --------------------------------------------------------- */
-
     if (
         !schedulePanel ||
         !scheduleContent
@@ -1834,22 +1842,10 @@ function loadRoomSchedule(
 
     }
 
-
-    /* ---------------------------------------------------------
-       OPEN PANEL
-    --------------------------------------------------------- */
-
-    schedulePanel.classList.add(
-        'open'
-    );
+    schedulePanel.classList.add('open');
 
     schedulePanel.style.display =
         'block';
-
-
-    /* ---------------------------------------------------------
-       SHOW ROOM INFORMATION
-    --------------------------------------------------------- */
 
     if (roomTitle) {
 
@@ -1866,11 +1862,6 @@ function loadRoomSchedule(
 
     }
 
-
-    /* ---------------------------------------------------------
-       SHOW LOADING
-    --------------------------------------------------------- */
-
     scheduleContent.innerHTML = `
 
         <div class="schedule-loading">
@@ -1884,11 +1875,6 @@ function loadRoomSchedule(
         </div>
 
     `;
-
-
-    /* ---------------------------------------------------------
-       FETCH SCHEDULE
-    --------------------------------------------------------- */
 
     fetch(
         "{{ url('/faculty/schedule/room') }}/" +
@@ -1914,11 +1900,6 @@ function loadRoomSchedule(
 
             let data = null;
 
-
-            /* -------------------------------------------------
-               READ JSON
-            ------------------------------------------------- */
-
             try {
 
                 data =
@@ -1933,16 +1914,10 @@ function loadRoomSchedule(
 
             }
 
-
             console.log(
                 'ROOM SCHEDULE RESPONSE:',
                 data
             );
-
-
-            /* -------------------------------------------------
-               SERVER ERROR
-            ------------------------------------------------- */
 
             if (!response.ok) {
 
@@ -1954,11 +1929,6 @@ function loadRoomSchedule(
 
             }
 
-
-            /* -------------------------------------------------
-               APPLICATION ERROR
-            ------------------------------------------------- */
-
             if (!data.success) {
 
                 throw new Error(
@@ -1969,7 +1939,6 @@ function loadRoomSchedule(
 
             }
 
-
             return data;
 
         }
@@ -1979,17 +1948,12 @@ function loadRoomSchedule(
         function(data)
         {
 
-            /* -------------------------------------------------
-               UPDATE HEADER
-            ------------------------------------------------- */
-
             if (roomTitle) {
 
                 roomTitle.textContent =
                     data.room.room_name;
 
             }
-
 
             if (roomBuilding) {
 
@@ -1999,7 +1963,6 @@ function loadRoomSchedule(
                     data.room.department;
 
             }
-
 
             /* -------------------------------------------------
                RENDER TIMETABLE
@@ -2016,12 +1979,6 @@ function loadRoomSchedule(
                 roomName,
                 buildingName
             );
-
-
-
-            /* -------------------------------------------------
-               SCROLL TO PANEL
-            ------------------------------------------------- */
 
             setTimeout(
                 function()
@@ -2052,11 +2009,6 @@ function loadRoomSchedule(
                 'Schedule loading error:',
                 error
             );
-
-
-            /* -------------------------------------------------
-               SHOW ERROR
-            ------------------------------------------------- */
 
             scheduleContent.innerHTML = `
 
@@ -2098,8 +2050,10 @@ function loadRoomSchedule(
     );
 
 }
-               /* =========================================================
-   RENDER SCHEDULE
+
+
+/* =========================================================
+   RESERVATION EXPIRY
 ========================================================= */
 
 function scheduleReservationExpiry(
@@ -2109,30 +2063,52 @@ function scheduleReservationExpiry(
     buildingName
 )
 {
+    reservations =
+        (reservations || [])
+            .filter(function(reservation) {
+
+                return String(
+                    reservation.status || ''
+                ).toLowerCase() === 'reserved';
+
+            });
+
     if (reservationExpiryTimer) {
-        clearTimeout(reservationExpiryTimer);
+
+        clearTimeout(
+            reservationExpiryTimer
+        );
+
         reservationExpiryTimer = null;
+
     }
 
-    const now = new Date();
+    const now =
+        new Date();
 
     const expirationTimes =
         (reservations || [])
             .map(function(reservation) {
 
                 if (!reservation.end_time) {
+
                     return null;
+
                 }
 
                 const endParts =
-                    String(reservation.end_time)
-                        .split(':');
+                    String(
+                        reservation.end_time
+                    ).split(':');
 
                 if (endParts.length < 2) {
+
                     return null;
+
                 }
 
-                const expiration = new Date();
+                const expiration =
+                    new Date();
 
                 expiration.setHours(
                     Number(endParts[0]),
@@ -2144,16 +2120,24 @@ function scheduleReservationExpiry(
                 );
 
                 return expiration;
+
             })
             .filter(function(date) {
-                return date && date > now;
+
+                return date &&
+                       date > now;
+
             })
             .sort(function(a, b) {
+
                 return a - b;
+
             });
 
     if (!expirationTimes.length) {
+
         return;
+
     }
 
     const millisecondsUntilExpiry =
@@ -2182,20 +2166,375 @@ function scheduleReservationExpiry(
 }
 
 
+/* =========================================================
+   SCHEDULE MERGE SIGNATURE
+========================================================= */
+
+/*
+|--------------------------------------------------------------------------
+| This checks whether two schedules are really the same.
+|--------------------------------------------------------------------------
+|
+| If all these values are identical, the cells can be merged.
+|
+*/
+
+function facultyScheduleMergeSignature(schedule)
+{
+    if (!schedule) {
+
+        return '';
+
+    }
+
+    return [
+
+        schedule.course_code,
+        schedule.subject,
+        schedule.year_level,
+        schedule.major,
+        schedule.program,
+        schedule.instructor,
+        schedule.faculty_id,
+        schedule.department_id,
+        schedule.color,
+        schedule.subject_type
+
+    ]
+    .map(function(value) {
+
+        return String(
+            value ?? ''
+        )
+        .trim()
+        .toLowerCase();
+
+    })
+    .join('||');
+}
+
+
+/* =========================================================
+   BUILD MERGED SCHEDULE GROUP
+========================================================= */
+
+/*
+|--------------------------------------------------------------------------
+| Example:
+|
+| MON = same
+| WED = same
+| FRI = same
+|
+| Result:
+|
+| <td colspan="3">
+|
+|--------------------------------------------------------------------------
+|
+| If only MON + WED are the same:
+|
+| <td colspan="2">
+|
+|--------------------------------------------------------------------------
+|
+| Reservations and empty cells are NOT merged.
+|--------------------------------------------------------------------------
+*/
+
+function buildFacultyScheduleGroup(items)
+{
+    let html = '';
+
+    let index = 0;
+
+    while (
+        index < items.length
+    ) {
+
+        const current =
+            items[index];
+
+        const currentSchedule =
+            current.schedule;
+
+        const currentReservation =
+            current.reservation;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Reservation
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            currentReservation &&
+            currentReservation.reservation &&
+            !currentSchedule
+        ) {
+
+            html +=
+                buildScheduleCell(
+                    currentSchedule,
+                    currentReservation
+                );
+
+            index++;
+
+            continue;
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Empty cell
+        |--------------------------------------------------------------------------
+        */
+
+        if (!currentSchedule) {
+
+            html +=
+                buildScheduleCell(
+                    null,
+                    currentReservation
+                );
+
+            index++;
+
+            continue;
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Check if schedule is occupied
+        |--------------------------------------------------------------------------
+        */
+
+        const currentOccupied =
+            currentSchedule &&
+            (
+                String(
+                    currentSchedule.course_code || ''
+                ).trim() !== '' ||
+
+                String(
+                    currentSchedule.subject || ''
+                ).trim() !== '' ||
+
+                String(
+                    currentSchedule.instructor || ''
+                ).trim() !== ''
+            );
+
+        if (!currentOccupied) {
+
+            html +=
+                buildScheduleCell(
+                    currentSchedule,
+                    currentReservation
+                );
+
+            index++;
+
+            continue;
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Current signature
+        |--------------------------------------------------------------------------
+        */
+
+        const signature =
+            facultyScheduleMergeSignature(
+                currentSchedule
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find matching schedules
+        |--------------------------------------------------------------------------
+        */
+
+        let end =
+            index + 1;
+
+        while (
+            end < items.length
+        ) {
+
+            const next =
+                items[end];
+
+            /*
+            |--------------------------------------------------------------------------
+            | Do not merge over reservations
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                next.reservation &&
+                next.reservation.reservation
+            ) {
+
+                break;
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Do not merge empty cells
+            |--------------------------------------------------------------------------
+            */
+
+            if (!next.schedule) {
+
+                break;
+
+            }
+
+            const nextOccupied =
+                next.schedule &&
+                (
+                    String(
+                        next.schedule.course_code || ''
+                    ).trim() !== '' ||
+
+                    String(
+                        next.schedule.subject || ''
+                    ).trim() !== '' ||
+
+                    String(
+                        next.schedule.instructor || ''
+                    ).trim() !== ''
+                );
+
+            if (!nextOccupied) {
+
+                break;
+
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Compare schedules
+            |--------------------------------------------------------------------------
+            */
+
+            const nextSignature =
+                facultyScheduleMergeSignature(
+                    next.schedule
+                );
+
+            if (
+                nextSignature !==
+                signature
+            ) {
+
+                break;
+
+            }
+
+            end++;
+
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Number of merged columns
+        |--------------------------------------------------------------------------
+        */
+
+        const colspan =
+            end - index;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Build the normal schedule cell
+        |--------------------------------------------------------------------------
+        */
+
+        let cellHtml =
+            buildScheduleCell(
+                currentSchedule,
+                null
+            );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Apply COLSPAN
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            colspan > 1
+        ) {
+
+            cellHtml =
+                cellHtml.replace(
+                    '<td>',
+                    '<td colspan="' +
+                    colspan +
+                    '" class="merged-schedule-cell">'
+                );
+
+        }
+
+        html +=
+            cellHtml;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Skip cells already merged
+        |--------------------------------------------------------------------------
+        */
+
+        index =
+            end;
+
+    }
+
+    return html;
+}
+
+
+/* =========================================================
+   RENDER SCHEDULE
+========================================================= */
+
 function renderSchedule(
     schedules,
     reservations = []
 ) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Active reservations only
+    |--------------------------------------------------------------------------
+    */
+
+    reservations =
+        (reservations || [])
+            .filter(function(reservation) {
+
+                return String(
+                    reservation.status || ''
+                ).toLowerCase() === 'reserved';
+
+            });
 
     const content =
         document.getElementById(
             'scheduleContent'
         );
 
-
-    /* ---------------------------------------------------------
-       DEFAULT TIMES
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | DEFAULT TIMES
+    |--------------------------------------------------------------------------
+    */
 
     const defaultTimes = [
 
@@ -2207,7 +2546,7 @@ function renderSchedule(
 
         '11:00-12:00',
 
-        '12:00-1:00',
+    
 
         '1:00-2:00',
 
@@ -2219,13 +2558,13 @@ function renderSchedule(
 
     ];
 
-
-    /* ---------------------------------------------------------
-       CREATE ALL 9 ROWS
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE 9 ROWS
+    |--------------------------------------------------------------------------
+    */
 
     const rows = {};
-
 
     for (
         let position = 0;
@@ -2251,20 +2590,29 @@ function renderSchedule(
 
             THU: null,
 
+            SAT: null,
+
             MON_RESERVATION: null,
+
             WED_RESERVATION: null,
+
             FRI_RESERVATION: null,
+
             TUE_RESERVATION: null,
-            THU_RESERVATION: null
+
+            THU_RESERVATION: null,
+
+            SAT_RESERVATION: null
 
         };
 
     }
 
-
-    /* ---------------------------------------------------------
-       ADD DATABASE SCHEDULES
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | ADD DATABASE SCHEDULES
+    |--------------------------------------------------------------------------
+    */
 
     (
         schedules || []
@@ -2277,10 +2625,11 @@ function renderSchedule(
                     schedule.row_position
                 );
 
-
-            /* -------------------------------------------------
-               FALLBACK FOR OLD DATA
-            ------------------------------------------------- */
+            /*
+            |--------------------------------------------------------------------------
+            | FALLBACK FOR OLD DATA
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 Number.isNaN(position) ||
@@ -2295,7 +2644,6 @@ function renderSchedule(
                     )
                     .trim();
 
-
                 position =
                     defaultTimes.indexOf(
                         savedTime
@@ -2303,10 +2651,11 @@ function renderSchedule(
 
             }
 
-
-            /* -------------------------------------------------
-               INVALID POSITION
-            ------------------------------------------------- */
+            /*
+            |--------------------------------------------------------------------------
+            | INVALID POSITION
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 position < 0 ||
@@ -2317,10 +2666,11 @@ function renderSchedule(
 
             }
 
-
-            /* -------------------------------------------------
-               DAY
-            ------------------------------------------------- */
+            /*
+            |--------------------------------------------------------------------------
+            | DAY
+            |--------------------------------------------------------------------------
+            */
 
             const day =
                 String(
@@ -2330,10 +2680,11 @@ function renderSchedule(
                 .trim()
                 .toUpperCase();
 
-
-            /* =================================================
-               MONDAY
-            ================================================= */
+            /*
+            |--------------------------------------------------------------------------
+            | MONDAY
+            |--------------------------------------------------------------------------
+            */
 
             if (
                 day === 'MON' ||
@@ -2343,7 +2694,6 @@ function renderSchedule(
                 rows[position].MON =
                     schedule;
 
-
                 if (
                     schedule.time
                 ) {
@@ -2355,10 +2705,11 @@ function renderSchedule(
 
             }
 
-
-            /* =================================================
-               WEDNESDAY
-            ================================================= */
+            /*
+            |--------------------------------------------------------------------------
+            | WEDNESDAY
+            |--------------------------------------------------------------------------
+            */
 
             else if (
                 day === 'WED' ||
@@ -2368,7 +2719,6 @@ function renderSchedule(
                 rows[position].WED =
                     schedule;
 
-
                 if (
                     schedule.time
                 ) {
@@ -2380,10 +2730,11 @@ function renderSchedule(
 
             }
 
-
-            /* =================================================
-               FRIDAY
-            ================================================= */
+            /*
+            |--------------------------------------------------------------------------
+            | FRIDAY
+            |--------------------------------------------------------------------------
+            */
 
             else if (
                 day === 'FRI' ||
@@ -2393,7 +2744,6 @@ function renderSchedule(
                 rows[position].FRI =
                     schedule;
 
-
                 if (
                     schedule.time
                 ) {
@@ -2405,10 +2755,11 @@ function renderSchedule(
 
             }
 
-
-            /* =================================================
-               TUESDAY
-            ================================================= */
+            /*
+            |--------------------------------------------------------------------------
+            | TUESDAY
+            |--------------------------------------------------------------------------
+            */
 
             else if (
                 day === 'TUE' ||
@@ -2417,7 +2768,6 @@ function renderSchedule(
 
                 rows[position].TUE =
                     schedule;
-
 
                 if (
                     schedule.time
@@ -2430,10 +2780,11 @@ function renderSchedule(
 
             }
 
-
-            /* =================================================
-               THURSDAY
-            ================================================= */
+            /*
+            |--------------------------------------------------------------------------
+            | THURSDAY
+            |--------------------------------------------------------------------------
+            */
 
             else if (
                 day === 'THU' ||
@@ -2442,7 +2793,6 @@ function renderSchedule(
 
                 rows[position].THU =
                     schedule;
-
 
                 if (
                     schedule.time &&
@@ -2456,87 +2806,174 @@ function renderSchedule(
 
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | SATURDAY
+            |--------------------------------------------------------------------------
+            */
+
+            else if (
+                day === 'SAT' ||
+                day === 'SATURDAY'
+            ) {
+
+                rows[position].SAT =
+                    schedule;
+
+                if (
+                    schedule.time &&
+                    !rows[position].TUE &&
+                    !rows[position].THU
+                ) {
+
+                    rows[position].rightTime =
+                        schedule.time;
+
+                }
+
+            }
+
         }
     );
 
+    /*
+    |--------------------------------------------------------------------------
+    | ADD ACTIVE ROOM RESERVATIONS
+    |--------------------------------------------------------------------------
+    */
 
-    /* ---------------------------------------------------------
-       ADD ACTIVE ROOM RESERVATIONS
-       These are temporary date-specific entries.
-       They disappear automatically after end_time.
-    --------------------------------------------------------- */
-
-    (reservations || []).forEach(
+    (
+        reservations || []
+    ).forEach(
         function(reservation)
         {
+
             const day =
-                String(reservation.day || '')
-                    .trim()
-                    .toUpperCase();
+                String(
+                    reservation.day || ''
+                )
+                .trim()
+                .toUpperCase();
 
             const reservationStart =
                 normalizeScheduleStartTime(
-                    reservation.start_time || reservation.time || ''
+                    reservation.start_time ||
+                    reservation.time ||
+                    ''
                 );
 
             if (!reservationStart) {
+
                 return;
+
             }
 
             const reservationTarget = {
-                reservation: reservation,
-                start: reservationStart
+
+                reservation:
+                    reservation,
+
+                start:
+                    reservationStart
+
             };
 
             const dayKeyMap = {
-                MON: 'MON_RESERVATION',
-                WED: 'WED_RESERVATION',
-                FRI: 'FRI_RESERVATION',
-                TUE: 'TUE_RESERVATION',
-                THU: 'THU_RESERVATION'
+
+                MON:
+                    'MON_RESERVATION',
+
+                WED:
+                    'WED_RESERVATION',
+
+                FRI:
+                    'FRI_RESERVATION',
+
+                TUE:
+                    'TUE_RESERVATION',
+
+                THU:
+                    'THU_RESERVATION',
+
+                SAT:
+                    'SAT_RESERVATION'
+
             };
 
             const reservationKey =
                 dayKeyMap[day];
 
             if (!reservationKey) {
+
                 return;
+
             }
 
-            for (let position = 0; position < 9; position++) {
+            let reservationPosition =
+                -1;
 
-                const row = rows[position];
+            for (
+                let position = 0;
+                position < defaultTimes.length;
+                position++
+            ) {
 
-                const schedule =
-                    row[
-                        day === 'MON' ? 'MON' :
-                        day === 'WED' ? 'WED' :
-                        day === 'FRI' ? 'FRI' :
-                        day === 'TUE' ? 'TUE' :
-                        'THU'
-                    ];
-
-                if (!schedule) {
-                    continue;
-                }
-
-                const scheduleStart =
+                const defaultStart =
                     normalizeScheduleStartTime(
-                        schedule.time || ''
+                        defaultTimes[position]
                     );
 
-                if (scheduleStart === reservationStart) {
-                    row[reservationKey] = reservationTarget;
+                if (
+                    defaultStart ===
+                    reservationStart
+                ) {
+
+                    reservationPosition =
+                        position;
+
                     break;
+
                 }
+
             }
+
+            if (
+                reservationPosition < 0
+            ) {
+
+                return;
+
+            }
+
+            rows[
+                reservationPosition
+            ][
+                reservationKey
+            ] =
+                reservationTarget;
+
+            rows[
+                reservationPosition
+            ].leftTime =
+                defaultTimes[
+                    reservationPosition
+                ];
+
+            rows[
+                reservationPosition
+            ].rightTime =
+                defaultTimes[
+                    reservationPosition
+                ];
+
         }
     );
 
-
-    /* ---------------------------------------------------------
-       BUILD TABLE
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | BUILD TABLE
+    |--------------------------------------------------------------------------
+    */
 
     let html = `
 
@@ -2562,6 +2999,8 @@ function renderSchedule(
 
                         <th>THU</th>
 
+                        <th>SAT</th>
+
                     </tr>
 
                 </thead>
@@ -2570,10 +3009,11 @@ function renderSchedule(
 
     `;
 
-
-    /* ---------------------------------------------------------
-       CREATE 9 ROWS
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | CREATE 9 ROWS
+    |--------------------------------------------------------------------------
+    */
 
     for (
         let position = 0;
@@ -2584,10 +3024,11 @@ function renderSchedule(
         const row =
             rows[position];
 
-
-        /* -----------------------------------------------------
-           NOON BREAK
-        ----------------------------------------------------- */
+        /*
+        |--------------------------------------------------------------------------
+        | NOON BREAK
+        |--------------------------------------------------------------------------
+        */
 
         if (
             position === 4
@@ -2597,7 +3038,7 @@ function renderSchedule(
 
                 <tr class="noon-break-row">
 
-                    <td colspan="7">
+                    <td colspan="8">
                         NOON BREAK
                     </td>
 
@@ -2607,57 +3048,98 @@ function renderSchedule(
 
         }
 
-
-        /* -----------------------------------------------------
-           NORMAL ROW
-        ----------------------------------------------------- */
+        /*
+        |--------------------------------------------------------------------------
+        | NORMAL ROW
+        |--------------------------------------------------------------------------
+        */
 
         html += `
 
             <tr>
 
                 <td class="time-column">
+
                     ${escapeHtml(
                         row.leftTime
                     )}
+
                 </td>
 
 
-                ${buildScheduleCell(
-                    row.MON,
-                    row.MON_RESERVATION
-                )}
+                <!-- =========================================
+                     MON / WED / FRI
+                ========================================== -->
 
+                ${buildFacultyScheduleGroup([
 
-                ${buildScheduleCell(
-                    row.WED,
-                    row.WED_RESERVATION
-                )}
+                    {
+                        schedule:
+                            row.MON,
 
+                        reservation:
+                            row.MON_RESERVATION
+                    },
 
-                ${buildScheduleCell(
-                    row.FRI,
-                    row.FRI_RESERVATION
-                )}
+                    {
+                        schedule:
+                            row.WED,
+
+                        reservation:
+                            row.WED_RESERVATION
+                    },
+
+                    {
+                        schedule:
+                            row.FRI,
+
+                        reservation:
+                            row.FRI_RESERVATION
+                    }
+
+                ])}
 
 
                 <td class="time-column">
+
                     ${escapeHtml(
                         row.rightTime
                     )}
+
                 </td>
 
 
-                ${buildScheduleCell(
-                    row.TUE,
-                    row.TUE_RESERVATION
-                )}
+                <!-- =========================================
+                     TUE / THU / SAT
+                ========================================== -->
 
+                ${buildFacultyScheduleGroup([
 
-                ${buildScheduleCell(
-                    row.THU,
-                    row.THU_RESERVATION
-                )}
+                    {
+                        schedule:
+                            row.TUE,
+
+                        reservation:
+                            row.TUE_RESERVATION
+                    },
+
+                    {
+                        schedule:
+                            row.THU,
+
+                        reservation:
+                            row.THU_RESERVATION
+                    },
+
+                    {
+                        schedule:
+                            row.SAT,
+
+                        reservation:
+                            row.SAT_RESERVATION
+                    }
+
+                ])}
 
             </tr>
 
@@ -2665,10 +3147,11 @@ function renderSchedule(
 
     }
 
-
-    /* ---------------------------------------------------------
-       CLOSE TABLE
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | CLOSE TABLE
+    |--------------------------------------------------------------------------
+    */
 
     html += `
 
@@ -2680,352 +3163,517 @@ function renderSchedule(
 
     `;
 
-
     content.innerHTML =
         html;
 
 }
-                /* =========================================================
-                   BUILD SCHEDULE CELL
-                ========================================================= */
-
-                function normalizeScheduleStartTime(value)
-                {
-                    const raw =
-                        String(value || '')
-                            .trim()
-                            .replace(/–/g, '-')
-                            .replace(/—/g, '-');
-
-                    if (!raw) {
-                        return '';
-                    }
-
-                    const start =
-                        raw.split('-')[0].trim();
-
-                    const match =
-                        start.match(/^(\d{1,2}):(\d{2})/);
-
-                    if (!match) {
-                        return start.toUpperCase();
-                    }
-
-                    return (
-                        String(
-                            Number(match[1])
-                        ).padStart(2, '0') +
-                        ':' +
-                        match[2]
-                    );
-                }
 
 
-                function buildReservationCell(
-                    reservation
-                )
-                {
-                    const status =
-                        String(
-                            reservation.status || 'Approved'
-                        ).toLowerCase();
+/* =========================================================
+   NORMALIZE SCHEDULE START TIME
+========================================================= */
 
-                    const pending =
-                        status === 'pending';
+function normalizeScheduleStartTime(value)
+{
+    const raw =
+        String(value || '')
+            .trim()
+            .replace(/–/g, '-')
+            .replace(/—/g, '-');
 
-                    const badge =
-                        pending
-                            ? 'Reservation Requested'
-                            : 'Temporary Reservation';
+    if (!raw) {
 
-                    const requester =
-                        reservation.user_name ||
-                        reservation.requested_by ||
-                        'Faculty';
+        return '';
 
-                    const purpose =
-                        reservation.purpose ||
-                        'Room Reservation';
+    }
 
-                    const time =
-                        reservation.time ||
-                        (
-                            (reservation.start_time || '') +
-                            ' - ' +
-                            (reservation.end_time || '')
-                        );
+    const start =
+        raw
+            .split('-')[0]
+            .trim();
 
-                    return `
-                        <td>
-                            <div class="temporary-reservation-entry ${pending ? 'pending' : ''}">
+    const match =
+        start.match(
+            /^(\d{1,2}):(\d{2})/
+        );
 
-                                <div class="reservation-badge">
-                                    <i class="fa-solid fa-calendar-check"></i>
-                                    ${escapeHtml(badge)}
-                                </div>
+    if (!match) {
 
-                                <div class="reservation-course">
-                                    ${escapeHtml(purpose)}
-                                </div>
+        return start.toUpperCase();
 
-                                <div class="reservation-purpose">
-                                    Reserved: ${escapeHtml(requester)}
-                                </div>
+    }
 
-                                <div class="reservation-requester">
-                                    ${escapeHtml(time)}
-                                </div>
+    return (
 
-                                <div class="reservation-expiration">
-                                    <i class="fa-solid fa-hourglass-half"></i>
-                                    ${pending
-                                        ? 'Waiting for Chair approval'
-                                        : 'Temporary until ' + escapeHtml(reservation.end_time || '')
-                                    }
-                                </div>
+        String(
+            Number(match[1])
+        )
+        .padStart(2, '0') +
 
-                            </div>
-                        </td>
-                    `;
-                }
+        ':' +
 
+        match[2]
 
-                function buildScheduleCell(
-                    schedule,
-                    reservation = null
-                )
-                {
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Empty cell
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const scheduleOccupied =
-                        schedule &&
-                        (
-                            String(schedule.course_code || '').trim() !== '' ||
-                            String(schedule.subject || '').trim() !== '' ||
-                            String(schedule.instructor || '').trim() !== ''
-                        );
-
-                    if (
-                        reservation &&
-                        reservation.reservation &&
-                        !scheduleOccupied
-                    ) {
-                        return buildReservationCell(
-                            reservation.reservation
-                        );
-                    }
-
-                    if (!schedule) {
-
-                        return `
-                            <td>
-
-                                <span
-                                    class="empty-schedule-cell"
-                                >
-                                    Empty
-                                </span>
-
-                            </td>
-                        `;
-
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Programs
-                    |--------------------------------------------------------------------------
-                    */
-
-                    let programs = [];
-
-/*
- * Original program
- */
-if (
-    schedule.program &&
-    String(schedule.program).trim() !== ''
-) {
-    programs.push(
-        String(schedule.program).trim()
     );
 }
 
-/*
- * Approved merged programs
- */
-if (
-    Array.isArray(schedule.merged_programs)
-) {
-    schedule.merged_programs.forEach(function(program) {
 
-        if (
-            program &&
-            String(program).trim() !== '' &&
-            !programs.includes(
-                String(program).trim()
-            )
-        ) {
-            programs.push(
-                String(program).trim()
-            );
-        }
+/* =========================================================
+   BUILD RESERVATION CELL
+========================================================= */
 
-    });
-}
+function buildReservationCell(
+    reservation
+)
+{
+    const badge =
+        'Temporary Reservation';
 
-/*
- * Program display
- */
-let programHtml = '';
+    const requester =
+        reservation.user_name ||
+        reservation.requested_by ||
+        'Faculty';
 
-if (programs.length > 0) {
-    programHtml = `
-        <div class="class-program">
-            ${escapeHtml(programs.join(' / '))}
-        </div>
+    const purpose =
+        reservation.purpose ||
+        'Room Reservation';
+
+    const time =
+        reservation.time ||
+        (
+            (reservation.start_time || '') +
+            ' - ' +
+            (reservation.end_time || '')
+        );
+
+    return `
+
+        <td>
+
+            <div class="temporary-reservation-entry">
+
+                <div class="reservation-badge">
+
+                    <i class="fa-solid fa-calendar-check"></i>
+
+                    ${escapeHtml(
+                        badge
+                    )}
+
+                </div>
+
+                <div class="reservation-course">
+
+                    ${escapeHtml(
+                        purpose
+                    )}
+
+                </div>
+
+                <div class="reservation-purpose">
+
+                    Reserved:
+                    ${escapeHtml(
+                        requester
+                    )}
+
+                </div>
+
+                <div class="reservation-requester">
+
+                    ${escapeHtml(
+                        time
+                    )}
+
+                </div>
+
+                <div class="reservation-expiration">
+
+                    <i class="fa-solid fa-hourglass-half"></i>
+
+                    Temporary until
+                    ${escapeHtml(
+                        reservation.end_time || ''
+                    )}
+
+                </div>
+
+            </div>
+
+        </td>
+
     `;
 }
 
-/*
- * LEC / LAB display
- */
-let typeHtml = '';
 
-if (
-    schedule.subject_type &&
-    String(schedule.subject_type).trim() !== ''
-) {
-    typeHtml = `
-        <div class="class-type">
-            ${escapeHtml(schedule.subject_type)}
-        </div>
-    `;
-}
+/* =========================================================
+   BUILD SCHEDULE CELL
+========================================================= */
 
-/*
- * Major display
- *
- * Major is optional.
- */
-let majorHtml = '';
+function buildScheduleCell(
+    schedule,
+    reservation = null
+)
+{
 
-if (
-    schedule.major &&
-    String(schedule.major).trim() !== ''
-) {
-    majorHtml = `
-        <div class="class-major">
-            Major: ${escapeHtml(schedule.major)}
-        </div>
-    `;
-}
+    /*
+    |--------------------------------------------------------------------------
+    | CHECK IF SCHEDULE IS OCCUPIED
+    |--------------------------------------------------------------------------
+    */
 
+    const scheduleOccupied =
+        schedule &&
+        (
+            String(
+                schedule.course_code || ''
+            ).trim() !== '' ||
 
-                    /*
-                    |--------------------------------------------------------------------------
-                    | ROOM SWAP STATUS
-                    |--------------------------------------------------------------------------
-                    */
+            String(
+                schedule.subject || ''
+            ).trim() !== '' ||
 
-                    let roomSwapHtml = '';
+            String(
+                schedule.instructor || ''
+            ).trim() !== ''
+        );
+
+    /*
+    |--------------------------------------------------------------------------
+    | RESERVATION
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        reservation &&
+        reservation.reservation &&
+        !scheduleOccupied
+    ) {
+
+        return buildReservationCell(
+            reservation.reservation
+        );
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | EMPTY CELL
+    |--------------------------------------------------------------------------
+    */
+
+    if (!schedule) {
+
+        return `
+
+            <td>
+
+                <span
+                    class="empty-schedule-cell"
+                >
+                    Empty
+                </span>
+
+            </td>
+
+        `;
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROGRAMS
+    |--------------------------------------------------------------------------
+    */
+
+    let programs = [];
+
+    /*
+    |--------------------------------------------------------------------------
+    | ORIGINAL PROGRAM
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        schedule.program &&
+        String(
+            schedule.program
+        ).trim() !== ''
+    ) {
+
+        programs.push(
+            String(
+                schedule.program
+            ).trim()
+        );
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | APPROVED MERGED PROGRAMS
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+        Array.isArray(
+            schedule.merged_programs
+        )
+    ) {
+
+        schedule.merged_programs
+            .forEach(
+                function(program)
+                {
 
                     if (
-                        schedule.room_swap &&
-                        schedule.room_swap.active
+                        program &&
+                        String(
+                            program
+                        ).trim() !== '' &&
+                        !programs.includes(
+                            String(
+                                program
+                            ).trim()
+                        )
                     ) {
 
-                        const originalRoom =
-                            schedule.room_swap.original_room_name ||
-                            'Original room';
+                        programs.push(
+                            String(
+                                program
+                            ).trim()
+                        );
 
-                        const endTime =
-                            schedule.room_swap.end_time ||
-                            '';
-
-                        roomSwapHtml = `
-                            <div class="room-swap-badge">
-                                <i class="fa-solid fa-right-left"></i>
-                                Room Swap Active
-                            </div>
-
-                            <div class="room-swap-details">
-                                Temporary room until ${escapeHtml(endTime)}
-                            </div>
-
-                            <div class="room-swap-original">
-                                Original: ${escapeHtml(originalRoom)}
-                            </div>
-                        `;
                     }
 
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Color
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const background =
-                        schedule.color ||
-                        '#eaf6ef';
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Class cell
-                    |--------------------------------------------------------------------------
-                    */
-
-                    return `
-                        <td>
-
-                            <div
-                                class="class-entry"
-                                style="
-                                    background:
-                                        ${escapeHtml(
-                                            background
-                                        )};
-                                "
-                            >
-
-                               <div class="class-course">
-    ${escapeHtml(schedule.course_code || '')}
-</div>
-
-<div class="class-subject">
-    ${escapeHtml(schedule.subject || '')}
-</div>
-
-${typeHtml}
-
-<div class="class-instructor">
-    ${escapeHtml(schedule.instructor || '')}
-</div>
-
-
-                                ${programHtml}
-
-                                ${majorHtml}
-
-                                ${roomSwapHtml}
-
-                            </div>
-
-                        </td>
-                    `;
-
                 }
+            );
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PROGRAM DISPLAY
+    |--------------------------------------------------------------------------
+    */
+
+    let programHtml = '';
+
+    if (
+        programs.length > 0
+    ) {
+
+        programHtml = `
+
+            <div class="class-program">
+
+                ${escapeHtml(
+                    programs.join(' / ')
+                )}
+
+            </div>
+
+        `;
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | LEC / LAB
+    |--------------------------------------------------------------------------
+    */
+
+    let typeHtml = '';
+
+    if (
+        schedule.subject_type &&
+        String(
+            schedule.subject_type
+        ).trim() !== ''
+    ) {
+
+        typeHtml = `
+
+            <div class="class-type">
+
+                ${escapeHtml(
+                    schedule.subject_type
+                )}
+
+            </div>
+
+        `;
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | MAJOR
+    |--------------------------------------------------------------------------
+    */
+
+    let majorHtml = '';
+
+    if (
+        schedule.major &&
+        String(
+            schedule.major
+        ).trim() !== ''
+    ) {
+
+        majorHtml = `
+
+            <div class="class-major">
+
+                Major:
+                ${escapeHtml(
+                    schedule.major
+                )}
+
+            </div>
+
+        `;
+
+    }
+
+      /*
+    |--------------------------------------------------------------------------
+    | ROOM SWAP STATUS
+    |--------------------------------------------------------------------------
+    */
+
+    let roomSwapHtml = '';
+
+    if (
+        schedule.room_swap &&
+        schedule.room_swap.active
+    ) {
+
+        const originalRoom =
+            schedule.room_swap.original_room_name ||
+            'Original room';
+
+        const swappedRoom =
+            schedule.room_swap.swapped_to_room_name ||
+            '';
+
+        const endTime =
+            schedule.room_swap.end_time ||
+            '';
+
+        roomSwapHtml = `
+
+            <div class="room-swap-badge">
+
+                <i class="fa-solid fa-right-left"></i>
+
+                Room Swap Active
+
+            </div>
+
+            ${
+                swappedRoom
+                    ? `
+                        <div class="room-swap-details">
+
+                            Temporary Room:
+                            ${escapeHtml(swappedRoom)}
+
+                        </div>
+                      `
+                    : ''
+            }
+
+            <div class="room-swap-details">
+
+                Until
+                ${escapeHtml(endTime)}
+
+            </div>
+
+            <div class="room-swap-original">
+
+                Original Room:
+                ${escapeHtml(originalRoom)}
+
+            </div>
+
+        `;
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | COLOR
+    |--------------------------------------------------------------------------
+    */
+
+    const background =
+        schedule.color ||
+        '#eaf6ef';
+
+    /*
+    |--------------------------------------------------------------------------
+    | CLASS CELL
+    |--------------------------------------------------------------------------
+    */
+
+    return `
+
+        <td>
+
+            <div
+                class="class-entry"
+                style="
+                    background:
+                        ${escapeHtml(
+                            background
+                        )};
+                "
+            >
+
+                <div class="class-course">
+
+                    ${escapeHtml(
+                        schedule.course_code || ''
+                    )}
+
+                </div>
+
+                <div class="class-subject">
+
+                    ${escapeHtml(
+                        schedule.subject || ''
+                    )}
+
+                </div>
+
+                ${typeHtml}
+
+                <div class="class-instructor">
+
+                    ${escapeHtml(
+                        schedule.instructor || ''
+                    )}
+
+                </div>
+
+                ${programHtml}
+
+                ${majorHtml}
+
+                ${roomSwapHtml}
+
+            </div>
+
+        </td>
+
+    `;
+
+}
 
 
-                /* =========================================================
+/* =========================================================
    CLOSE SCHEDULE
 ========================================================= */
 
@@ -3033,8 +3681,14 @@ function closeSchedule()
 {
 
     if (reservationExpiryTimer) {
-        clearTimeout(reservationExpiryTimer);
-        reservationExpiryTimer = null;
+
+        clearTimeout(
+            reservationExpiryTimer
+        );
+
+        reservationExpiryTimer =
+            null;
+
     }
 
     const panel =
@@ -3057,10 +3711,11 @@ function closeSchedule()
             'scheduleRoomBuilding'
         );
 
-
-    /* ---------------------------------------------------------
-       CLOSE PANEL
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | CLOSE PANEL
+    |--------------------------------------------------------------------------
+    */
 
     if (panel) {
 
@@ -3073,10 +3728,11 @@ function closeSchedule()
 
     }
 
-
-    /* ---------------------------------------------------------
-       REMOVE ACTIVE ROOM
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | REMOVE ACTIVE ROOM
+    |--------------------------------------------------------------------------
+    */
 
     document
         .querySelectorAll(
@@ -3093,10 +3749,11 @@ function closeSchedule()
             }
         );
 
-
-    /* ---------------------------------------------------------
-       RESET ROOM TITLE
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | RESET ROOM TITLE
+    |--------------------------------------------------------------------------
+    */
 
     if (roomTitle) {
 
@@ -3105,10 +3762,11 @@ function closeSchedule()
 
     }
 
-
-    /* ---------------------------------------------------------
-       RESET BUILDING
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | RESET BUILDING
+    |--------------------------------------------------------------------------
+    */
 
     if (roomBuilding) {
 
@@ -3117,10 +3775,11 @@ function closeSchedule()
 
     }
 
-
-    /* ---------------------------------------------------------
-       RESET CONTENT
-    --------------------------------------------------------- */
+    /*
+    |--------------------------------------------------------------------------
+    | RESET CONTENT
+    |--------------------------------------------------------------------------
+    */
 
     if (content) {
 
@@ -3137,6 +3796,12 @@ function closeSchedule()
     }
 
 }
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
 function escapeHtml(value)
 {
     const div =
@@ -3148,7 +3813,7 @@ function escapeHtml(value)
     return div.innerHTML;
 }
 
-            </script>
+</script>
 
         </main>
 

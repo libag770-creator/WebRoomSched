@@ -5,15 +5,25 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <meta name="csrf-token"
-          content="{{ csrf_token() }}">
+    <meta
+        name="csrf-token"
+        content="{{ csrf_token() }}"
+    >
 
     <title>Student Schedule</title>
 
+    <link rel="stylesheet" href="{{ asset('css/professional.css') }}">
+
     <style>
+
+        /* =========================================================
+           GLOBAL
+        ========================================================= */
 
         * {
             box-sizing: border-box;
@@ -21,382 +31,1402 @@
             padding: 0;
         }
 
+        :root {
+            --primary: #1f4f8f;
+            --primary-dark: #173b6b;
+            --primary-light: #eef5ff;
+
+            --success: #16805c;
+            --success-light: #ecfdf5;
+
+            --danger: #c24141;
+            --danger-light: #fff1f1;
+
+            --warning: #a66a00;
+            --warning-light: #fff8e7;
+
+            --text: #172033;
+            --muted: #667085;
+            --border: #e4e7ec;
+            --background: #f5f7fb;
+            --white: #ffffff;
+
+            --shadow-sm:
+                0 1px 3px rgba(16, 24, 40, 0.08);
+
+            --shadow-md:
+                0 8px 24px rgba(16, 24, 40, 0.08);
+
+            --radius: 14px;
+        }
+
+
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f6f8;
-            color: #222;
-            padding: 20px;
+            font-family:
+                Inter,
+                "Segoe UI",
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: var(--background);
+            color: var(--text);
+
+            min-height: 100vh;
         }
 
-        .container {
+
+        button,
+        input {
+            font: inherit;
+        }
+
+
+        button {
+            cursor: pointer;
+        }
+
+
+        /* =========================================================
+           PAGE
+        ========================================================= */
+
+        .page-container {
             width: 100%;
-            max-width: 1500px;
-            margin: auto;
+            max-width: 1550px;
+
+            margin: 0 auto;
+
+            padding: 28px;
         }
 
-        /* =========================================
+
+        /* =========================================================
            HEADER
-        ========================================= */
+        ========================================================= */
 
         .page-header {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
+            position: relative;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #1f4f8f 0%,
+                    #2765b2 55%,
+                    #2f75c9 100%
+                );
+
+            color: white;
+
+            border-radius: 18px;
+
+            padding: 30px 34px;
+
+            margin-bottom: 22px;
+
+            box-shadow:
+                0 12px 30px rgba(31, 79, 143, 0.20);
+
+            overflow: hidden;
         }
+
+
+        .page-header::after {
+            content: "";
+
+            position: absolute;
+
+            width: 230px;
+            height: 230px;
+
+            right: -80px;
+            top: -110px;
+
+            border-radius: 50%;
+
+            background: rgba(255,255,255,0.08);
+        }
+
+
+        .page-header-content {
+            position: relative;
+            z-index: 2;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 25px;
+        }
+
+
+        .header-left {
+            display: flex;
+
+            align-items: center;
+
+            gap: 18px;
+        }
+
+
+        .header-icon {
+            width: 58px;
+            height: 58px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 15px;
+
+            background: rgba(255,255,255,0.16);
+
+            font-size: 27px;
+        }
+
 
         .page-header h1 {
-            font-size: 28px;
-            margin-bottom: 6px;
+            font-size: 27px;
+
+            font-weight: 750;
+
+            letter-spacing: -0.4px;
+
+            margin-bottom: 5px;
         }
 
+
         .page-header p {
-            color: #777;
+            font-size: 14px;
+
+            color: rgba(255,255,255,0.82);
+        }
+
+
+        .academic-info {
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: flex-end;
+
+            gap: 4px;
+
+            font-size: 12px;
+
+            color: rgba(255,255,255,0.82);
+        }
+
+
+        .academic-info strong {
+            color: white;
+
             font-size: 14px;
         }
 
-        /* =========================================
+
+        .active-term-badge {
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 7px;
+
+            margin-top: 5px;
+
+            padding: 6px 10px;
+
+            border-radius: 999px;
+
+            background: rgba(255,255,255,0.14);
+
+            border: 1px solid rgba(255,255,255,0.20);
+
+            color: rgba(255,255,255,0.92);
+
+            font-size: 10px;
+
+            font-weight: 700;
+
+            white-space: nowrap;
+        }
+
+
+        .active-term-dot {
+            width: 7px;
+
+            height: 7px;
+
+            flex-shrink: 0;
+
+            border-radius: 50%;
+
+            background: #68d391;
+
+            box-shadow:
+                0 0 0 3px rgba(104,211,145,0.14);
+        }
+
+
+        .inactive-term-badge {
+            background: rgba(255,255,255,0.10);
+
+            border-color: rgba(255,255,255,0.16);
+
+            color: rgba(255,255,255,0.82);
+        }
+
+
+        /* =========================================================
+           STEP INDICATOR
+        ========================================================= */
+
+        .steps {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 12px;
+
+            margin-bottom: 22px;
+        }
+
+
+        .step {
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            background: white;
+
+            border: 1px solid var(--border);
+
+            border-radius: 12px;
+
+            padding: 14px 16px;
+
+            box-shadow: var(--shadow-sm);
+
+            transition: 0.2s ease;
+        }
+
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+
+            flex-shrink: 0;
+
+            border-radius: 50%;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            background: #eef2f7;
+
+            color: #667085;
+
+            font-size: 13px;
+
+            font-weight: 700;
+        }
+
+
+        .step-text {
+            display: flex;
+            flex-direction: column;
+
+            gap: 2px;
+        }
+
+
+        .step-title {
+            font-size: 13px;
+
+            font-weight: 700;
+        }
+
+
+        .step-description {
+            font-size: 11px;
+
+            color: var(--muted);
+        }
+
+
+        .step.active {
+            border-color: #bfd4f0;
+
+            background: var(--primary-light);
+        }
+
+
+        .step.active .step-number {
+            background: var(--primary);
+
+            color: white;
+        }
+
+
+        .step.completed .step-number {
+            background: var(--success);
+
+            color: white;
+        }
+
+
+        /* =========================================================
            MAIN LAYOUT
-        ========================================= */
+        ========================================================= */
 
         .main-layout {
             display: grid;
-            grid-template-columns: 320px minmax(0, 1fr);
-            gap: 20px;
+
+            grid-template-columns:
+                315px
+                minmax(0, 1fr);
+
+            gap: 22px;
+
             align-items: start;
         }
 
-        /* =========================================
-           DEPARTMENT PANEL
-        ========================================= */
+
+        /* =========================================================
+           LEFT PANEL
+        ========================================================= */
 
         .department-panel {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 18px;
             position: sticky;
+
             top: 20px;
+
+            background: white;
+
+            border: 1px solid var(--border);
+
+            border-radius: var(--radius);
+
+            box-shadow: var(--shadow-sm);
+
+            overflow: hidden;
         }
 
-        .panel-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 14px;
+
+        .panel-header {
+            padding: 19px 20px;
+
+            border-bottom: 1px solid var(--border);
         }
+
+
+        .panel-title {
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+
+            font-size: 15px;
+
+            font-weight: 750;
+
+            margin-bottom: 4px;
+        }
+
+
+        .panel-title-icon {
+            color: var(--primary);
+
+            font-size: 17px;
+        }
+
+
+        .panel-subtitle {
+            color: var(--muted);
+
+            font-size: 12px;
+        }
+
+
+        .department-content {
+            padding: 16px;
+        }
+
+
+        .search-wrapper {
+            position: relative;
+
+            margin-bottom: 13px;
+        }
+
+
+        .search-icon {
+            position: absolute;
+
+            left: 13px;
+            top: 50%;
+
+            transform: translateY(-50%);
+
+            color: #98a2b3;
+
+            font-size: 14px;
+        }
+
 
         .search-box {
             width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+
+            border: 1px solid var(--border);
+
+            border-radius: 10px;
+
+            padding:
+                11px
+                12px
+                11px
+                37px;
+
             outline: none;
-            font-size: 14px;
-            margin-bottom: 12px;
+
+            background: #fafbfc;
+
+            color: var(--text);
+
+            font-size: 13px;
+
+            transition: 0.2s ease;
         }
 
+
         .search-box:focus {
-            border-color: #222;
+            border-color: var(--primary);
+
+            background: white;
+
+            box-shadow:
+                0 0 0 3px rgba(31,79,143,0.08);
         }
+
 
         .department-list {
             display: flex;
+
             flex-direction: column;
-            gap: 8px;
-            max-height: 600px;
+
+            gap: 7px;
+
+            max-height: 560px;
+
             overflow-y: auto;
+
+            padding-right: 2px;
         }
+
 
         .department-button {
             width: 100%;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 8px;
-            padding: 14px;
-            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+
             text-align: left;
-            transition: 0.2s;
+
+            border: 1px solid transparent;
+
+            background: #f8fafc;
+
+            border-radius: 10px;
+
+            padding: 12px;
+
+            color: var(--text);
+
+            transition:
+                background 0.18s ease,
+                border-color 0.18s ease,
+                transform 0.18s ease;
         }
+
 
         .department-button:hover {
-            background: #f1f3f5;
+            background: #f0f5fb;
+
+            border-color: #d9e5f3;
+
+            transform: translateX(2px);
         }
+
 
         .department-button.active {
-            background: #222;
+            background: var(--primary);
+
+            border-color: var(--primary);
+
             color: white;
-            border-color: #222;
+
+            box-shadow:
+                0 5px 12px rgba(31,79,143,0.16);
         }
+
+
+        .department-number {
+            width: 30px;
+            height: 30px;
+
+            flex-shrink: 0;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 8px;
+
+            background: white;
+
+            color: var(--primary);
+
+            font-size: 12px;
+
+            font-weight: 800;
+        }
+
+
+        .department-button.active
+        .department-number {
+            background: rgba(255,255,255,0.18);
+
+            color: white;
+        }
+
 
         .department-name {
-            font-size: 15px;
-            font-weight: bold;
+            font-size: 13px;
+
+            line-height: 1.35;
+
+            font-weight: 650;
         }
+
 
         .no-department {
+            padding: 25px 12px;
+
             text-align: center;
-            color: #888;
-            padding: 20px 10px;
-            font-size: 14px;
+
+            color: var(--muted);
+
+            font-size: 13px;
         }
 
-        /* =========================================
-           RIGHT PANEL
-        ========================================= */
+
+        /* =========================================================
+           RIGHT CONTENT
+        ========================================================= */
 
         .content-panel {
             min-width: 0;
         }
 
-        /* =========================================
+
+        /* =========================================================
            EMPTY STATE
-        ========================================= */
+        ========================================================= */
 
         .empty-state {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 60px 20px;
+            min-height: 460px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+            justify-content: center;
+
             text-align: center;
+
+            background: white;
+
+            border: 1px solid var(--border);
+
+            border-radius: var(--radius);
+
+            box-shadow: var(--shadow-sm);
+
+            padding: 40px;
         }
+
+
+        .empty-icon {
+            width: 70px;
+            height: 70px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 18px;
+
+            background: var(--primary-light);
+
+            color: var(--primary);
+
+            font-size: 29px;
+
+            margin-bottom: 18px;
+        }
+
 
         .empty-state h2 {
-            font-size: 22px;
-            margin-bottom: 8px;
+            font-size: 20px;
+
+            margin-bottom: 7px;
         }
+
 
         .empty-state p {
-            color: #777;
-            font-size: 14px;
+            max-width: 430px;
+
+            color: var(--muted);
+
+            font-size: 13px;
+
+            line-height: 1.6;
         }
 
-        /* =========================================
-           YEAR SECTION
-        ========================================= */
 
-        .year-section {
+        /* =========================================================
+           SELECTION CARD
+        ========================================================= */
+
+        .selection-section {
             display: none;
+
             background: white;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
+
+            border: 1px solid var(--border);
+
+            border-radius: var(--radius);
+
+            box-shadow: var(--shadow-sm);
+
+            padding: 21px;
+
+            margin-bottom: 18px;
         }
 
-        .year-section.show {
+
+        .selection-section.show {
             display: block;
+
+            animation: fadeUp 0.22s ease;
         }
 
-        .selected-department {
-            font-size: 14px;
-            color: #777;
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+
+        .selection-heading {
+            display: flex;
+
+            align-items: flex-start;
+
+            justify-content: space-between;
+
+            gap: 15px;
+
+            margin-bottom: 18px;
+        }
+
+
+        .selection-heading-left {
+            min-width: 0;
+        }
+
+
+        .selection-label {
+            color: var(--primary);
+
+            font-size: 11px;
+
+            font-weight: 800;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.7px;
+
             margin-bottom: 5px;
         }
 
-        .year-title {
-            font-size: 20px;
-            margin-bottom: 15px;
+
+        .selection-title {
+            font-size: 19px;
+
+            font-weight: 750;
         }
+
+
+        .selection-context {
+            color: var(--muted);
+
+            font-size: 12px;
+
+            margin-top: 4px;
+        }
+
+
+        /* =========================================================
+           PROGRAM BUTTONS
+        ========================================================= */
+
+        .program-buttons {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 11px;
+        }
+
+
+        .program-button {
+            position: relative;
+
+            display: flex;
+
+            align-items: flex-start;
+
+            gap: 12px;
+
+            width: 100%;
+
+            border: 1px solid var(--border);
+
+            background: #fafbfc;
+
+            border-radius: 11px;
+
+            padding: 15px;
+
+            text-align: left;
+
+            color: var(--text);
+
+            transition: 0.2s ease;
+        }
+
+
+        .program-button:hover {
+            border-color: #b7cce6;
+
+            background: #f4f8fd;
+
+            transform: translateY(-1px);
+        }
+
+
+        .program-button.active {
+            background: var(--primary-light);
+
+            border-color: #9dbce0;
+
+            color: var(--primary-dark);
+        }
+
+
+        .program-icon {
+            width: 34px;
+            height: 34px;
+
+            flex-shrink: 0;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 9px;
+
+            background: #e8f0fa;
+
+            color: var(--primary);
+
+            font-size: 14px;
+
+            font-weight: 800;
+        }
+
+
+        .program-button.active
+        .program-icon {
+            background: var(--primary);
+
+            color: white;
+        }
+
+
+        .program-name {
+            font-size: 13px;
+
+            line-height: 1.45;
+
+            font-weight: 650;
+        }
+
+
+        /* =========================================================
+           YEAR BUTTONS
+        ========================================================= */
 
         .year-buttons {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+
             gap: 10px;
         }
 
+
         .year-button {
-            border: 1px solid #ccc;
-            background: white;
-            border-radius: 8px;
-            padding: 14px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            transition: 0.2s;
+            border: 1px solid var(--border);
+
+            background: #fafbfc;
+
+            border-radius: 10px;
+
+            padding: 14px 10px;
+
+            color: var(--text);
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            transition: 0.2s ease;
         }
+
 
         .year-button:hover {
-            background: #f1f3f5;
+            border-color: #b7cce6;
+
+            background: #f4f8fd;
+
+            transform: translateY(-1px);
         }
+
 
         .year-button.active {
-            background: #222;
+            background: var(--primary);
+
+            border-color: var(--primary);
+
             color: white;
-            border-color: #222;
+
+            box-shadow:
+                0 5px 12px rgba(31,79,143,0.15);
         }
 
-        /* =========================================
+
+        /* =========================================================
+           LOADING / ERROR
+        ========================================================= */
+
+        .loading-state,
+        .program-loading,
+        .year-loading {
+            min-height: 90px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            gap: 10px;
+
+            color: var(--muted);
+
+            font-size: 13px;
+        }
+
+
+        .spinner {
+            width: 17px;
+            height: 17px;
+
+            border: 2px solid #dbe4ee;
+
+            border-top-color: var(--primary);
+
+            border-radius: 50%;
+
+            animation: spin 0.7s linear infinite;
+        }
+
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+
+        .message-box {
+            padding: 15px;
+
+            border-radius: 10px;
+
+            text-align: center;
+
+            font-size: 13px;
+        }
+
+
+        .message-box.empty {
+            background: #f8fafc;
+
+            color: var(--muted);
+
+            border: 1px dashed #d6dbe3;
+        }
+
+
+        .message-box.error {
+            background: var(--danger-light);
+
+            color: var(--danger);
+
+            border: 1px solid #f2cccc;
+        }
+
+
+        /* =========================================================
            SCHEDULE
-        ========================================= */
+        ========================================================= */
 
         .schedule-wrapper {
             display: none;
         }
 
+
         .schedule-wrapper.show {
             display: block;
+
+            animation: fadeUp 0.25s ease;
         }
+
 
         .schedule-paper {
             background: white;
-            border: 1px solid #ccc;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+
+            border: 1px solid var(--border);
+
+            border-radius: var(--radius);
+
+            box-shadow: var(--shadow-md);
+
+            overflow: hidden;
         }
 
-        .schedule-title {
-            text-align: center;
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 5px;
+
+        .schedule-top {
+            padding: 25px 27px 20px;
+
+            border-bottom: 1px solid var(--border);
         }
 
-        .schedule-subtitle {
-            text-align: center;
-            font-size: 13px;
-            color: #666;
+
+        .schedule-title-row {
+            display: flex;
+
+            align-items: flex-start;
+
+            justify-content: space-between;
+
+            gap: 20px;
+
             margin-bottom: 20px;
         }
 
-        .schedule-info {
+
+        .schedule-title {
+            font-size: 21px;
+
+            font-weight: 800;
+
+            letter-spacing: -0.3px;
+        }
+
+
+        .schedule-subtitle {
+            color: var(--muted);
+
+            font-size: 12px;
+
+            margin-top: 4px;
+        }
+
+
+        .schedule-actions {
             display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            margin-bottom: 12px;
+
+            gap: 8px;
+        }
+
+
+        .action-button {
+            border: 1px solid var(--border);
+
+            background: white;
+
+            color: var(--text);
+
+            border-radius: 9px;
+
+            padding: 9px 13px;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            transition: 0.2s ease;
+        }
+
+
+        .action-button:hover {
+            background: #f5f7fa;
+
+            border-color: #cdd3dc;
+        }
+
+
+        .action-button.primary {
+            background: var(--primary);
+
+            color: white;
+
+            border-color: var(--primary);
+        }
+
+
+        .action-button.primary:hover {
+            background: var(--primary-dark);
+        }
+
+
+        .schedule-info-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+
+            gap: 10px;
+        }
+
+
+        .info-item {
+            background: #f8fafc;
+
+            border: 1px solid #edf0f4;
+
+            border-radius: 9px;
+
+            padding: 11px 13px;
+        }
+
+
+        .info-label {
+            display: block;
+
+            color: var(--muted);
+
+            font-size: 10px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.5px;
+
+            font-weight: 700;
+
+            margin-bottom: 4px;
+        }
+
+
+        .info-value {
+            display: block;
+
             font-size: 13px;
+
+            font-weight: 700;
+
+            word-break: break-word;
         }
 
-        .schedule-info strong {
-            font-size: 14px;
+
+        .schedule-count {
+            color: var(--primary);
         }
 
-        /* =========================================
+
+        /* =========================================================
            TABLE
-        ========================================= */
+        ========================================================= */
 
         .table-container {
             width: 100%;
+
             overflow-x: auto;
+
             -webkit-overflow-scrolling: touch;
-            border: 1px solid #ddd;
-            border-radius: 6px;
         }
+
 
         .schedule-table {
             width: 100%;
-            min-width: 1050px;
+
+            min-width: 1120px;
+
             border-collapse: collapse;
+
             table-layout: fixed;
+
             font-size: 11px;
         }
 
+
         .schedule-table th,
         .schedule-table td {
-            border: 1px solid #777;
-            padding: 7px 5px;
+            border: 1px solid #d9dde4;
+
+            padding: 9px 7px;
+
             text-align: center;
+
             vertical-align: middle;
         }
 
-        .schedule-table th {
-            background: #e9ecef;
-            font-weight: bold;
+
+        .schedule-table thead th {
+            background: #f2f5f9;
+
+            color: #344054;
+
+            font-weight: 800;
+
+            font-size: 10px;
+
+            letter-spacing: 0.2px;
         }
+
+
+        .schedule-table tbody tr {
+            transition: background 0.15s ease;
+        }
+
+
+        .schedule-table tbody tr:hover {
+            background: #f8fbff;
+        }
+
 
         .course-code-column {
             width: 95px;
         }
 
+
         .description-column {
-            width: 220px;
-            text-align: left !important;
+            width: 225px;
         }
 
-        .units-column {
-            width: 65px;
+
+        .type-column {
+            width: 70px;
         }
+
 
         .instructor-column {
-            width: 140px;
+            width: 150px;
         }
+
 
         .major-column {
             width: 120px;
         }
 
+
         .room-column {
             width: 80px;
         }
 
+
         .time-column {
-            width: 90px;
-        }
-
-        .day-column {
-            width: 55px;
-        }
-
-        .remarks-column {
             width: 100px;
         }
 
-        .course-code-text {
-            font-weight: bold;
+
+        .day-column {
+            width: 47px;
         }
+
+
+        .remarks-column {
+            width: 115px;
+        }
+
+
+        .course-code-text {
+            color: var(--primary-dark);
+
+            font-weight: 800;
+        }
+
+
+        .subject-text {
+            text-align: left !important;
+
+            font-weight: 600;
+        }
+
 
         .major-text {
-            font-weight: bold;
+            font-weight: 650;
         }
+
+
+        .day-active {
+            color: var(--primary);
+
+            font-size: 15px;
+
+            font-weight: 900;
+        }
+
 
         .no-schedule {
-            padding: 40px 20px !important;
+            padding: 50px 20px !important;
+
+            color: var(--muted);
+
             text-align: center !important;
-            color: #888;
         }
 
-        .loading {
-            padding: 40px 20px;
-            text-align: center;
-            color: #777;
-        }
 
-        /* =========================================
+        /* =========================================================
            FOOTER
-        ========================================= */
+        ========================================================= */
 
         .schedule-footer {
-            display: flex;
-            justify-content: space-between;
-            gap: 40px;
-            margin-top: 30px;
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 80px;
+
+            padding: 30px 35px 35px;
         }
+
 
         .signature {
-            width: 220px;
             text-align: center;
+
+            color: #475467;
+
+            font-size: 11px;
         }
+
 
         .signature-line {
-            border-bottom: 1px solid #555;
-            margin-top: 35px;
-            margin-bottom: 5px;
+            max-width: 230px;
+
+            margin:
+                35px auto 6px;
+
+            border-bottom: 1px solid #667085;
         }
+
 
         .signature-name {
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 11px;
+
+            font-weight: 800;
+
+            color: var(--text);
         }
 
-        /* =========================================
-           MOBILE
-        ========================================= */
 
-        @media (max-width: 1000px) {
+        /* =========================================================
+           RESPONSIVE
+        ========================================================= */
 
-            body {
-                padding: 12px;
+        @media (max-width: 1100px) {
+
+            .main-layout {
+                grid-template-columns: 260px minmax(0, 1fr);
+            }
+
+            .program-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .year-buttons {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+        }
+
+
+        @media (max-width: 850px) {
+
+            .page-container {
+                padding: 16px;
+            }
+
+            .page-header-content {
+                flex-direction: column;
+
+                align-items: flex-start;
+            }
+
+            .academic-info {
+                align-items: flex-start;
+            }
+
+            .active-term-badge {
+                white-space: normal;
+
+                text-align: left;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
             }
 
             .main-layout {
@@ -408,52 +1438,137 @@
             }
 
             .department-list {
-                max-height: 350px;
+                max-height: 320px;
             }
 
-            .year-buttons {
-                grid-template-columns: repeat(2, 1fr);
+            .schedule-info-grid {
+                grid-template-columns: 1fr;
             }
 
         }
 
+
         @media (max-width: 600px) {
 
-            .page-header {
-                padding: 18px;
+            .page-container {
+                padding: 10px;
             }
 
-            .page-header h1 {
+            .page-header {
+                padding: 22px;
+            }
+
+            .header-icon {
+                width: 48px;
+                height: 48px;
+
                 font-size: 22px;
             }
 
-            .department-panel,
-            .year-section,
-            .schedule-paper {
-                padding: 15px;
+            .page-header h1 {
+                font-size: 21px;
+            }
+
+            .selection-section {
+                padding: 16px;
+            }
+
+            .selection-heading {
+                flex-direction: column;
+            }
+
+            .program-buttons {
+                grid-template-columns: 1fr;
             }
 
             .year-buttons {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
             }
 
-            .year-button {
-                padding: 12px 5px;
-                font-size: 13px;
+            .schedule-top {
+                padding: 19px 17px;
             }
 
-            .schedule-title {
-                font-size: 18px;
-            }
-
-            .schedule-info {
+            .schedule-title-row {
                 flex-direction: column;
-                gap: 5px;
+            }
+
+            .schedule-actions {
+                width: 100%;
+            }
+
+            .action-button {
+                flex: 1;
             }
 
             .schedule-footer {
-                flex-direction: column;
-                align-items: center;
+                grid-template-columns: 1fr;
+
+                gap: 20px;
+            }
+
+        }
+
+
+        /* =========================================================
+           PRINT
+        ========================================================= */
+
+        @media print {
+
+            body {
+                background: white;
+            }
+
+            .page-container {
+                max-width: none;
+
+                padding: 0;
+            }
+
+            .page-header,
+            .steps,
+            .department-panel,
+            .selection-section,
+            .schedule-actions {
+                display: none !important;
+            }
+
+            .main-layout {
+                display: block;
+            }
+
+            .schedule-wrapper {
+                display: block !important;
+            }
+
+            .schedule-paper {
+                border: none;
+
+                box-shadow: none;
+
+                border-radius: 0;
+            }
+
+            .schedule-top {
+                padding: 0 0 15px;
+            }
+
+            .schedule-table {
+                min-width: 0;
+
+                font-size: 9px;
+            }
+
+            .schedule-table th,
+            .schedule-table td {
+                padding: 5px 3px;
+            }
+
+            .schedule-footer {
+                padding-left: 0;
+                padding-right: 0;
             }
 
         }
@@ -462,218 +1577,515 @@
 
 </head>
 
+
 <body>
 
-<div class="container">
-
-    <!-- =========================================
-         PAGE HEADER
-    ========================================== -->
-
-    <div class="page-header">
-
-        <h1>
-            Student Schedule
-        </h1>
-
-        <p>
-            Select your department and year level
-            to view the class schedule.
-        </p>
-
-    </div>
+<div class="page-container">
 
 
-    <!-- =========================================
-         MAIN
-    ========================================== -->
+    <!-- =========================================================
+         HEADER
+    ========================================================== -->
 
-    <div class="main-layout">
+    <header class="page-header">
 
+        <div class="page-header-content">
 
-        <!-- =====================================
-             LEFT: DEPARTMENTS
-        ====================================== -->
+            <div class="header-left">
 
-        <div class="department-panel">
+                <div class="header-icon">
+                    📅
+                </div>
 
-            <div class="panel-title">
-                Select Department
+                <div>
+
+                    <h1>
+                        Student Class Schedule
+                    </h1>
+
+                    <p>
+                        View your published class schedule by department,
+                        program, and year level.
+                    </p>
+
+                </div>
+
             </div>
 
-            <input
-                type="text"
-                id="departmentSearch"
-                class="search-box"
-                placeholder="🔍 Search department..."
-                oninput="searchDepartments()"
-            >
 
-            <div
-                class="department-list"
-                id="departmentList"
-            >
+            <div class="academic-info">
 
-                @forelse($departments as $department)
+                <span>
+                    Current Academic Period
+                </span>
 
-                    <button
-                        type="button"
-                        class="department-button"
-                        data-id="{{ $department->id }}"
-                        data-name="{{ $department->name }}"
-                        onclick="selectDepartment(this)"
-                    >
+                <strong>
+                    {{ strtoupper($semester) }}
+                </strong>
 
-                        <div class="department-name">
-                            {{ $department->name }}
-                        </div>
+                <span>
+                    A.Y. {{ $academicYear }}
+                </span>
 
-                    </button>
-
-                @empty
-
-                    <div class="no-department">
-                        No departments available.
+                @if($activeTerm)
+                    <div class="active-term-badge">
+                        <span class="active-term-dot"></span>
+                        ACTIVE TERM
                     </div>
+                @else
+                    <div class="active-term-badge inactive-term-badge">
+                        NO ACTIVE TERM
+                    </div>
+                @endif
 
-                @endforelse
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================================================
+         STEP INDICATOR
+    ========================================================== -->
+
+    <div class="steps">
+
+        <div
+            class="step active"
+            id="stepDepartment"
+        >
+
+            <div class="step-number">
+                1
+            </div>
+
+            <div class="step-text">
+
+                <span class="step-title">
+                    Department
+                </span>
+
+                <span class="step-description">
+                    Choose your department
+                </span>
 
             </div>
 
         </div>
 
 
-        <!-- =====================================
-             RIGHT: YEAR + SCHEDULE
-        ====================================== -->
+        <div
+            class="step"
+            id="stepProgram"
+        >
 
-        <div class="content-panel">
+            <div class="step-number">
+                2
+            </div>
+
+            <div class="step-text">
+
+                <span class="step-title">
+                    Program
+                </span>
+
+                <span class="step-description">
+                    Choose your program
+                </span>
+
+            </div>
+
+        </div>
 
 
-            <!-- DEFAULT MESSAGE -->
+        <div
+            class="step"
+            id="stepYear"
+        >
+
+            <div class="step-number">
+                3
+            </div>
+
+            <div class="step-text">
+
+                <span class="step-title">
+                    Year Level
+                </span>
+
+                <span class="step-description">
+                    View your schedule
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         MAIN
+    ========================================================== -->
+
+    <div class="main-layout">
+
+
+        <!-- =====================================================
+             DEPARTMENTS
+        ====================================================== -->
+
+        <aside class="department-panel">
+
+            <div class="panel-header">
+
+                <div class="panel-title">
+
+                    <span class="panel-title-icon">
+                        ▦
+                    </span>
+
+                    Select Department
+
+                </div>
+
+                <div class="panel-subtitle">
+                    Choose the department that manages your program.
+                </div>
+
+            </div>
+
+
+            <div class="department-content">
+
+                <div class="search-wrapper">
+
+                    <span class="search-icon">
+                        🔍
+                    </span>
+
+                    <input
+                        type="text"
+                        id="departmentSearch"
+                        class="search-box"
+                        placeholder="Search department..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <div
+                    class="department-list"
+                    id="departmentList"
+                >
+
+                    @forelse($departments as $index => $department)
+
+                        <button
+                            type="button"
+                            class="department-button"
+                            data-id="{{ $department->id }}"
+                            data-name="{{ $department->name }}"
+                        >
+
+                            <span class="department-number">
+                                {{ $index + 1 }}
+                            </span>
+
+                            <span class="department-name">
+                                {{ $department->name }}
+                            </span>
+
+                        </button>
+
+                    @empty
+
+                        <div class="no-department">
+                            No departments are currently available.
+                        </div>
+
+                    @endforelse
+
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =====================================================
+             RIGHT CONTENT
+        ====================================================== -->
+
+        <main class="content-panel">
+
+
+            <!-- =================================================
+                 EMPTY STATE
+            ================================================== -->
 
             <div
                 class="empty-state"
                 id="emptyState"
             >
 
+                <div class="empty-icon">
+                    📚
+                </div>
+
                 <h2>
-                    Select a Department
+                    @if($activeTerm)
+                        Select Your Department
+                    @else
+                        No Active Academic Term
+                    @endif
                 </h2>
 
                 <p>
-                    Choose a department from the list
-                    to continue.
+                    @if($activeTerm)
+                        Start by selecting your department from the
+                        list. The available programs will automatically
+                        be loaded from the published schedules for
+                        <strong>
+                            {{ $activeTerm->academic_year }}
+                            •
+                            {{ $activeTerm->semester }}
+                        </strong>.
+                    @else
+                        There is currently no active academic term.
+                        Student schedules will become available when
+                        an academic term is activated.
+                    @endif
                 </p>
 
             </div>
 
 
-            <!-- YEAR LEVEL -->
+            <!-- =================================================
+                 PROGRAM
+            ================================================== -->
 
-            <div
-                class="year-section"
+            <section
+                class="selection-section"
+                id="programSection"
+            >
+
+                <div class="selection-heading">
+
+                    <div class="selection-heading-left">
+
+                        <div class="selection-label">
+                            Step 2
+                        </div>
+
+                        <div class="selection-title">
+                            Select Program
+                        </div>
+
+                        <div
+                            class="selection-context"
+                            id="programSelectedDepartment"
+                        >
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="program-buttons"
+                    id="programButtons"
+                >
+
+                    <div class="program-loading">
+
+                        <span class="spinner"></span>
+
+                        Loading programs...
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 YEAR LEVEL
+            ================================================== -->
+
+            <section
+                class="selection-section"
                 id="yearSection"
             >
 
+                <div class="selection-heading">
+
+                    <div class="selection-heading-left">
+
+                        <div class="selection-label">
+                            Step 3
+                        </div>
+
+                        <div class="selection-title">
+                            Select Year Level
+                        </div>
+
+                        <div
+                            class="selection-context"
+                            id="yearSelectedDepartment"
+                        >
+                        </div>
+
+                        <div
+                            class="selection-context"
+                            id="selectedProgram"
+                        >
+                        </div>
+
+                    </div>
+
+                </div>
+
+
                 <div
-                    class="selected-department"
-                    id="selectedDepartment"
+                    class="year-buttons"
+                    id="yearButtons"
                 >
-                </div>
 
-                <div class="year-title">
-                    Select Year Level
-                </div>
-
-                <div class="year-buttons">
-
-                    <button
-                        type="button"
-                        class="year-button"
-                        onclick="selectYear('1st Year', this)"
-                    >
-                        1st Year
-                    </button>
-
-                    <button
-                        type="button"
-                        class="year-button"
-                        onclick="selectYear('2nd Year', this)"
-                    >
-                        2nd Year
-                    </button>
-
-                    <button
-                        type="button"
-                        class="year-button"
-                        onclick="selectYear('3rd Year', this)"
-                    >
-                        3rd Year
-                    </button>
-
-                    <button
-                        type="button"
-                        class="year-button"
-                        onclick="selectYear('4th Year', this)"
-                    >
-                        4th Year
-                    </button>
+                    <div class="year-loading">
+                        Select a program first.
+                    </div>
 
                 </div>
 
-            </div>
+            </section>
 
 
-            <!-- SCHEDULE -->
+            <!-- =================================================
+                 SCHEDULE
+            ================================================== -->
 
-            <div
+            <section
                 class="schedule-wrapper"
                 id="scheduleWrapper"
             >
 
                 <div class="schedule-paper">
 
-                    <div class="schedule-title">
-                        CLASS PROGRAM
-                    </div>
 
-                    <div class="schedule-subtitle">
+                    <!-- SCHEDULE HEADER -->
 
-                        {{ strtoupper($semester) }},
-                        A.Y. {{ $academicYear }}
+                    <div class="schedule-top">
 
-                    </div>
+                        <div class="schedule-title-row">
+
+                            <div>
+
+                                <div class="schedule-title">
+                                    CLASS SCHEDULE
+                                </div>
+
+                                <div class="schedule-subtitle">
+
+    @if($activeTerm)
+
+        {{ strtoupper($activeTerm->semester) }}
+
+        •
+
+        A.Y. {{ $activeTerm->academic_year }}
+
+    @else
+
+        No Active Academic Term
+
+    @endif
+
+</div>
+
+                            </div>
 
 
-                    <div class="schedule-info">
+                            <div class="schedule-actions">
 
-                        <div>
+                                <button
+                                    type="button"
+                                    class="action-button"
+                                    onclick="printSchedule()"
+                                >
+                                    🖨 Print
+                                </button>
 
-                            <strong>
-                                Department:
-                            </strong>
+                                <button
+                                    type="button"
+                                    class="action-button primary"
+                                    onclick="loadSchedules()"
+                                >
+                                    ↻ Refresh
+                                </button>
 
-                            <span id="scheduleDepartment">
-                            </span>
+                            </div>
 
                         </div>
 
-                        <div>
 
-                            <strong>
-                                Year Level:
-                            </strong>
+                        <div class="schedule-info-grid">
 
-                            <span id="scheduleYear">
-                            </span>
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    Department
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="scheduleDepartment"
+                                >
+                                </span>
+
+                            </div>
+
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    Program
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="scheduleProgram"
+                                >
+                                </span>
+
+                            </div>
+
+
+                            <div class="info-item">
+
+                                <span class="info-label">
+                                    Year Level
+                                </span>
+
+                                <span
+                                    class="info-value"
+                                    id="scheduleYear"
+                                >
+                                </span>
+
+                            </div>
 
                         </div>
 
                     </div>
 
 
-                    <!-- RESPONSIVE TABLE -->
+                    <!-- SCHEDULE TABLE -->
 
                     <div class="table-container">
 
@@ -699,7 +2111,7 @@
 
                                     <th
                                         rowspan="2"
-                                        class="units-column"
+                                        class="type-column"
                                     >
                                         TYPE
                                     </th>
@@ -745,6 +2157,7 @@
 
                                 </tr>
 
+
                                 <tr>
 
                                     <th class="day-column">
@@ -770,6 +2183,7 @@
                                 </tr>
 
                             </thead>
+
 
                             <tbody id="scheduleBody">
 
@@ -813,9 +2227,9 @@
 
                 </div>
 
-            </div>
+            </section>
 
-        </div>
+        </main>
 
     </div>
 
@@ -824,36 +2238,108 @@
 
 <script>
 
-    /*
-    =====================================================
-    SELECTED VALUES
-    =====================================================
-    */
+    /* =========================================================
+       SELECTED VALUES
+    ========================================================= */
 
     let selectedDepartmentId = null;
+
     let selectedDepartmentName = "";
+
+    let selectedProgram = "";
+
     let selectedYearLevel = "";
 
 
     /*
-    =====================================================
-    SELECT DEPARTMENT
-    =====================================================
-    */
+     * =========================================================
+     * ACTIVE ACADEMIC TERM
+     * =========================================================
+     *
+     * The active term is supplied by StudentController.
+     * Every program, year-level, and schedule request sends
+     * this term ID so the backend can return only records
+     * belonging to the active academic term.
+     */
+    const activeAcademicTermId =
+        @json($activeTerm?->id);
+
+
+    const activeAcademicYear =
+        @json($activeTerm?->academic_year);
+
+
+    const activeSemester =
+        @json($activeTerm?->semester);
+
+
+    /* =========================================================
+       ELEMENTS
+    ========================================================= */
+
+    const departmentButtons =
+        document.querySelectorAll(
+            ".department-button"
+        );
+
+
+    /* =========================================================
+       DEPARTMENT SELECTION
+    ========================================================= */
+
+    departmentButtons.forEach(function(button) {
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                selectDepartment(button);
+
+            }
+        );
+
+    });
+
 
     function selectDepartment(button)
     {
+
+        if (!activeAcademicTermId) {
+
+            document
+                .getElementById("emptyState")
+                .style.display = "flex";
+
+            document
+                .getElementById("programSection")
+                .classList.remove("show");
+
+            document
+                .getElementById("yearSection")
+                .classList.remove("show");
+
+            document
+                .getElementById("scheduleWrapper")
+                .classList.remove("show");
+
+            return;
+
+        }
+
 
         selectedDepartmentId =
             button.dataset.id;
 
         selectedDepartmentName =
-            button.dataset.name;
+            button.dataset.name || "";
 
 
-        /*
-        Remove active department
-        */
+        selectedProgram = "";
+
+        selectedYearLevel = "";
+
+
+        /* Active department */
 
         document
             .querySelectorAll(".department-button")
@@ -864,176 +2350,606 @@
             });
 
 
-        /*
-        Activate selected department
-        */
-
         button.classList.add("active");
 
 
-        /*
-        Display selected department
-        */
-
-        document.getElementById(
-            "selectedDepartment"
-        ).textContent =
-            selectedDepartmentName;
-
-
-        /*
-        Reset year
-        */
-
-        selectedYearLevel = "";
-
-
-        document
-            .querySelectorAll(".year-button")
-            .forEach(function(button) {
-
-                button.classList.remove("active");
-
-            });
-
-
-        /*
-        Hide old schedule
-        */
-
-        document
-            .getElementById("scheduleWrapper")
-            .classList.remove("show");
-
-
-        /*
-        Hide empty state
-        */
+        /* Hide default */
 
         document
             .getElementById("emptyState")
             .style.display = "none";
 
 
-        /*
-        Show year section
-        */
+        /* Show program */
+
+        document
+            .getElementById("programSection")
+            .classList.add("show");
+
+
+        /* Hide year */
+
+        document
+            .getElementById("yearSection")
+            .classList.remove("show");
+
+
+        /* Hide schedule */
+
+        document
+            .getElementById("scheduleWrapper")
+            .classList.remove("show");
+
+
+        /* Update text */
+
+        document
+            .getElementById("programSelectedDepartment")
+            .textContent =
+                "Department: " +
+                selectedDepartmentName;
+
+
+        document
+            .getElementById("yearSelectedDepartment")
+            .textContent = "";
+
+
+        document
+            .getElementById("selectedProgram")
+            .textContent = "";
+
+
+        /* Update steps */
+
+        updateSteps(2);
+
+
+        /* Reset program area */
+
+        document
+            .getElementById("programButtons")
+            .innerHTML = `
+
+                <div class="program-loading">
+
+                    <span class="spinner"></span>
+
+                    Loading programs...
+
+                </div>
+
+            `;
+
+
+        loadPrograms();
+
+    }
+
+
+    /* =========================================================
+       LOAD PROGRAMS
+    ========================================================= */
+
+    function loadPrograms()
+    {
+
+        if (!selectedDepartmentId) {
+
+            return;
+
+        }
+
+
+        const container =
+            document.getElementById(
+                "programButtons"
+            );
+
+
+        const url =
+            "{{ route('student.schedule.programs') }}" +
+            "?department_id=" +
+            encodeURIComponent(
+                selectedDepartmentId
+            ) +
+            "&term_id=" +
+            encodeURIComponent(
+                activeAcademicTermId
+            );
+
+
+        console.log(
+            "Loading programs:",
+            url
+        );
+
+
+        container.innerHTML = `
+
+            <div class="program-loading">
+
+                <span class="spinner"></span>
+
+                Loading programs...
+
+            </div>
+
+        `;
+
+
+        fetch(url, {
+
+            method: "GET",
+
+            headers: {
+                "Accept": "application/json",
+
+                "X-Requested-With":
+                    "XMLHttpRequest"
+            }
+
+        })
+
+        .then(function(response) {
+
+            return response.text()
+                .then(function(text) {
+
+                    let data;
+
+                    try {
+
+                        data = JSON.parse(text);
+
+                    } catch (error) {
+
+                        throw new Error(
+                            "The server returned an invalid response."
+                        );
+
+                    }
+
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data.message ||
+                            "Unable to load programs."
+                        );
+
+                    }
+
+
+                    return data;
+
+                });
+
+        })
+
+        .then(function(data) {
+
+            container.innerHTML = "";
+
+
+            if (
+                !data.success ||
+                !Array.isArray(data.programs) ||
+                data.programs.length === 0
+            ) {
+
+                container.innerHTML = `
+
+                    <div class="message-box empty">
+
+                        No published programs are available
+                        for this department.
+
+                    </div>
+
+                `;
+
+                return;
+
+            }
+
+
+            data.programs.forEach(
+                function(program, index) {
+
+                    const button =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    button.type = "button";
+
+                    button.className =
+                        "program-button";
+
+
+                    button.innerHTML = `
+
+                        <span class="program-icon">
+                            ${index + 1}
+                        </span>
+
+                        <span class="program-name">
+                            ${escapeHtml(program)}
+                        </span>
+
+                    `;
+
+
+                    button.addEventListener(
+                        "click",
+                        function() {
+
+                            selectProgram(
+                                program,
+                                button
+                            );
+
+                        }
+                    );
+
+
+                    container.appendChild(
+                        button
+                    );
+
+                }
+            );
+
+        })
+
+        .catch(function(error) {
+
+            console.error(
+                "Program loading error:",
+                error
+            );
+
+
+            container.innerHTML = `
+
+                <div class="message-box error">
+
+                    ${escapeHtml(
+                        error.message ||
+                        "Unable to load programs."
+                    )}
+
+                    <br><br>
+
+                    <button
+                        type="button"
+                        class="action-button"
+                        onclick="loadPrograms()"
+                    >
+                        Try Again
+                    </button>
+
+                </div>
+
+            `;
+
+        });
+
+    }
+
+
+    /* =========================================================
+       PROGRAM SELECTION
+    ========================================================= */
+
+    function selectProgram(
+        program,
+        button
+    )
+    {
+
+        selectedProgram = program;
+
+        selectedYearLevel = "";
+
+
+        /* Active program */
+
+        document
+            .querySelectorAll(".program-button")
+            .forEach(function(item) {
+
+                item.classList.remove("active");
+
+            });
+
+
+        button.classList.add("active");
+
+
+        /* Show year */
 
         document
             .getElementById("yearSection")
             .classList.add("show");
 
+
+        /* Hide schedule */
+
+        document
+            .getElementById("scheduleWrapper")
+            .classList.remove("show");
+
+
+        /* Update information */
+
+        document
+            .getElementById("yearSelectedDepartment")
+            .textContent =
+                "Department: " +
+                selectedDepartmentName;
+
+
+        document
+            .getElementById("selectedProgram")
+            .textContent =
+                "Program: " +
+                selectedProgram;
+
+
+        /* Update steps */
+
+        updateSteps(3);
+
+
+        /* Reset years */
+
+        document
+            .getElementById("yearButtons")
+            .innerHTML = `
+
+                <div class="year-loading">
+
+                    <span class="spinner"></span>
+
+                    Loading year levels...
+
+                </div>
+
+            `;
+
+
+        loadYearLevels();
+
     }
 
 
-    /*
-    =====================================================
-    SEARCH DEPARTMENTS
-    =====================================================
-    */
+    /* =========================================================
+       LOAD YEAR LEVELS
+    ========================================================= */
 
-    function searchDepartments()
+    function loadYearLevels()
     {
 
-        const search =
-            document
-                .getElementById("departmentSearch")
-                .value
-                .toLowerCase()
-                .trim();
+        if (
+            !selectedDepartmentId ||
+            !selectedProgram
+        ) {
 
-
-        const departments =
-            document.querySelectorAll(
-                ".department-button"
-            );
-
-
-        let found = false;
-
-
-        departments.forEach(function(department) {
-
-            const name =
-                department.dataset.name
-                    .toLowerCase();
-
-
-            if (
-                search === "" ||
-                name.includes(search)
-            ) {
-
-                department.style.display =
-                    "block";
-
-                found = true;
-
-            } else {
-
-                department.style.display =
-                    "none";
-
-            }
-
-        });
-
-
-        let noResult =
-            document.getElementById(
-                "departmentNoResult"
-            );
-
-
-        if (!found) {
-
-            if (!noResult) {
-
-                noResult =
-                    document.createElement("div");
-
-                noResult.id =
-                    "departmentNoResult";
-
-                noResult.className =
-                    "no-department";
-
-                noResult.textContent =
-                    "No department found.";
-
-                document
-                    .getElementById("departmentList")
-                    .appendChild(noResult);
-
-            }
-
-        } else {
-
-            if (noResult) {
-
-                noResult.remove();
-
-            }
+            return;
 
         }
 
+
+        const container =
+            document.getElementById(
+                "yearButtons"
+            );
+
+
+        const url =
+            "{{ route('student.schedule.years') }}" +
+
+            "?department_id=" +
+
+            encodeURIComponent(
+                selectedDepartmentId
+            ) +
+
+            "&program=" +
+
+            encodeURIComponent(
+                selectedProgram
+            ) +
+
+            "&term_id=" +
+
+            encodeURIComponent(
+                activeAcademicTermId
+            );
+
+
+        console.log(
+            "Loading year levels:",
+            url
+        );
+
+
+        fetch(url, {
+
+            method: "GET",
+
+            headers: {
+                "Accept": "application/json",
+
+                "X-Requested-With":
+                    "XMLHttpRequest"
+            }
+
+        })
+
+        .then(function(response) {
+
+            return response.text()
+                .then(function(text) {
+
+                    let data;
+
+                    try {
+
+                        data = JSON.parse(text);
+
+                    } catch (error) {
+
+                        throw new Error(
+                            "The server returned an invalid response."
+                        );
+
+                    }
+
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data.message ||
+                            "Unable to load year levels."
+                        );
+
+                    }
+
+
+                    return data;
+
+                });
+
+        })
+
+        .then(function(data) {
+
+            container.innerHTML = "";
+
+
+            if (
+                !data.success ||
+                !Array.isArray(
+                    data.year_levels
+                ) ||
+                data.year_levels.length === 0
+            ) {
+
+                container.innerHTML = `
+
+                    <div class="message-box empty">
+
+                        No published year levels are
+                        available for this program.
+
+                    </div>
+
+                `;
+
+                return;
+
+            }
+
+
+            data.year_levels.forEach(
+                function(year) {
+
+                    const button =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    button.type = "button";
+
+                    button.className =
+                        "year-button";
+
+
+                    button.textContent =
+                        year;
+
+
+                    button.addEventListener(
+                        "click",
+                        function() {
+
+                            selectYear(
+                                year,
+                                button
+                            );
+
+                        }
+                    );
+
+
+                    container.appendChild(
+                        button
+                    );
+
+                }
+            );
+
+        })
+
+        .catch(function(error) {
+
+            console.error(
+                "Year level loading error:",
+                error
+            );
+
+
+            container.innerHTML = `
+
+                <div class="message-box error">
+
+                    ${escapeHtml(
+                        error.message ||
+                        "Unable to load year levels."
+                    )}
+
+                    <br><br>
+
+                    <button
+                        type="button"
+                        class="action-button"
+                        onclick="loadYearLevels()"
+                    >
+                        Try Again
+                    </button>
+
+                </div>
+
+            `;
+
+        });
+
     }
 
 
-    /*
-    =====================================================
-    SELECT YEAR
-    =====================================================
-    */
+    /* =========================================================
+       YEAR SELECTION
+    ========================================================= */
 
-    function selectYear(year, button)
+    function selectYear(
+        year,
+        button
+    )
     {
 
         if (!selectedDepartmentId) {
 
-            alert(
-                "Please select a department first."
-            );
+            return;
+
+        }
+
+
+        if (!selectedProgram) {
 
             return;
 
@@ -1043,9 +2959,7 @@
         selectedYearLevel = year;
 
 
-        /*
-        Active button
-        */
+        /* Active year */
 
         document
             .querySelectorAll(".year-button")
@@ -1059,39 +2973,51 @@
         button.classList.add("active");
 
 
-        /*
-        Update schedule information
-        */
+        /* Schedule information */
 
-        document.getElementById(
-            "scheduleDepartment"
-        ).textContent =
-            selectedDepartmentName;
+        document
+            .getElementById("scheduleDepartment")
+            .textContent =
+                selectedDepartmentName;
 
 
-        document.getElementById(
-            "scheduleYear"
-        ).textContent =
-            selectedYearLevel;
+        document
+            .getElementById("scheduleProgram")
+            .textContent =
+                selectedProgram;
 
 
-        /*
-        Load schedules
-        */
+        document
+            .getElementById("scheduleYear")
+            .textContent =
+                selectedYearLevel;
+
+
+        updateSteps(4);
+
 
         loadSchedules();
 
     }
 
 
-    /*
-    =====================================================
-    LOAD SCHEDULES
-    =====================================================
-    */
+    /* =========================================================
+       LOAD SCHEDULE
+    ========================================================= */
 
     function loadSchedules()
     {
+
+        if (
+            !selectedDepartmentId ||
+            !selectedProgram ||
+            !selectedYearLevel
+        ) {
+
+            return;
+
+        }
+
 
         const wrapper =
             document.getElementById(
@@ -1114,9 +3040,17 @@
 
                 <td
                     colspan="13"
-                    class="loading"
+                    class="no-schedule"
                 >
-                    Loading schedule...
+
+                    <div class="loading-state">
+
+                        <span class="spinner"></span>
+
+                        Loading published schedule...
+
+                    </div>
+
                 </td>
 
             </tr>
@@ -1126,14 +3060,36 @@
 
         const url =
             "{{ route('student.schedule.data') }}" +
+
             "?department_id=" +
+
             encodeURIComponent(
                 selectedDepartmentId
             ) +
+
+            "&program=" +
+
+            encodeURIComponent(
+                selectedProgram
+            ) +
+
             "&year_level=" +
+
             encodeURIComponent(
                 selectedYearLevel
+            ) +
+
+            "&term_id=" +
+
+            encodeURIComponent(
+                activeAcademicTermId
             );
+
+
+        console.log(
+            "Loading schedule:",
+            url
+        );
 
 
         fetch(url, {
@@ -1141,28 +3097,47 @@
             method: "GET",
 
             headers: {
-
-                "Accept":
-                    "application/json",
+                "Accept": "application/json",
 
                 "X-Requested-With":
                     "XMLHttpRequest"
-
             }
 
         })
 
         .then(function(response) {
 
-            if (!response.ok) {
+            return response.text()
+                .then(function(text) {
 
-                throw new Error(
-                    "Failed to load schedule."
-                );
+                    let data;
 
-            }
+                    try {
 
-            return response.json();
+                        data = JSON.parse(text);
+
+                    } catch (error) {
+
+                        throw new Error(
+                            "The server returned an invalid response."
+                        );
+
+                    }
+
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            data.message ||
+                            "Unable to load schedule."
+                        );
+
+                    }
+
+
+                    return data;
+
+                });
 
         })
 
@@ -1171,21 +3146,97 @@
             if (!data.success) {
 
                 throw new Error(
+                    data.message ||
                     "Unable to load schedule."
                 );
 
             }
 
 
+            /*
+             * Final client-side safety check.
+             *
+             * The backend should already filter by academic_term_id.
+             * This extra check prevents an old schedule from being
+             * displayed if an older endpoint/version returns records
+             * from another term.
+             */
+            let activeSchedules =
+                Array.isArray(data.schedules)
+                    ? data.schedules
+                    : [];
+
+
+            if (activeAcademicTermId) {
+
+                activeSchedules =
+                    activeSchedules.filter(
+                        function(item) {
+
+                            /*
+                             * Preferred check:
+                             * exact academic_term_id.
+                             */
+                            if (
+                                item.academic_term_id !== undefined &&
+                                item.academic_term_id !== null &&
+                                String(item.academic_term_id) !== ""
+                            ) {
+
+                                return (
+                                    String(item.academic_term_id) ===
+                                    String(activeAcademicTermId)
+                                );
+
+                            }
+
+
+                            /*
+                             * Compatibility check for older records
+                             * returned without academic_term_id.
+                             */
+                            const itemYear =
+                                String(
+                                    item.academic_year || ""
+                                ).trim();
+
+
+                            const itemSemester =
+                                String(
+                                    item.semester || ""
+                                ).trim();
+
+
+                            return (
+                                itemYear ===
+                                    String(
+                                        activeAcademicYear || ""
+                                    ).trim()
+                                &&
+                                itemSemester.toLowerCase() ===
+                                    String(
+                                        activeSemester || ""
+                                    ).trim().toLowerCase()
+                            );
+
+                        }
+                    );
+
+            }
+
+
             displaySchedules(
-                data.schedules
+                activeSchedules
             );
 
         })
 
         .catch(function(error) {
 
-            console.error(error);
+            console.error(
+                "Schedule loading error:",
+                error
+            );
 
 
             body.innerHTML = `
@@ -1196,7 +3247,16 @@
                         colspan="13"
                         class="no-schedule"
                     >
-                        Unable to load schedule.
+
+                        <div class="message-box error">
+
+                            ${escapeHtml(
+                                error.message ||
+                                "Unable to load schedule."
+                            )}
+
+                        </div>
+
                     </td>
 
                 </tr>
@@ -1208,13 +3268,13 @@
     }
 
 
-    /*
-    =====================================================
-    DISPLAY SCHEDULES
-    =====================================================
-    */
+    /* =========================================================
+       DISPLAY SCHEDULE
+    ========================================================= */
 
-    function displaySchedules(schedules)
+    function displaySchedules(
+        schedules
+    )
     {
 
         const body =
@@ -1225,10 +3285,6 @@
 
         body.innerHTML = "";
 
-
-        /*
-        No schedules
-        */
 
         if (
             !schedules ||
@@ -1244,11 +3300,16 @@
                         class="no-schedule"
                     >
 
-                        No schedule found for
+                        <strong>
+                            No published schedule found.
+                        </strong>
+
+                        <br><br>
+
                         ${escapeHtml(
-                            selectedDepartmentName
+                            selectedProgram
                         )}
-                        -
+                        —
                         ${escapeHtml(
                             selectedYearLevel
                         )}
@@ -1264,172 +3325,435 @@
         }
 
 
-        /*
-        Sort schedules by day and time
-        */
+        /* -----------------------------------------------------
+           Sort schedules by day and time
+        ----------------------------------------------------- */
 
-        schedules.sort(function(a, b) {
+        schedules.sort(
+            function(a, b) {
 
-            const dayOrder = {
+                const dayOrder = {
 
-                "Monday": 1,
-                "Tuesday": 2,
-                "Wednesday": 3,
-                "Thursday": 4,
-                "Friday": 5,
+                    "Monday": 1,
+                    "Tuesday": 2,
+                    "Wednesday": 3,
+                    "Thursday": 4,
+                    "Friday": 5,
 
-                "MON": 1,
-                "TUE": 2,
-                "WED": 3,
-                "THU": 4,
-                "FRI": 5
+                    "MON": 1,
+                    "TUE": 2,
+                    "WED": 3,
+                    "THU": 4,
+                    "FRI": 5
 
-            };
-
-
-            const dayA =
-                dayOrder[a.day] || 99;
-
-            const dayB =
-                dayOrder[b.day] || 99;
+                };
 
 
-            if (dayA !== dayB) {
-
-                return dayA - dayB;
-
-            }
+                const dayA =
+                    dayOrder[a.day] || 99;
 
 
-            return String(a.time || "")
-                .localeCompare(
-                    String(b.time || "")
+                const dayB =
+                    dayOrder[b.day] || 99;
+
+
+                if (dayA !== dayB) {
+
+                    return dayA - dayB;
+
+                }
+
+
+                return String(
+                    a.time || ""
+                ).localeCompare(
+                    String(
+                        b.time || ""
+                    )
                 );
 
-        });
+            }
+        );
 
 
-        /*
-        Create schedule rows
-        */
+        /* -----------------------------------------------------
+           Update schedule count
+        ----------------------------------------------------- */
 
-        schedules.forEach(function(item) {
-
-            const row =
-                document.createElement("tr");
-
-
-            const day =
-                normalizeDay(item.day);
+        const scheduleTitle =
+            document.querySelector(
+                ".schedule-title"
+            );
 
 
-            row.innerHTML = `
+        if (scheduleTitle) {
 
-                <td class="course-code-text">
-                    ${escapeHtml(
-                        item.course_code || ""
-                    )}
-                </td>
+            scheduleTitle.textContent =
+                "CLASS SCHEDULE (" +
+                schedules.length +
+                " SUBJECT" +
+                (
+                    schedules.length === 1
+                        ? ""
+                        : "S"
+                ) +
+                ")";
 
-                <td
-                    style="text-align:left;"
-                >
-                    ${escapeHtml(
-                        item.subject || ""
-                    )}
-                </td>
+        }
 
-                <td>
-                    ${escapeHtml(
-                        item.subject_type || ""
-                    )}
-                </td>
 
-                <td>
-                    ${escapeHtml(
-                        item.instructor || ""
-                    )}
-                </td>
+        /* -----------------------------------------------------
+           Create rows
+        ----------------------------------------------------- */
 
-                <td class="major-text">
-                    ${escapeHtml(
-                        item.major || ""
-                    )}
-                </td>
+        schedules.forEach(
+            function(item) {
 
-                <td>
-                    ${escapeHtml(
-                        item.room || ""
-                    )}
-                </td>
+                const row =
+                    document.createElement(
+                        "tr"
+                    );
 
-                <td>
-                    ${escapeHtml(
-                        item.time || ""
-                    )}
-                </td>
 
-                <td>
-                    ${
+                const day =
+                    normalizeDay(
+                        item.day
+                    );
+
+
+                row.innerHTML = `
+
+                    <td class="course-code-text">
+                        ${escapeHtml(
+                            item.course_code || ""
+                        )}
+                    </td>
+
+
+                    <td class="subject-text">
+                        ${escapeHtml(
+                            item.subject || ""
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(
+                            item.subject_type || ""
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(
+                            item.instructor || ""
+                        )}
+                    </td>
+
+
+                    <td class="major-text">
+                        ${escapeHtml(
+                            item.major || ""
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(
+                            item.room || ""
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(
+                            item.time || ""
+                        )}
+                    </td>
+
+
+                    <td class="${
                         day === "MON"
-                            ? "●"
+                            ? "day-active"
                             : ""
-                    }
-                </td>
+                    }">
+                        ${
+                            day === "MON"
+                                ? "●"
+                                : ""
+                        }
+                    </td>
 
-                <td>
-                    ${
+
+                    <td class="${
                         day === "TUE"
-                            ? "●"
+                            ? "day-active"
                             : ""
-                    }
-                </td>
+                    }">
+                        ${
+                            day === "TUE"
+                                ? "●"
+                                : ""
+                        }
+                    </td>
 
-                <td>
-                    ${
+
+                    <td class="${
                         day === "WED"
-                            ? "●"
+                            ? "day-active"
                             : ""
-                    }
-                </td>
+                    }">
+                        ${
+                            day === "WED"
+                                ? "●"
+                                : ""
+                        }
+                    </td>
 
-                <td>
-                    ${
+
+                    <td class="${
                         day === "THU"
-                            ? "●"
+                            ? "day-active"
                             : ""
-                    }
-                </td>
+                    }">
+                        ${
+                            day === "THU"
+                                ? "●"
+                                : ""
+                        }
+                    </td>
 
-                <td>
-                    ${
+
+                    <td class="${
                         day === "FRI"
-                            ? "●"
+                            ? "day-active"
                             : ""
-                    }
-                </td>
-
-                <td>
-                    ${escapeHtml(
-                        item.description || ""
-                    )}
-                </td>
-
-            `;
+                    }">
+                        ${
+                            day === "FRI"
+                                ? "●"
+                                : ""
+                        }
+                    </td>
 
 
-            body.appendChild(row);
+                    <td>
+                        ${escapeHtml(
+                            item.description || ""
+                        )}
+                    </td>
 
-        });
+                `;
+
+
+                body.appendChild(row);
+
+            }
+        );
 
     }
 
 
-    /*
-    =====================================================
-    NORMALIZE DAY
-    =====================================================
-    */
+    /* =========================================================
+       SEARCH DEPARTMENT
+    ========================================================= */
+
+    const departmentSearch =
+        document.getElementById(
+            "departmentSearch"
+        );
+
+
+    if (departmentSearch) {
+
+        departmentSearch.addEventListener(
+            "input",
+            searchDepartments
+        );
+
+    }
+
+
+    function searchDepartments()
+    {
+
+        const search =
+            document
+                .getElementById(
+                    "departmentSearch"
+                )
+                .value
+                .toLowerCase()
+                .trim();
+
+
+        const departments =
+            document.querySelectorAll(
+                ".department-button"
+            );
+
+
+        let found = false;
+
+
+        departments.forEach(
+            function(department) {
+
+                const name =
+                    (
+                        department.dataset.name ||
+                        ""
+                    )
+                    .toLowerCase();
+
+
+                if (
+                    search === "" ||
+                    name.includes(search)
+                ) {
+
+                    department.style.display =
+                        "flex";
+
+                    found = true;
+
+                } else {
+
+                    department.style.display =
+                        "none";
+
+                }
+
+            }
+        );
+
+
+        let noResult =
+            document.getElementById(
+                "departmentNoResult"
+            );
+
+
+        if (!found) {
+
+            if (!noResult) {
+
+                noResult =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                noResult.id =
+                    "departmentNoResult";
+
+
+                noResult.className =
+                    "no-department";
+
+
+                noResult.textContent =
+                    "No department found.";
+
+
+                document
+                    .getElementById(
+                        "departmentList"
+                    )
+                    .appendChild(
+                        noResult
+                    );
+
+            }
+
+        } else {
+
+            if (noResult) {
+
+                noResult.remove();
+
+            }
+
+        }
+
+    }
+
+
+    /* =========================================================
+       STEP INDICATOR
+    ========================================================= */
+
+    function updateSteps(step)
+    {
+
+        const departmentStep =
+            document.getElementById(
+                "stepDepartment"
+            );
+
+
+        const programStep =
+            document.getElementById(
+                "stepProgram"
+            );
+
+
+        const yearStep =
+            document.getElementById(
+                "stepYear"
+            );
+
+
+        [
+            departmentStep,
+            programStep,
+            yearStep
+        ].forEach(function(item) {
+
+            item.classList.remove(
+                "active",
+                "completed"
+            );
+
+        });
+
+
+        if (step >= 1) {
+
+            departmentStep.classList.add(
+                step > 1
+                    ? "completed"
+                    : "active"
+            );
+
+        }
+
+
+        if (step >= 2) {
+
+            programStep.classList.add(
+                step > 2
+                    ? "completed"
+                    : "active"
+            );
+
+        }
+
+
+        if (step >= 3) {
+
+            yearStep.classList.add(
+                "active"
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       NORMALIZE DAY
+    ========================================================= */
 
     function normalizeDay(day)
     {
@@ -1502,22 +3826,47 @@
     }
 
 
-    /*
-    =====================================================
-    ESCAPE HTML
-    =====================================================
-    */
+    /* =========================================================
+       ESCAPE HTML
+    ========================================================= */
 
     function escapeHtml(value)
     {
 
         const div =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
+
 
         div.textContent =
             value ?? "";
 
+
         return div.innerHTML;
+
+    }
+
+
+    /* =========================================================
+       PRINT
+    ========================================================= */
+
+    function printSchedule()
+    {
+
+        if (
+            !selectedDepartmentId ||
+            !selectedProgram ||
+            !selectedYearLevel
+        ) {
+
+            return;
+
+        }
+
+
+        window.print();
 
     }
 

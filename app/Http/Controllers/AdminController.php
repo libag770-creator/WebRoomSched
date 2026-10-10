@@ -9,72 +9,26 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Schedule;
 use App\Models\User;
-use App\Models\Reservation;
 
 class AdminController extends Controller
 {
     public function dashboard()
-{
-    if (!Auth::check() || Auth::user()->role !== 'admin') {
-        abort(403, 'Unauthorized.');
+    {
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+            abort(403, 'Unauthorized.');
+        }
+
+        $totalRooms = Room::count();
+        $totalUsers = User::count();
+        $activeSchedules = Schedule::count();
+
+        return view('admin.dashboard', compact(
+            'totalRooms',
+            'totalUsers',
+            'activeSchedules'
+        ));
     }
 
-    $totalRooms = Room::count();
-
-    $totalUsers = User::count();
-
-    $pendingReservations = Reservation::where(
-        'status',
-        'Pending'
-    )->count();
-
-    $activeSchedules = Schedule::count();
-
-    $reservations = Reservation::with([
-        'room',
-        'user'
-    ])
-    ->where('status', 'Pending')
-    ->orderBy('created_at', 'desc')
-    ->get();
-
-    return view('admin.dashboard', compact(
-        'totalRooms',
-        'totalUsers',
-        'pendingReservations',
-        'activeSchedules',
-        'reservations'
-    ));
-}
-
-public function approveReservation(Reservation $reservation)
-{
-    $reservation->update([
-        'status' => 'Approved'
-    ]);
-
-    return redirect()
-        ->route('admin.dashboard')
-        ->with(
-            'success',
-            'Reservation approved successfully.'
-        );
-}
-
-
-public function declineReservation(Reservation $reservation)
-{
-    $reservation->update([
-        'status' => 'Declined'
-    ]);
-
-    return redirect()
-        ->route('admin.dashboard')
-        ->with(
-            'success',
-            'Reservation declined successfully.'
-        );
-}
     public function buildings()
     {
        if (!Auth::check() || Auth::user()->role !== 'admin') {
@@ -247,11 +201,60 @@ public function updateRoom(Request $request, $id)
 }
 public function schedules()
 {
-    $rooms = Room::with('schedules')->get();
+    // Only admin can access this page
+    if (!Auth::check() || Auth::user()->role !== 'admin') {
+        abort(403, 'Unauthorized.');
+    }
 
-    return view('admin.schedules', compact('rooms'));
+    /*
+    |--------------------------------------------------------------------------
+    | Load the complete hierarchy
+    |--------------------------------------------------------------------------
+    |
+    | Department
+    |     -> Buildings
+    |          -> Rooms
+    |               -> Schedules
+    |
+    | IMPORTANT:
+    | We keep buildings and rooms as Eloquent Collections/models because
+    | admin/schedules.blade.php uses:
+    |
+    |     $department['buildings']->count()
+    |     $building['rooms'] as $room
+    |     $room->id
+    |     $room->room_name
+    |
+    */
+
+    $departmentModels = Department::with([
+        'buildings.rooms.schedules'
+    ])
+    ->orderBy('name')
+    ->get();
+
+    $departments = [];
+
+    foreach ($departmentModels as $department) {
+
+        /*
+        |--------------------------------------------------------------------------
+        | Department
+        |--------------------------------------------------------------------------
+        */
+
+        $departments[] = [
+            'id' => $department->id,
+            'code' => $department->code,
+            'name' => $department->name,
+
+            // KEEP THIS AS A COLLECTION
+            'buildings' => $department->buildings,
+        ];
+    }
+
+    return view('admin.schedules', compact('departments'));
 }
-
 public function viewSchedule(Room $room)
 {
     if (!Auth::check() || Auth::user()->role !== 'admin') {

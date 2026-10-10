@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class RoomSwapRequest extends Model
 {
@@ -25,160 +26,65 @@ class RoomSwapRequest extends Model
 
     protected $casts = [
         'swap_date' => 'date',
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
     ];
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY A — REQUESTER
-    |--------------------------------------------------------------------------
-    */
 
     public function requester()
     {
-        return $this->belongsTo(
-            User::class,
-            'requester_id'
-        );
+        return $this->belongsTo(User::class, 'requester_id');
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY B — TARGET FACULTY
-    |--------------------------------------------------------------------------
-    */
 
     public function targetUser()
     {
-        return $this->belongsTo(
-            User::class,
-            'target_user_id'
-        );
+        return $this->belongsTo(User::class, 'target_user_id');
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY A — SCHEDULE
-    |--------------------------------------------------------------------------
-    */
 
     public function requesterSchedule()
     {
-        return $this->belongsTo(
-            Schedule::class,
-            'requester_schedule_id'
-        );
+        return $this->belongsTo(Schedule::class, 'requester_schedule_id');
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY B — SCHEDULE
-    |--------------------------------------------------------------------------
-    */
 
     public function targetSchedule()
     {
-        return $this->belongsTo(
-            Schedule::class,
-            'target_schedule_id'
-        );
+        return $this->belongsTo(Schedule::class, 'target_schedule_id');
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY A — ORIGINAL ROOM
-    |--------------------------------------------------------------------------
-    */
 
     public function requesterRoom()
     {
-        return $this->belongsTo(
-            Room::class,
-            'requester_room_id'
-        );
+        return $this->belongsTo(Room::class, 'requester_room_id');
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY B — ORIGINAL ROOM
-    |--------------------------------------------------------------------------
-    */
 
     public function targetRoom()
     {
-        return $this->belongsTo(
-            Room::class,
-            'target_room_id'
-        );
+        return $this->belongsTo(Room::class, 'target_room_id');
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | CHECK IF APPROVED SWAP IS CURRENTLY ACTIVE
-    |--------------------------------------------------------------------------
-    */
-
-    public function isActive()
+    public function isActive(): bool
     {
-        if ($this->status !== 'approved') {
+        if ($this->status !== 'approved' || !$this->swap_date || !$this->start_time || !$this->end_time) {
             return false;
         }
 
-        if (!$this->swap_date) {
+        try {
+            $date = $this->swap_date->format('Y-m-d');
+            $start = Carbon::parse($date . ' ' . $this->start_time);
+            $end = Carbon::parse($date . ' ' . $this->end_time);
+            return now()->between($start, $end);
+        } catch (\Throwable $exception) {
             return false;
         }
-
-        if (!$this->start_time || !$this->end_time) {
-            return false;
-        }
-
-        $now = now();
-
-        $start = \Carbon\Carbon::parse(
-            $this->swap_date->format('Y-m-d')
-            . ' '
-            . $this->start_time
-        );
-
-        $end = \Carbon\Carbon::parse(
-            $this->swap_date->format('Y-m-d')
-            . ' '
-            . $this->end_time
-        );
-
-        return $now->between(
-            $start,
-            $end
-        );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | CHECK IF APPROVED SWAP HAS EXPIRED
-    |--------------------------------------------------------------------------
-    */
-
-    public function isExpired()
+    public function isExpired(): bool
     {
-        if (!$this->swap_date) {
+        if (!$this->swap_date || !$this->end_time) {
             return false;
         }
 
-        if (!$this->end_time) {
+        try {
+            $end = Carbon::parse($this->swap_date->format('Y-m-d') . ' ' . $this->end_time);
+            return now()->greaterThanOrEqualTo($end);
+        } catch (\Throwable $exception) {
             return false;
         }
-
-        $now = now();
-
-        $end = \Carbon\Carbon::parse(
-            $this->swap_date->format('Y-m-d')
-            . ' '
-            . $this->end_time
-        );
-
-        return $now->greaterThanOrEqualTo(
-            $end
-        );
     }
 }

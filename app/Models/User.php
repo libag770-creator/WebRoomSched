@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Models\RoomSwapRequest;
-use App\Models\Department;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     protected $fillable = [
         'name',
@@ -20,6 +19,8 @@ class User extends Authenticatable
         'password',
         'role',
         'department_id',
+        'profile_photo_path',
+        'status',
     ];
 
     protected $hidden = [
@@ -32,37 +33,43 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'department_id' => 'integer',
         ];
+    }
+
+    /**
+     * Get the user's profile photo URL.
+     */
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        $path = $this->profile_photo_path;
+
+        if (empty($path)) {
+            return null;
+        }
+
+        // Support both "profile-photos/photo.jpg"
+        // and older paths containing "storage/".
+        $path = ltrim($path, '/');
+
+        if (str_starts_with($path, 'storage/')) {
+            $path = substr($path, strlen('storage/'));
+        }
+
+        // Only return a URL if the image exists.
+        if (!Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 
     public function department()
     {
-        return $this->belongsTo(
-            Department::class,
-            'department_id'
-        );
-    }
-public function facultySubjects()
-{
-    return $this->hasMany(
-        FacultySubject::class,
-        'faculty_id'
-    );
-}
-    public function roomSwapRequests()
-    {
-        return $this->hasMany(
-            RoomSwapRequest::class,
-            'requester_id'
-        );
+        return $this->belongsTo(Department::class);
     }
 
-    public function receivedRoomSwapRequests()
+    public function facultySubjects()
     {
-        return $this->hasMany(
-            RoomSwapRequest::class,
-            'target_user_id'
-        );
+        return $this->hasMany(FacultySubject::class, 'faculty_id', 'id');
     }
 }

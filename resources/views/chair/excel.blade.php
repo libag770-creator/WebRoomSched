@@ -27,6 +27,23 @@
 .reservation-cell-user{margin-top:4px;color:#92400e;font-size:10px;font-weight:800}
 .reservation-cell-time{margin-top:2px;color:#92400e;font-size:9px;font-weight:700}
 .reservation-cell-note{margin-top:4px;color:#92400e;font-size:9px;line-height:1.25}
+.schedule-cell.merged-schedule-cell{vertical-align:middle;text-align:center;}
+.schedule-cell.merged-schedule-cell .cell-course{font-size:13px;font-weight:800;}
+.add-time-before-break-row td{
+        padding:8px 10px;
+        background:#f8fafc;
+        border-top:1px dashed #cbd5e1;
+        border-bottom:1px dashed #cbd5e1;
+        text-align:center !important;
+        vertical-align:middle;
+    }
+
+    .add-time-before-break-row .btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        margin:0 auto;
+    }
 </style>
 </head>
 
@@ -112,9 +129,9 @@
 
     <div class="program-header">
 
-        <div class="program-title">
+        <div><div class="program-title">
             CLASS PROGRAM
-        </div>
+        </div><div style="margin-top:6px;color:#2e7d32;font-size:12px;font-weight:700;">Active Term: {{ $activeTerm->academic_year ?? ($academicYear ?? '') }} • {{ $activeTerm->semester ?? ($semester ?? '') }}</div></div>
 
        <div class="schedule-information">
 
@@ -126,9 +143,8 @@
         <input
             type="text"
             id="semester"
-            name="semester"
-            value="{{ old('semester', $semester ?? '') }}"
-            placeholder="Example: 1st Semester"
+            value="{{ $activeTerm->semester ?? ($semester ?? '') }}"
+            readonly
         >
     </div>
 
@@ -141,9 +157,8 @@
         <input
             type="text"
             id="academic_year"
-            name="academic_year"
-            value="{{ old('academic_year', $academicYear ?? '') }}"
-            placeholder="Example: 2026-2027"
+            value="{{ $activeTerm->academic_year ?? ($academicYear ?? '') }}"
+            readonly
         >
     </div>
 
@@ -690,6 +705,7 @@
 
         <th data-day="TUE">TUE</th>
         <th data-day="THU">THU</th>
+        <th data-day="SAT">SAT</th>
     </tr>
 </thead>
 
@@ -762,7 +778,7 @@
     |--------------------------------------------------------------------------
     |
     | LEFT  = MWF
-    | RIGHT = TTH
+    | RIGHT = TTHS
     |
     */
 
@@ -771,7 +787,6 @@
         '9:00-10:00',
         '10:00-11:00',
         '11:00-12:00',
-        '12:00-1:00',
         '1:00-2:00',
         '2:00-3:00',
         '3:00-4:00',
@@ -847,7 +862,7 @@ foreach ($scheduleRows as $row) {
     }
 
     if (
-        in_array($day, ['TUE', 'THU'])
+        in_array($day, ['TUE', 'THU', 'SAT'])
         &&
         isset($rightTimes[$position])
     ) {
@@ -883,12 +898,10 @@ $sortTime = function ($time) {
 };
 
 $leftTimes = $leftTimes
-    ->unique()
     ->sortBy($sortTime)
     ->values();
 
 $rightTimes = $rightTimes
-    ->unique()
     ->sortBy($sortTime)
     ->values();
 
@@ -923,15 +936,26 @@ $rightTimes = $rightTimes
          NOON BREAK
          ========================================================= --}}
 
-   @if($i === 4)
+  @if($i === 4)
+    <tr class="add-time-before-break-row">
+        <td colspan="8">
+            <button
+                type="button"
+                class="btn btn-gray"
+                id="addRowBeforeBreakButton"
+            >
+                + Add Time Row 
+            </button>
+        </td>
+    </tr>
+
     <tr class="break-row">
-        <td colspan="7">
+        <td colspan="8">
             N O O N
             &nbsp;&nbsp;
             B R E A K
         </td>
     </tr>
-    @continue
 @endif
 
 
@@ -941,7 +965,7 @@ $rightTimes = $rightTimes
              LEFT TIME — MWF
              ===================================================== --}}
 
-       <td class="time-cell editable-time" contenteditable="true" spellcheck="false">
+       <td data-side="left" class="time-cell editable-time" contenteditable="true" spellcheck="false">
          {{ $leftTime }}
        </td>
 
@@ -1002,6 +1026,7 @@ $rightTimes = $rightTimes
 
 
             <td
+                data-side="left"
                 class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }} {{ $reservation ? 'reserved-cell' : '' }}"
 
                 data-schedule-id="{{ $schedule ? $schedule->id : '' }}"
@@ -1143,7 +1168,7 @@ $rightTimes = $rightTimes
 
                     @if($reservation)
                         <div class="reservation-cell-label">
-                            {{ $reservation->status === 'Pending' ? 'RESERVATION REQUESTED' : 'TEMPORARY RESERVATION' }}
+                            {{ $reservation->status === 'Reserved' ? 'TEMPORARY RESERVATION' : 'RESERVATION' }}
                         </div>
                         <div class="reservation-cell-user">
                             {{ $reservation->user?->name ?? 'Faculty' }}
@@ -1176,11 +1201,16 @@ $rightTimes = $rightTimes
 
 
         {{-- =====================================================
-             RIGHT TIME — TTH
+             RIGHT TIME — TTHS
              ===================================================== --}}
 
-        <td class="time-cell editable-time" contenteditable="true" spellcheck="false">
-        {{ $rightTime }}
+        <td
+            data-side="right"
+            class="time-cell editable-time"
+            contenteditable="true"
+            spellcheck="false"
+        >
+            {{ $rightTime }}
         </td>
 
 
@@ -1188,7 +1218,7 @@ $rightTimes = $rightTimes
              TUE / THU
              ===================================================== --}}
 
-        @foreach(['TUE', 'THU'] as $day)
+        @foreach(['TUE', 'THU', 'SAT'] as $day)
 
             @php
 
@@ -1240,6 +1270,7 @@ $rightTimes = $rightTimes
 
 
             <td
+                data-side="right"
                 class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }} {{ $reservation ? 'reserved-cell' : '' }}"
 
                 data-schedule-id="{{ $schedule ? $schedule->id : '' }}"
@@ -1318,7 +1349,7 @@ $rightTimes = $rightTimes
 
                     @if($reservation)
                         <div class="reservation-cell-label">
-                            {{ $reservation->status === 'Pending' ? 'RESERVATION REQUESTED' : 'TEMPORARY RESERVATION' }}
+                            {{ $reservation->status === 'Reserved' ? 'TEMPORARY RESERVATION' : 'RESERVATION' }}
                         </div>
                         <div class="reservation-cell-user">
                             {{ $reservation->user?->name ?? 'Faculty' }}
@@ -2096,9 +2127,234 @@ subjectTypeInput.value =
 }
 
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | HORIZONTAL SAME-SCHEDULE MERGE
+    |--------------------------------------------------------------------------
+    */
+
+    function scheduleMergeSignature(cell)
+    {
+        const fields = [
+            'course',
+            'subject',
+            'year',
+            'major',
+            'program',
+            'instructor',
+            'facultyId',
+            'departmentId',
+            'color',
+            'subjectType'
+        ];
+
+        return fields.map(function(field) {
+            return String(cell.dataset[field] || '');
+        }).join('||');
+    }
+
+    function getCellForDay(row, day)
+    {
+        return Array.from(
+            row.querySelectorAll('.schedule-cell')
+        ).find(function(cell) {
+            return (
+                cell.dataset.day === day &&
+                !cell.dataset.mergedDays
+            );
+        }) || null;
+    }
+
+    function mergeDayGroup(row, days)
+    {
+        let i = 0;
+
+        while (i < days.length) {
+
+            const firstCell = getCellForDay(row, days[i]);
+
+            if (!firstCell) {
+                i++;
+                continue;
+            }
+
+            if (!String(firstCell.dataset.course || '').trim()) {
+                i++;
+                continue;
+            }
+
+            const signature = scheduleMergeSignature(firstCell);
+            let end = i + 1;
+
+            while (end < days.length) {
+
+                const nextCell = getCellForDay(row, days[end]);
+
+                if (!nextCell) {
+                    break;
+                }
+
+                if (
+                    !String(nextCell.dataset.course || '').trim() ||
+                    scheduleMergeSignature(nextCell) !== signature
+                ) {
+                    break;
+                }
+
+                end++;
+            }
+
+            const runLength = end - i;
+
+            if (runLength >= 2) {
+
+                const runDays = days.slice(i, end);
+                const scheduleIds = {};
+
+                runDays.forEach(function(day) {
+                    const cell = getCellForDay(row, day);
+                    scheduleIds[day] =
+                        cell?.dataset.scheduleId || '';
+                });
+
+                firstCell.dataset.mergedDays =
+                    runDays.join(',');
+
+                firstCell.dataset.scheduleIds =
+                    JSON.stringify(scheduleIds);
+
+                firstCell.classList.add(
+                    'merged-schedule-cell'
+                );
+
+                firstCell.colSpan = runLength;
+
+                for (
+                    let removeIndex = i + 1;
+                    removeIndex < end;
+                    removeIndex++
+                ) {
+                    const cellToRemove =
+                        getCellForDay(row, days[removeIndex]);
+
+                    if (cellToRemove) {
+                        cellToRemove.remove();
+                    }
+                }
+            }
+
+            i = end;
+        }
+    }
+
+    function mergeHorizontalSchedules()
+    {
+        document
+            .querySelectorAll(
+                '#scheduleTable tbody tr:not(.break-row):not(.add-time-before-break-row)'
+            )
+            .forEach(function(row) {
+
+                mergeDayGroup(
+                    row,
+                    ['MON', 'WED', 'FRI']
+                );
+
+                mergeDayGroup(
+                    row,
+                    ['TUE', 'THU', 'SAT']
+                );
+            });
+    }
+
+    function unmergeCell(cell)
+    {
+        const mergedDays = String(
+            cell.dataset.mergedDays || ''
+        )
+        .split(',')
+        .map(function(day) {
+            return day.trim();
+        })
+        .filter(Boolean);
+
+        if (mergedDays.length <= 1) {
+            return;
+        }
+
+        const row = cell.parentElement;
+        const side = cell.dataset.side ||
+            (['MON', 'WED', 'FRI'].includes(mergedDays[0])
+                ? 'left'
+                : 'right');
+
+        cell.removeAttribute('colspan');
+        cell.classList.remove('merged-schedule-cell');
+
+        cell.dataset.mergedDays = '';
+        cell.dataset.scheduleIds = '';
+        cell.dataset.scheduleId = '';
+        cell.dataset.day = mergedDays[0];
+
+        let insertAfter = cell;
+
+        for (let i = 1; i < mergedDays.length; i++) {
+
+            const clone = cell.cloneNode(true);
+
+            clone.dataset.day = mergedDays[i];
+            clone.dataset.side = side;
+            clone.dataset.scheduleId = '';
+            clone.dataset.mergedDays = '';
+            clone.dataset.scheduleIds = '';
+            clone.dataset.course = '';
+            clone.dataset.subject = '';
+            clone.dataset.year = '';
+            clone.dataset.major = '';
+            clone.dataset.program = '';
+            clone.dataset.instructor = '';
+            clone.dataset.facultyId = '';
+            clone.dataset.departmentId = chairDepartmentId;
+            clone.dataset.color = '#ffffff';
+            clone.dataset.subjectType = '';
+            clone.dataset.locked = '0';
+            clone.dataset.reservationId = '';
+            clone.style.backgroundColor = '#ffffff';
+            clone.innerHTML =
+                '<span class="empty-cell">Empty</span>';
+
+            row.insertBefore(
+                clone,
+                insertAfter.nextSibling
+            );
+
+            insertAfter = clone;
+        }
+
+        cell.dataset.course = '';
+        cell.dataset.subject = '';
+        cell.dataset.year = '';
+        cell.dataset.major = '';
+        cell.dataset.program = '';
+        cell.dataset.instructor = '';
+        cell.dataset.facultyId = '';
+        cell.dataset.departmentId = chairDepartmentId;
+        cell.dataset.color = '#ffffff';
+        cell.dataset.subjectType = '';
+        cell.dataset.locked = '0';
+        cell.dataset.reservationId = '';
+        cell.style.backgroundColor = '#ffffff';
+        cell.innerHTML =
+            '<span class="empty-cell">Empty</span>';
+
+        attachCellEvents();
+    mergeHorizontalSchedules();
+    }
+
     attachCellEvents();
 
-
+mergeHorizontalSchedules();
     /*
 |--------------------------------------------------------------------------
 | SAVE CELL
@@ -2412,6 +2668,8 @@ function saveCell()
     );
 
 
+    mergeHorizontalSchedules();
+
     /*
     |--------------------------------------------------------------------------
     | SUCCESS MESSAGE
@@ -2495,6 +2753,10 @@ function clearCell()
         function(cell)
         {
 
+            if (cell.dataset.mergedDays) {
+                unmergeCell(cell);
+            }
+
             cell.dataset.course =
                 '';
 
@@ -2553,6 +2815,8 @@ function clearCell()
         }
     );
 
+
+    mergeHorizontalSchedules();
 
     /*
     |--------------------------------------------------------------------------
@@ -2640,173 +2904,124 @@ function clearCell()
     |--------------------------------------------------------------------------
     */
 
-   function addRow()
+   function createScheduleRow()
 {
-    const tbody =
-        document.getElementById('scheduleBody');
+    const row = document.createElement('tr');
 
+    function createTimeCell(side)
+    {
+        const timeCell = document.createElement('td');
 
-    const row =
-        document.createElement('tr');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CREATE TIME CELL
-    |--------------------------------------------------------------------------
-    */
-
-    function createTimeCell()
-{
-    const timeCell =
-        document.createElement('td');
-
-    timeCell.className =
-        'time-cell editable-time';
-
-        timeCell.contentEditable =
-            'true';
-
-        timeCell.spellcheck =
-            false;
-
-        timeCell.textContent =
-            'New Time';
+        timeCell.dataset.side = side;
+        timeCell.className = 'time-cell editable-time';
+        timeCell.contentEditable = 'true';
+        timeCell.spellcheck = false;
+        timeCell.textContent = 'New Time';
 
         return timeCell;
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | CREATE SCHEDULE CELL
-    |--------------------------------------------------------------------------
-    */
-
-    function createScheduleCell()
+    function createScheduleCell(day, side)
     {
-        const cell =
-            document.createElement('td');
+        const cell = document.createElement('td');
 
-        cell.className =
-            'schedule-cell';
+        cell.className = 'schedule-cell';
+        cell.dataset.day = day;
+        cell.dataset.side = side;
+        cell.dataset.time = '';
+        cell.dataset.scheduleIds = '';
+        cell.dataset.mergedDays = '';
+        cell.dataset.course = '';
+        cell.dataset.subject = '';
+        cell.dataset.year = '';
+        cell.dataset.major = '';
+        cell.dataset.program = '';
+        cell.dataset.instructor = '';
+        cell.dataset.facultyId = '';
+        cell.dataset.departmentId = chairDepartmentId;
+        cell.dataset.color = '#ffffff';
+        cell.dataset.subjectType = '';
+        cell.dataset.locked = '0';
+        cell.dataset.reservationId = '';
 
-        cell.dataset.course =
-            '';
-
-        cell.dataset.subject =
-            '';
-
-        cell.dataset.year =
-            '';
-
-        cell.dataset.major =
-            '';
-
-        cell.dataset.program =
-            '';
-
-        cell.dataset.instructor =
-            '';
-
-        cell.dataset.facultyId =
-            '';
-
-        cell.dataset.departmentId =
-            chairDepartmentId;
-
-        cell.dataset.color =
-            '#ffffff';
-
-        cell.dataset.subjectType =
-            '';
-
-        cell.dataset.locked =
-            '0';
-
-        cell.innerHTML =
-            '<span class="empty-cell">Empty</span>';
+        cell.innerHTML = '<span class="empty-cell">Empty</span>';
 
         return cell;
     }
 
+    // LEFT: TIME + MON + WED + FRI
+    row.appendChild(createTimeCell('left'));
+    row.appendChild(createScheduleCell('MON', 'left'));
+    row.appendChild(createScheduleCell('WED', 'left'));
+    row.appendChild(createScheduleCell('FRI', 'left'));
 
-    /*
-    |--------------------------------------------------------------------------
-    | LEFT SIDE
-    | TIME + MON + WED + FRI
-    |--------------------------------------------------------------------------
-    */
+    // RIGHT: TIME + TUE + THU + SAT
+    row.appendChild(createTimeCell('right'));
+    row.appendChild(createScheduleCell('TUE', 'right'));
+    row.appendChild(createScheduleCell('THU', 'right'));
+    row.appendChild(createScheduleCell('SAT', 'right'));
 
-    row.appendChild(
-        createTimeCell()
-    );
+    return row;
+}
 
-    row.appendChild(
-        createScheduleCell()
-    );
+function finalizeNewScheduleRow(row)
+{
+    const leftTime = row.querySelector('.editable-time[data-side="left"]');
+    const rightTime = row.querySelector('.editable-time[data-side="right"]');
 
-    row.appendChild(
-        createScheduleCell()
-    );
+    const syncRowTimes = function()
+    {
+        const leftValue = leftTime ? leftTime.innerText.trim() : '';
+        const rightValue = rightTime ? rightTime.innerText.trim() : '';
 
-    row.appendChild(
-        createScheduleCell()
-    );
+        row.querySelectorAll('.schedule-cell[data-side="left"]').forEach(function(cell) {
+            cell.dataset.time = leftValue;
+        });
 
+        row.querySelectorAll('.schedule-cell[data-side="right"]').forEach(function(cell) {
+            cell.dataset.time = rightValue;
+        });
+    };
 
-    /*
-    |--------------------------------------------------------------------------
-    | RIGHT SIDE
-    | TIME + TUE + THU
-    |--------------------------------------------------------------------------
-    */
-
-    row.appendChild(
-        createTimeCell()
-    );
-
-    row.appendChild(
-        createScheduleCell()
-    );
-
-    row.appendChild(
-        createScheduleCell()
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | ADD ROW
-    |--------------------------------------------------------------------------
-    */
-
-    tbody.appendChild(row);
-
-
- /*
-|--------------------------------------------------------------------------
-| ATTACH CELL EVENTS
-|--------------------------------------------------------------------------
-*/
-
-attachCellEvents();
-
-
-
-attachTimeCellEvents();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SCROLL TO NEW ROW
-    |--------------------------------------------------------------------------
-    */
+    syncRowTimes();
+    attachCellEvents();
+    attachTimeCellEvents();
+    mergeHorizontalSchedules();
 
     row.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
     });
+}
+
+function addRow()
+{
+    const tbody = document.getElementById('scheduleBody');
+    const row = createScheduleRow();
+
+    tbody.appendChild(row);
+    finalizeNewScheduleRow(row);
+}
+
+function addRowBeforeBreak()
+{
+    const tbody = document.getElementById('scheduleBody');
+    const row = createScheduleRow();
+
+    // Put the new time row ABOVE the Add Time Row button.
+    // The button stays immediately before the Noon Break.
+    const addButtonRow = tbody.querySelector('.add-time-before-break-row');
+    const breakRow = tbody.querySelector('.break-row');
+
+    if (addButtonRow) {
+        tbody.insertBefore(row, addButtonRow);
+    } else if (breakRow) {
+        tbody.insertBefore(row, breakRow);
+    } else {
+        tbody.appendChild(row);
+    }
+
+    finalizeNewScheduleRow(row);
 }
 
     document
@@ -2818,6 +3033,17 @@ attachTimeCellEvents();
             addRow
         );
 
+    const addRowBeforeBreakButton =
+        document.getElementById(
+            'addRowBeforeBreakButton'
+        );
+
+    if (addRowBeforeBreakButton) {
+        addRowBeforeBreakButton.addEventListener(
+            'click',
+            addRowBeforeBreak
+        );
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -2854,566 +3080,313 @@ attachTimeCellEvents();
   function prepareSchedule()
 {
     const hidden =
-        document.getElementById(
-            'hiddenInputs'
-        );
+        document.getElementById('hiddenInputs');
 
     hidden.innerHTML = '';
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | SEMESTER
-    |--------------------------------------------------------------------------
-    */
-
     const semester =
-        document.getElementById(
-            'semester'
-        )?.value.trim() || '';
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | ACADEMIC YEAR
-    |--------------------------------------------------------------------------
-    */
+        document.getElementById('semester')?.value.trim() || '';
 
     const academicYear =
-        document.getElementById(
-            'academic_year'
-        )?.value.trim() || '';
+        document.getElementById('academic_year')?.value.trim() || '';
 
+    function addHidden(name, value)
+    {
+        const input = document.createElement('input');
 
-    /*
-    |--------------------------------------------------------------------------
-    | SEND SEMESTER
-    |--------------------------------------------------------------------------
-    */
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value ?? '';
 
-    const semesterInput =
-        document.createElement(
-            'input'
-        );
+        hidden.appendChild(input);
+    }
 
-    semesterInput.type =
-        'hidden';
-
-    semesterInput.name =
-        'semester';
-
-    semesterInput.value =
-        semester;
-
-    hidden.appendChild(
-        semesterInput
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SEND ACADEMIC YEAR
-    |--------------------------------------------------------------------------
-    */
-
-    const academicYearInput =
-        document.createElement(
-            'input'
-        );
-
-    academicYearInput.type =
-        'hidden';
-
-    academicYearInput.name =
-        'academic_year';
-
-    academicYearInput.value =
-        academicYear;
-
-    hidden.appendChild(
-        academicYearInput
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | GET TABLE ROWS
-    |--------------------------------------------------------------------------
-    */
+    addHidden('semester', semester);
+    addHidden('academic_year', academicYear);
 
     const rows =
-        document.querySelectorAll(
-            '#scheduleTable tbody tr'
+        Array.from(
+            document.querySelectorAll(
+                '#scheduleTable tbody tr:not(.break-row):not(.add-time-before-break-row)'
+            )
         );
 
+    const rowPositionMap =
+        new Map(
+            rows.map(function(row, index) {
+                return [row, index];
+            })
+        );
+
+  let counter = 0;
+let timeSlotCounter = 0;
+let roomTimeSlotCounter = 0;
 
     /*
     |--------------------------------------------------------------------------
-    | COLUMN DEFINITIONS
-    |-------------------------------------------------------------------------- 
-    */
-
-    const leftDays = [
-        'MON',
-        'WED',
-        'FRI'
-    ];
-
-    const rightDays = [
-        'TUE',
-        'THU'
-    ];
-
-
-    let counter = 0;
-
-
-    /*
+    | SUBMIT EVERY OFFICIAL TIME ROW
     |--------------------------------------------------------------------------
-    | PROCESS EACH ROW
+    |
+    | This keeps schedule_time_slots synchronized even when a new time row
+    | has no class assigned yet.
     |--------------------------------------------------------------------------
     */
 
-    rows.forEach(
-        function(row)
-        {
+    rows.forEach(function(row) {
 
-            /*
-            |--------------------------------------------------------------------------
-            | SKIP NOON BREAK
-            |--------------------------------------------------------------------------
-            */
+        const rowPosition =
+            rowPositionMap.get(row);
 
-            if (
-                row.classList.contains(
-                    'break-row'
-                )
-            ) {
+        ['left', 'right'].forEach(function(side) {
+
+            const timeCell =
+                row.querySelector(
+                    '.editable-time[data-side="' + side + '"]'
+                );
+
+            const time =
+                timeCell
+                    ? timeCell.innerText.trim()
+                    : '';
+
+            if (!time) {
                 return;
             }
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | LEFT TIME
-            |--------------------------------------------------------------------------
-            */
-
-            const leftTimeCell =
-                row.cells[0];
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | RIGHT TIME
-            |--------------------------------------------------------------------------
-            */
-
-            const rightTimeCell =
-                row.cells[4];
-
-
-            const leftTime =
-                leftTimeCell
-                    ? leftTimeCell.innerText.trim()
-                    : '';
-
-
-            const rightTime =
-                rightTimeCell
-                    ? rightTimeCell.innerText.trim()
-                    : '';
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | PROCESS LEFT SIDE
-            | MON / WED / FRI
-            |--------------------------------------------------------------------------
-            */
-
-            leftDays.forEach(
-                function(day, index)
-                {
-
-                    const cell =
-                        row.cells[index + 1];
-
-
-                    if (!cell) {
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | LOCKED CELLS ARE NOT SUBMITTED
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (
-                        cell.dataset.locked ===
-                        '1'
-                    ) {
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | TIME REQUIRED
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!leftTime) {
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | COURSE
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const course =
-                        (
-                            cell.dataset.course ||
-                            ''
-                        ).trim();
-
-
-                    if (!course) {
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | FIND COURSE
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const matches =
-                        findCourse(course);
-
-
-                    if (
-                        matches.length !== 1
-                    ) {
-                        return;
-                    }
-
-
-                    const match =
-                        matches[0];
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | SUBJECT TYPE
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const subjectType =
-                        (
-                            cell.dataset.subjectType ||
-                            ''
-                        ).trim();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | SCHEDULE DATA
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const scheduleData = {
-
-                        schedule_id: cell.dataset.scheduleId || '',
-
-                        row_position: Array.from(
-                        document.querySelectorAll('#scheduleBody > tr:not(.break-row)')
-                        ).indexOf(row),
-
-                        day: day,
-
-                        time: leftTime,
-
-                        course_code:
-                            match.course_code,
-
-                        subject:
-                            match.subject,
-
-                        year_level:
-                            match.year_level,
-
-                        major:
-                            match.major || '',
-
-                        program:
-                            match.program || '',
-
-                        instructor:
-                            match.instructor,
-
-                        faculty_id:
-                            match.faculty_id || '',
-
-                        department_id:
-                            chairDepartmentId,
-
-                        subject_type:
-                            subjectType,
-
-                        color:
-                            cell.dataset.color ||
-                            '#ffffff'
-                    };
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | CREATE HIDDEN INPUTS
-                    |--------------------------------------------------------------------------
-                    */
-
-                    Object.keys(
-                        scheduleData
-                    ).forEach(
-                        function(name)
-                        {
-
-                            const input =
-                                document.createElement(
-                                    'input'
-                                );
-
-                            input.type =
-                                'hidden';
-
-                            input.name =
-                                'schedule[' +
-                                counter +
-                                '][' +
-                                name +
-                                ']';
-
-                            input.value =
-                                scheduleData[name];
-
-                            hidden.appendChild(
-                                input
-                            );
-
-                        }
-                    );
-
-
-                    counter++;
-
-                }
-            );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | PROCESS RIGHT SIDE
-            | TUE / THU
-            |--------------------------------------------------------------------------
-            */
-
-            rightDays.forEach(
-                function(day, index)
-                {
-
-                    const cell =
-                        row.cells[index + 5];
-
-
-                    if (!cell) {
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | LOCKED CELLS ARE NOT SUBMITTED
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (
-                        cell.dataset.locked ===
-                        '1'
-                    ) {
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | TIME REQUIRED
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!rightTime) {
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | COURSE
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const course =
-                        (
-                            cell.dataset.course ||
-                            ''
-                        ).trim();
-
-
-                    if (!course) {
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | FIND COURSE
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const matches =
-                        findCourse(course);
-
-
-                    if (
-                        matches.length !== 1
-                    ) {
-                        return;
-                    }
-
-
-                    const match =
-                        matches[0];
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | SUBJECT TYPE
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const subjectType =
-                        (
-                            cell.dataset.subjectType ||
-                            ''
-                        ).trim();
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | SCHEDULE DATA
-                    |--------------------------------------------------------------------------
-                    */
-
-                    const scheduleData = {
-
-                        schedule_id: cell.dataset.scheduleId || '',
-
-                        row_position: Array.from(
-                        document.querySelectorAll('#scheduleBody > tr:not(.break-row)')
-                        ).indexOf(row),
-
-                        day: day,
-
-                        time: rightTime,
-
-                        course_code:
-                            match.course_code,
-
-                        subject:
-                            match.subject,
-
-                        year_level:
-                            match.year_level,
-
-                        major:
-                            match.major || '',
-
-                        program:
-                            match.program || '',
-
-                        instructor:
-                            match.instructor,
-
-                        faculty_id:
-                            match.faculty_id || '',
-
-                        department_id:
-                            chairDepartmentId,
-
-                        subject_type:
-                            subjectType,
-
-                        color:
-                            cell.dataset.color ||
-                            '#ffffff'
-                    };
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | CREATE HIDDEN INPUTS
-                    |--------------------------------------------------------------------------
-                    */
-
-                    Object.keys(
-                        scheduleData
-                    ).forEach(
-                        function(name)
-                        {
-
-                            const input =
-                                document.createElement(
-                                    'input'
-                                );
-
-                            input.type =
-                                'hidden';
-
-                            input.name =
-                                'schedule[' +
-                                counter +
-                                '][' +
-                                name +
-                                ']';
-
-                            input.value =
-                                scheduleData[name];
-
-                            hidden.appendChild(
-                                input
-                            );
-
-                        }
-                    );
-
-
-                    counter++;
-
-                }
-            );
-
-        }
+            row.querySelectorAll(
+                '.schedule-cell[data-side="' + side + '"]'
+            ).forEach(function(cell) {
+                cell.dataset.time = time;
+            });
+
+            const days =
+                side === 'left'
+                    ? ['MON', 'WED', 'FRI']
+                    : ['TUE', 'THU', 'SAT'];
+
+           days.forEach(function(day) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | GLOBAL TIME SLOT
+    |--------------------------------------------------------------------------
+    */
+
+    addHidden(
+        'time_slots[' +
+        timeSlotCounter +
+        '][day]',
+        day
     );
 
+    addHidden(
+        'time_slots[' +
+        timeSlotCounter +
+        '][time]',
+        time
+    );
+
+    addHidden(
+        'time_slots[' +
+        timeSlotCounter +
+        '][row_position]',
+        rowPosition
+    );
+
+    timeSlotCounter++;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROOM-SPECIFIC TIME SLOT
+    |--------------------------------------------------------------------------
+    |
+    | This records that THIS ROOM actually has this timetable row.
+    | It can therefore be Available even when the cell is empty.
+    |
+    */
+
+    addHidden(
+        'room_time_slots[' +
+        roomTimeSlotCounter +
+        '][day]',
+        day
+    );
+
+    addHidden(
+        'room_time_slots[' +
+        roomTimeSlotCounter +
+        '][time]',
+        time
+    );
+
+    addHidden(
+        'room_time_slots[' +
+        roomTimeSlotCounter +
+        '][row_position]',
+        rowPosition
+    );
+
+    roomTimeSlotCounter++;
+});
+        });
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | SUBMIT SCHEDULE CELLS
+    |--------------------------------------------------------------------------
+    |
+    | A horizontally merged cell represents multiple weekdays. The same
+    | class is submitted once for every weekday represented by that cell.
+    | No vertical merging is performed.
+    |--------------------------------------------------------------------------
+    */
+
+    rows.forEach(function(row) {
+
+        const rowPosition =
+            rowPositionMap.get(row);
+
+        row.querySelectorAll('.schedule-cell').forEach(function(cell) {
+
+            if (cell.dataset.locked === '1') {
+                return;
+            }
+
+            const course =
+                String(cell.dataset.course || '')
+                    .trim()
+                    .toUpperCase();
+
+            if (!course) {
+                return;
+            }
+
+            const matches =
+                findCourse(course);
+
+            if (matches.length !== 1) {
+                return;
+            }
+
+            const match = matches[0];
+
+            const subjectType =
+                String(cell.dataset.subjectType || '').trim();
+
+            const time =
+                String(
+                    cell.dataset.time ||
+                    ''
+                ).trim();
+
+            if (!time) {
+                return;
+            }
+
+            let days =
+                String(
+                    cell.dataset.mergedDays ||
+                    cell.dataset.day ||
+                    ''
+                )
+                .split(',')
+                .map(function(day) {
+                    return day.trim().toUpperCase();
+                })
+                .filter(Boolean);
+
+            if (days.length === 0) {
+                return;
+            }
+
+            let scheduleIds = {};
+
+            try {
+                scheduleIds =
+                    JSON.parse(
+                        cell.dataset.scheduleIds || '{}'
+                    ) || {};
+            } catch (error) {
+                scheduleIds = {};
+            }
+
+            days.forEach(function(day) {
+
+                const scheduleData = {
+
+                    schedule_id:
+                        scheduleIds[day] ||
+                        (
+                            days.length === 1
+                                ? cell.dataset.scheduleId || ''
+                                : ''
+                        ),
+
+                    row_position:
+                        rowPosition,
+
+                    day:
+                        day,
+
+                    time:
+                        time,
+
+                    course_code:
+                        match.course_code,
+
+                    subject:
+                        match.subject,
+
+                    year_level:
+                        match.year_level,
+
+                    major:
+                        match.major || '',
+
+                    program:
+                        match.program || '',
+
+                    instructor:
+                        match.instructor,
+
+                    faculty_id:
+                        match.faculty_id || '',
+
+                    department_id:
+                        chairDepartmentId,
+
+                    subject_type:
+                        subjectType,
+
+                    color:
+                        cell.dataset.color ||
+                        '#ffffff'
+                };
+
+                Object.keys(scheduleData).forEach(
+                    function(name)
+                    {
+                        addHidden(
+                            'schedule[' +
+                            counter +
+                            '][' +
+                            name +
+                            ']',
+                            scheduleData[name]
+                        );
+                    }
+                );
+
+                counter++;
+            });
+        });
+    });
 
     return counter;
 }
+
     /*
     |--------------------------------------------------------------------------
     | FORM SUBMIT
@@ -3602,16 +3575,46 @@ attachTimeCellEvents();
 function attachTimeCellEvents() {
     document.querySelectorAll('.editable-time').forEach(timeCell => {
 
-        // Prevent Enter from creating a new line
-        timeCell.addEventListener('keydown', function (event) {
+        if (timeCell.dataset.timeEventsAttached === '1') {
+            return;
+        }
+
+        timeCell.dataset.timeEventsAttached = '1';
+
+        function syncTimeToCells() {
+            const row = timeCell.closest('tr');
+
+            if (!row) {
+                return;
+            }
+
+            const time =
+                timeCell.innerText.trim();
+
+            const side =
+                timeCell.dataset.side;
+
+            row.querySelectorAll(
+                '.schedule-cell[data-side="' + side + '"]'
+            ).forEach(function(cell) {
+                cell.dataset.time = time;
+            });
+        }
+
+        syncTimeToCells();
+
+        timeCell.addEventListener('input', syncTimeToCells);
+        timeCell.addEventListener('blur', syncTimeToCells);
+
+        timeCell.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
                 event.preventDefault();
                 this.blur();
             }
         });
-
     });
 }
+
 // ============================================================
 // MERGE WITH EXISTING CLASS
 // ============================================================
@@ -4611,6 +4614,8 @@ function openMergeRoomSchedule(
 
                         '<th>THU</th>' +
 
+                        '<th>SAT</th>' +
+
                     '</tr>' +
 
                 '</thead>' +
@@ -4652,7 +4657,7 @@ function openMergeRoomSchedule(
 
                         '<tr class="merge-noon-break">' +
 
-                            '<td colspan="7">' +
+                            '<td colspan="8">' +
                                 'NOON BREAK' +
                             '</td>' +
 
@@ -4740,6 +4745,10 @@ function openMergeRoomSchedule(
 
                         buildMergeScheduleCell(
                             thursday
+                        ) +
+
+                        buildMergeScheduleCell(
+                            saturday
                         ) +
 
                     '</tr>';
@@ -5466,6 +5475,78 @@ if (
 }
 }
 </script>
+
+@php
+    /*
+    |--------------------------------------------------------------------------
+    | RESERVATION AUTO-REFRESH DATA
+    |--------------------------------------------------------------------------
+    */
+    $reservationRefreshData = ($reservations ?? collect())
+        ->map(function ($reservation) {
+            return [
+                'status' => $reservation->status,
+                'date' => $reservation->date
+                    ? \Carbon\Carbon::parse($reservation->date)->format('Y-m-d')
+                    : null,
+                'end_time' => $reservation->end_time
+                    ? \Carbon\Carbon::parse($reservation->end_time)->format('H:i:s')
+                    : null,
+            ];
+        })
+        ->values()
+        ->toArray();
+@endphp
+
+<script>
+/* ================================================================
+   TEMPORARY RESERVATION AUTO-REFRESH
+   ---------------------------------------------------------------
+================================================================ */
+(function () {
+    const reservations = @json($reservationRefreshData);
+
+    let nearestExpiry = null;
+
+    reservations.forEach(function (reservation) {
+        if (!reservation.date || !reservation.end_time) {
+            return;
+        }
+
+        if (reservation.status !== 'Reserved') {
+            return;
+        }
+
+        const target = new Date(
+            reservation.date + 'T' + reservation.end_time
+        );
+
+        if (Number.isNaN(target.getTime())) {
+            return;
+        }
+
+        if (target <= new Date()) {
+            return;
+        }
+
+        if (!nearestExpiry || target < nearestExpiry) {
+            nearestExpiry = target;
+        }
+    });
+
+    if (nearestExpiry) {
+        const delay = Math.max(
+            1000,
+            nearestExpiry.getTime() - Date.now() + 1000
+        );
+
+        setTimeout(function () {
+            window.location.reload();
+        }, delay);
+    }
+})();
+</script>
+
 
 
 </body>

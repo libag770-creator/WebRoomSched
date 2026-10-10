@@ -580,6 +580,10 @@
                     @endphp
 
 
+                    
+
+                    <div style="margin-bottom:18px;padding:12px 14px;background:#eef8ef;border:1px solid #d7e8da;border-radius:9px;color:#176b3a;font-size:12px;font-weight:700;">Active Term: {{ $activeTerm->academic_year ?? '-' }} • {{ $activeTerm->semester ?? '-' }} — Drafts shown here belong only to the active term.</div>
+
                     <div class="rooms-section">
 
 

@@ -1,5 +1,13 @@
 <aside class="sidebar">
 
+    <div class="sidebar-brand">
+        <img src="{{ asset('images/images.jpg') }}" alt="BSU Bokod Campus">
+        <div>
+            <strong>WebRoomSched</strong>
+            <span>Administrator Portal</span>
+        </div>
+    </div>
+
     <ul class="sidebar-menu">
 
         <li class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
@@ -11,6 +19,20 @@
 
                 <span class="sidebar-text">
                     Dashboard
+                </span>
+
+            </a>
+        </li>
+
+          <li class="{{ request()->routeIs('admin.departments') ? 'active' : '' }}">
+            <a href="{{ route('admin.departments') }}">
+
+                <span class="sidebar-icon">
+                    <i class="fa-solid fa-building-columns"></i>
+                </span>
+
+                <span class="sidebar-text">
+                    Manage College Departments
                 </span>
 
             </a>
@@ -31,6 +53,20 @@
             </a>
         </li>
 
+        {{-- ROOM REASSIGNMENT --}}
+<li class="{{ request()->routeIs('admin.roomreassignment*') ? 'active' : '' }}">
+    <a href="{{ route('admin.roomreassignment') }}">
+
+        <span class="sidebar-icon">
+            <i class="fa-solid fa-right-left"></i>
+        </span>
+
+        <span class="sidebar-text">
+            Override Schedule
+        </span>
+
+    </a>
+</li>
 
         <li class="{{ request()->routeIs('admin.buildings') ? 'active' : '' }}">
             <a href="{{ route('admin.buildings') }}">
@@ -47,19 +83,7 @@
         </li>
 
 
-        <li class="{{ request()->routeIs('admin.departments') ? 'active' : '' }}">
-            <a href="{{ route('admin.departments') }}">
-
-                <span class="sidebar-icon">
-                    <i class="fa-solid fa-building-columns"></i>
-                </span>
-
-                <span class="sidebar-text">
-                    Manage College Departments
-                </span>
-
-            </a>
-        </li>
+      
 
 
         <li class="{{ request()->routeIs('admin.schedules') ? 'active' : '' }}">

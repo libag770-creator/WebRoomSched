@@ -2,36 +2,25 @@
     position: fixed;
     top: 0;
     left: 0;
-
     width: 250px;
     height: 100vh;
-
     background: linear-gradient(
         180deg,
         #2e7d32 0%,
         #1b5e20 100%
     );
-
     padding: 80px 14px 20px;
-
     box-sizing: border-box;
-
     z-index: 1000;
-
     overflow-y: auto;
-
     border-right: 1px solid rgba(249, 168, 37, 0.25);
-
     box-shadow:
         5px 0 20px rgba(0, 0, 0, 0.16);
-
     transition:
         width 0.3s ease,
         transform 0.3s ease;
-
     animation: sidebarSlideIn 0.45s ease;
 }
-
 
 /* =========================================
    SIDEBAR LIST
@@ -43,20 +32,16 @@
     margin: 0;
 }
 
-
 /* =========================================
    MENU ITEMS
    ========================================= */
 
 .sidebar li {
     margin-bottom: 7px;
-
     animation:
         menuFadeIn 0.4s ease forwards;
-
     opacity: 0;
 }
-
 
 /* =========================================
    MENU LINKS
@@ -64,31 +49,19 @@
 
 .sidebar li a {
     position: relative;
-
     display: flex;
     align-items: center;
-
     gap: 12px;
-
     width: 100%;
     min-height: 50px;
-
     padding: 0 14px;
-
     box-sizing: border-box;
-
     color: #ffffff;
-
     text-decoration: none;
-
     font-size: 14px;
-
     font-weight: 500;
-
     border-radius: 10px;
-
     overflow: hidden;
-
     transition:
         background 0.25s ease,
         color 0.25s ease,
@@ -97,7 +70,6 @@
         box-shadow 0.25s ease;
 }
 
-
 /* =========================================
    ICONS
    ========================================= */
@@ -105,23 +77,17 @@
 .sidebar li a i {
     width: 22px;
     height: 22px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     flex-shrink: 0;
-
     font-size: 15px;
-
     color: #f9a825;
-
     transition:
         color 0.25s ease,
         transform 0.25s ease,
         background 0.25s ease;
 }
-
 
 /* =========================================
    HOVER
@@ -129,26 +95,19 @@
 
 .sidebar li a:hover {
     background: rgba(249, 168, 37, 0.16);
-
     color: #ffffff;
-
     padding-left: 18px;
-
     transform: translateX(3px);
-
     box-shadow:
         inset 3px 0 0 #f9a825;
 }
 
-
 .sidebar li a:hover i {
     color: #f9a825;
-
     transform:
         scale(1.15)
         rotate(-3deg);
 }
-
 
 /* =========================================
    ACTIVE PAGE
@@ -156,24 +115,17 @@
 
 .sidebar li.active a {
     background: #f9a825;
-
     color: #1b5e20;
-
     font-weight: 700;
-
     box-shadow:
         0 5px 15px rgba(0, 0, 0, 0.18);
-
     transform: translateX(3px);
 }
 
-
 .sidebar li.active a i {
     color: #1b5e20;
-
     transform: scale(1.08);
 }
-
 
 /* =========================================
    ACTIVE LEFT INDICATOR
@@ -181,23 +133,16 @@
 
 .sidebar li.active a::before {
     content: "";
-
     position: absolute;
-
     left: 0;
     top: 50%;
-
     width: 5px;
     height: 28px;
-
     transform: translateY(-50%);
-
     background: #ffffff;
-
     border-radius:
         0 5px 5px 0;
 }
-
 
 /* =========================================
    SUBTLE ACTIVE GLOW
@@ -205,22 +150,15 @@
 
 .sidebar li.active a::after {
     content: "";
-
     position: absolute;
-
     width: 70px;
     height: 70px;
-
     right: -30px;
     top: 50%;
-
     transform: translateY(-50%);
-
     background: rgba(255, 255, 255, 0.12);
-
     border-radius: 50%;
 }
-
 
 /* =========================================
    CLICK EFFECT
@@ -230,25 +168,19 @@
     transform: scale(0.97);
 }
 
-
 /* =========================================
    SIDEBAR TOP DECORATION
    ========================================= */
 
 .sidebar::before {
     content: "";
-
     position: absolute;
-
     top: 0;
     left: 0;
-
     width: 100%;
     height: 5px;
-
     background: #f9a825;
 }
-
 
 /* =========================================
    SIDEBAR BOTTOM DECORATION
@@ -256,58 +188,44 @@
 
 .sidebar::after {
     content: "";
-
     position: absolute;
-
     bottom: 0;
     left: 0;
-
     width: 100%;
     height: 3px;
-
     background: #f9a825;
-
     opacity: 0.8;
 }
-
 
 /* =========================================
    SIDEBAR ENTRANCE
    ========================================= */
 
 @keyframes sidebarSlideIn {
-
     from {
         opacity: 0;
         transform: translateX(-25px);
     }
-
     to {
         opacity: 1;
         transform: translateX(0);
     }
-
 }
-
 
 /* =========================================
    MENU ANIMATION
    ========================================= */
 
 @keyframes menuFadeIn {
-
     from {
         opacity: 0;
         transform: translateX(-12px);
     }
-
     to {
         opacity: 1;
         transform: translateX(0);
     }
-
 }
-
 
 /* =========================================
    MENU DELAYS
@@ -349,25 +267,19 @@
     animation-delay: 0.45s;
 }
 
-
 /* =========================================
    MAIN CONTENT
    ========================================= */
 
 .main-content {
     margin-left: 250px;
-
     width: calc(100% - 250px);
-
     min-height: 100vh;
-
     box-sizing: border-box;
-
     transition:
         margin-left 0.3s ease,
         width 0.3s ease;
 }
-
 
 /* =========================================
    SIDEBAR SCROLLBAR
@@ -383,14 +295,12 @@
 
 .sidebar::-webkit-scrollbar-thumb {
     background: #f9a825;
-
     border-radius: 10px;
 }
 
 .sidebar::-webkit-scrollbar-thumb:hover {
     background: #f9a825;
 }
-
 
 /* =========================================
    FIREFOX SCROLLBAR
@@ -400,7 +310,6 @@
     scrollbar-width: thin;
     scrollbar-color: #f9a825 #1b5e20;
 }
-
 
 /* =========================================
    MOBILE / TABLET
@@ -416,9 +325,7 @@
         margin-left: 220px;
         width: calc(100% - 220px);
     }
-
 }
-
 
 /* =========================================
    MOBILE
@@ -428,7 +335,6 @@
 
     .sidebar {
         width: 250px;
-
         transform: translateX(-100%);
     }
 
@@ -438,8 +344,6 @@
 
     .main-content {
         margin-left: 0;
-
         width: 100%;
     }
-
 }

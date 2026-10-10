@@ -2,44 +2,65 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Room;
-use App\Models\User;
-use App\Models\Department;
 
 class ScheduleDraft extends Model
 {
-    protected $fillable = [
-        'room_id',
-        'faculty_id',
-        'department_id',
+    use HasFactory;
 
-        // Schedule information
-        'semester',
-        'academic_year',
+    protected $table = 'schedule_drafts';
+
+    protected $fillable = [
+
+        'academic_term_id',
+
+        'room_id',
 
         'created_by',
 
+        'faculty_id',
+
+        'department_id',
+
+        'semester',
+
+        'academic_year',
+
         'day',
+
         'time',
 
-       'course_code',
-'subject',
-'year_level',
-'major',
-'subject_type',
+        'row_position',
+
+        'course_code',
+
+        'subject',
+
+        'year_level',
+
+        'major',
+
+        'program',
+
+        'subject_type',
 
         'instructor',
-        'description',
+
         'color',
     ];
 
+    protected $casts = [
+        'academic_term_id' => 'integer',
+    ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | ROOM
-    |--------------------------------------------------------------------------
-    */
+    public function academicTerm()
+    {
+        return $this->belongsTo(
+            AcademicTerm::class,
+            'academic_term_id'
+        );
+    }
 
     public function room()
     {
@@ -49,12 +70,13 @@ class ScheduleDraft extends Model
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY
-    |--------------------------------------------------------------------------
-    */
+    public function creator()
+    {
+        return $this->belongsTo(
+            User::class,
+            'created_by'
+        );
+    }
 
     public function faculty()
     {
@@ -64,33 +86,11 @@ class ScheduleDraft extends Model
         );
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | DEPARTMENT
-    |--------------------------------------------------------------------------
-    */
-
     public function department()
     {
         return $this->belongsTo(
             Department::class,
             'department_id'
-        );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CREATOR
-    |--------------------------------------------------------------------------
-    */
-
-    public function creator()
-    {
-        return $this->belongsTo(
-            User::class,
-            'created_by'
         );
     }
 }
