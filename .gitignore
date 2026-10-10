@@ -22,10 +22,9 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/storage/framework/views/*
-!/storage/framework/views/.gitignore
-/storage/framework/cache/*
-!/storage/framework/cache/.gitignore
+
+/storage/framework/views/
+/storage/framework/cache/
 /storage/framework/sessions/*
 /storage/framework/testing/*
 /storage/logs/*
