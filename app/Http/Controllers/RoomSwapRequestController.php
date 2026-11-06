@@ -13,8 +13,10 @@ use App\Models\Department;
 use App\Models\RoomSwapRequest;
 
 use App\Models\Schedule;
+use App\Models\ScheduleOverride;
 
 use App\Models\User;
+use App\Notifications\RoomSwapNotification;
 
 use Carbon\Carbon;
 
@@ -149,6 +151,54 @@ $targetSchedules = $targetSchedulesQuery
     ->orderBy('day')
     ->orderBy('time')
     ->get();
+
+        // Show current and upcoming admin room overrides and use them in the
+        // date-specific room availability check on the faculty page.
+        $scheduleOverridesQuery = ScheduleOverride::with([
+            'schedule.room.buildingRelation',
+            'schedule.room.department',
+            'faculty',
+        ])
+            ->where('status', 'active')
+            ->whereDate('override_date', '>=', today()->toDateString())
+            ->where('expires_at', '>', now());
+
+        if ($activeTerm) {
+            $scheduleOverridesQuery->whereHas('schedule', function ($query) use ($activeTerm) {
+                $this->applyAcademicTermFilter($query, $activeTerm);
+            });
+        } else {
+            $scheduleOverridesQuery->whereRaw('1 = 0');
+        }
+
+        $scheduleOverrides = $scheduleOverridesQuery
+            ->orderBy('override_date')
+            ->orderBy('created_at')
+            ->get();
+
+        $scheduleOverrideData = $scheduleOverrides->map(function ($override) {
+            $schedule = $override->schedule;
+            $room = $schedule?->room;
+            $building = $room?->getRelation('buildingRelation');
+
+            return [
+                'schedule_id' => (int) $override->schedule_id,
+                'room_id' => (int) ($schedule?->room_id ?? 0),
+                'date' => $override->override_date?->format('Y-m-d'),
+                'occupied_by' => $override->occupied_by,
+                'reason' => $override->reason,
+                'faculty' => $override->faculty?->name,
+                'course' => $schedule?->course_code ?: ($schedule?->subject ?: 'Class schedule'),
+                'day' => $schedule?->day,
+                'time' => $schedule?->time,
+                'room' => $room?->room_name ?: ($room?->name ?: 'Room'),
+                // Room has a legacy text column named `building`; use the
+                // explicit relationship name to avoid treating that string
+                // as a Building model.
+                'building' => $building?->name ?: ($room?->building ?: null),
+                'department' => $room?->department?->name,
+            ];
+        })->values();
 
 
         // Schedule rows store the instructor's name, so map it to users.id.
@@ -294,6 +344,8 @@ return view(
         'mySchedules',
         'departments',
         'targetSchedules',
+        'scheduleOverrides',
+        'scheduleOverrideData',
         'activeTerm'
     )
 );
@@ -329,7 +381,7 @@ return view(
 
             'target_user_id' => ['required', 'integer', 'exists:users,id'],
 
-            'swap_date' => ['required', 'date'],
+            'swap_date' => ['required', 'date', 'after_or_equal:today'],
 
             'start_time' => ['required', 'string', 'max:50'],
 
@@ -466,12 +518,63 @@ if ((int) $targetFaculty->id === (int) $user->id) {
 
         }
 
+        try {
+            $swapDate = Carbon::parse($validated['swap_date'])->startOfDay();
+            $scheduleDay = strtoupper(substr(trim((string) $requesterSchedule->day), 0, 3));
+            if (strtoupper($swapDate->format('D')) !== $scheduleDay) {
+                return back()->withInput()->with('error', 'Choose a room swap date that falls on the selected schedules’ weekday.');
+            }
+
+            $swapStart = Carbon::parse($swapDate->format('Y-m-d') . ' ' . $validated['start_time']);
+            $swapEnd = Carbon::parse($swapDate->format('Y-m-d') . ' ' . $validated['end_time']);
+            if ($swapEnd->lessThanOrEqualTo($swapStart)) {
+                return back()->withInput()->with('error', 'The room swap end time must be later than its start time.');
+            }
+            if ($swapStart->lessThanOrEqualTo(now())) {
+                return back()->withInput()->with('error', 'Choose a room swap time that has not started yet.');
+            }
+        } catch (\Throwable $exception) {
+            return back()->withInput()->with('error', 'The room swap date or time is invalid.');
+        }
+
 
 
         if ((int) $requesterSchedule->room_id === (int) $targetSchedule->room_id) {
 
             return back()->withInput()->with('error', 'Both schedules already use the same room.');
 
+        }
+
+        // An admin override reserves its room for the selected schedule's date
+        // and time. Check both rooms because the swap would exchange their use.
+        $overrideRoomIds = array_values(array_unique([
+            (int) $requesterSchedule->room_id,
+            (int) $targetSchedule->room_id,
+        ]));
+
+        $adminOverride = ScheduleOverride::query()
+            ->with('schedule.room')
+            ->where('status', 'active')
+            ->whereDate('override_date', $swapDate->toDateString())
+            ->where('expires_at', '>', now())
+            ->whereHas('schedule', function ($query) use ($overrideRoomIds) {
+                $query->whereIn('room_id', $overrideRoomIds);
+            })
+            ->get()
+            ->first(function (ScheduleOverride $override) use ($targetSchedule) {
+                return $override->schedule
+                    && $this->normalizeScheduleTime($override->schedule->time)
+                        === $this->normalizeScheduleTime($targetSchedule->time);
+            });
+
+        if ($adminOverride) {
+            $overrideRoom = $adminOverride->schedule?->room?->room_name
+                ?: 'A room involved in this swap';
+
+            return back()->withInput()->with(
+                'error',
+                $overrideRoom . ' is occupied under an admin override on ' . $swapDate->format('F j, Y') . '. Choose another date or room.'
+            );
         }
 
 
@@ -522,7 +625,7 @@ if ((int) $targetFaculty->id === (int) $user->id) {
 
 
 
-        RoomSwapRequest::create([
+        $swap = RoomSwapRequest::create([
 
             'requester_id' => $user->id,
 
@@ -547,6 +650,8 @@ if ((int) $targetFaculty->id === (int) $user->id) {
             'status' => 'pending',
 
         ]);
+
+        $targetFaculty->notify(new RoomSwapNotification($swap, 'requested'));
 
 
 
@@ -813,7 +918,72 @@ public function approve($id)
 
             /*
 |--------------------------------------------------------------------------
-| RESOLVE THE ACTUAL NEXT SWAP OCCURRENCE
+| RECHECK THE REQUESTED DATE BEFORE APPROVAL
+|--------------------------------------------------------------------------
+*/
+
+            try {
+                $selectedDate = $swap->swap_date instanceof Carbon
+                    ? $swap->swap_date->format('Y-m-d')
+                    : Carbon::parse($swap->swap_date)->format('Y-m-d');
+                $selectedDay = strtoupper(Carbon::parse($selectedDate)->format('D'));
+                $scheduleDay = strtoupper(substr(trim((string) $targetSchedule->day), 0, 3));
+                $selectedStart = Carbon::parse($selectedDate . ' ' . $swap->start_time);
+                $selectedEnd = Carbon::parse($selectedDate . ' ' . $swap->end_time);
+
+                if ($selectedDay !== $scheduleDay) {
+                    throw ValidationException::withMessages([
+                        'swap' => 'The selected swap date no longer matches the schedule weekday.',
+                    ]);
+                }
+                if ($selectedEnd->lessThanOrEqualTo($selectedStart)) {
+                    throw ValidationException::withMessages([
+                        'swap' => 'The room swap end time must be later than its start time.',
+                    ]);
+                }
+                if ($selectedStart->lessThanOrEqualTo(now())) {
+                    throw ValidationException::withMessages([
+                        'swap' => 'This room swap date and time has already started.',
+                    ]);
+                }
+            } catch (ValidationException $exception) {
+                throw $exception;
+            } catch (\Throwable $exception) {
+                throw ValidationException::withMessages([
+                    'swap' => 'The scheduled room swap date or time is invalid.',
+                ]);
+            }
+
+            $overrideRoomIds = array_values(array_unique([
+                (int) $requesterSchedule->room_id,
+                (int) $targetSchedule->room_id,
+            ]));
+
+            $adminOverride = ScheduleOverride::query()
+                ->with('schedule.room')
+                ->where('status', 'active')
+                ->whereDate('override_date', $selectedDate)
+                ->where('expires_at', '>', now())
+                ->whereHas('schedule', function ($query) use ($overrideRoomIds) {
+                    $query->whereIn('room_id', $overrideRoomIds);
+                })
+                ->get()
+                ->first(function (ScheduleOverride $override) use ($targetSchedule) {
+                    return $override->schedule
+                        && $this->normalizeScheduleTime($override->schedule->time)
+                            === $this->normalizeScheduleTime($targetSchedule->time);
+                });
+
+            if ($adminOverride) {
+                $roomName = $adminOverride->schedule?->room?->room_name ?: 'A room involved in this swap';
+                throw ValidationException::withMessages([
+                    'swap' => $roomName . ' is occupied under an admin override on ' . Carbon::parse($selectedDate)->format('F j, Y') . '. The request cannot be accepted for that date.',
+                ]);
+            }
+
+            /*
+|--------------------------------------------------------------------------
+| VALIDATE THE SCHEDULE TIME
 |--------------------------------------------------------------------------
 |
 | The swap follows the schedule's day and time.
@@ -978,7 +1148,8 @@ if (
         |--------------------------------------------------------------------------
         */
 
-        $swap->swap_date = $occurrence->format('Y-m-d');
+        // Preserve the date selected by the requester; it controls when the
+        // temporary room exchange appears and when it expires.
 
     }
     catch (ValidationException $exception) {
@@ -1037,6 +1208,11 @@ if (
 
     }
 
+    $completedSwap = RoomSwapRequest::with(['requester', 'targetUser', 'requesterRoom', 'targetRoom'])
+        ->findOrFail($id);
+    $this->markIncomingSwapNotificationRead((int) $completedSwap->target_user_id, (int) $completedSwap->id);
+    $completedSwap->requester?->notify(new RoomSwapNotification($completedSwap, 'approved'));
+
     return back()->with(
         'success',
         'Room swap accepted successfully. The original rooms remain unchanged and the temporary room exchange will become active at the scheduled time.'
@@ -1082,6 +1258,10 @@ if (
 
 
         $swap->update(['status' => 'declined']);
+
+        $swap->load(['requester', 'targetUser', 'requesterRoom', 'targetRoom']);
+        $this->markIncomingSwapNotificationRead((int) $swap->target_user_id, (int) $swap->id);
+        $swap->requester?->notify(new RoomSwapNotification($swap, 'declined'));
 
 
 
@@ -1578,6 +1758,22 @@ private function normalizeScheduleTime($time): string
     $raw = preg_replace('/\s+/', '', $raw) ?? $raw;
 
     return str_replace('.', '', $raw);
+}
+
+private function markIncomingSwapNotificationRead(int $userId, int $swapId): void
+{
+    $user = User::find($userId);
+    if (!$user) {
+        return;
+    }
+
+    $user->unreadNotifications
+        ->filter(function ($notification) use ($swapId) {
+            return ($notification->data['type'] ?? null) === 'room_swap'
+                && ($notification->data['event'] ?? null) === 'requested'
+                && (int) ($notification->data['room_swap_id'] ?? 0) === $swapId;
+        })
+        ->each(fn ($notification) => $notification->markAsRead());
 }
 
 }

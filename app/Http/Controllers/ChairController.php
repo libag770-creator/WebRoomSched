@@ -17,8 +17,8 @@ use App\Models\ScheduleDraft;
 use App\Models\RoomSwapRequest;
 use App\Models\ScheduleMerge;
 use App\Models\AcademicTerm;
-use App\Models\Curriculum;
-use App\Models\CurriculumCourse;
+use App\Models\Program;
+use App\Models\Subject;
 use App\Models\ScheduleTimeSlot;
 use App\Models\RoomScheduleTimeSlot;
 use App\Models\RoomReassignment;
@@ -203,6 +203,9 @@ public function saveDraft( Request $request)
         'schedule.*.course_code' =>
             'required|string|max:50',
 
+        'schedule.*.faculty_subject_id' =>
+            'required|integer|exists:faculty_subjects,id',
+
         'schedule.*.subject' =>
             'required|string|max:255',
 
@@ -216,7 +219,7 @@ public function saveDraft( Request $request)
     'nullable|string|max:50',
 
         'schedule.*.program' =>
-            'required|string|max:50',
+            'required|string|max:100',
 
         'schedule.*.color' =>
             'nullable|string|max:20',
@@ -499,13 +502,15 @@ foreach (
     foreach ($request->input('schedule', []) as $data) {
         $courseCode = strtoupper(trim($data['course_code'] ?? ''));
 
-        $facultySubject = FacultySubject::with('faculty')
-            ->where('course_code', $courseCode)
-            ->whereHas('faculty', function ($query) use ($chair) {
-                $query->where('role', 'faculty')
-                    ->where('department_id', $chair->department_id);
-            })
-            ->first();
+        $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+            ->find($data['faculty_subject_id'] ?? null);
+
+        if ($facultySubject && (
+            strtoupper(trim($facultySubject->course_code)) !== $courseCode
+            || !$this->chairCanManageFacultySubject($facultySubject, $chair)
+        )) {
+            $facultySubject = null;
+        }
 
         if (!$facultySubject) {
             continue;
@@ -678,8 +683,9 @@ foreach (
 'course_code' =>
     $facultySubject->course_code,
 
-            'curriculum_course_id' =>
-                $facultySubject->curriculum_course_id,
+'faculty_subject_id' =>
+    $facultySubject->id,
+
 
             'subject' =>
                 $facultySubject->subject,
@@ -693,8 +699,8 @@ foreach (
             'program' =>
     $facultySubject->program,
 
-            'subject_type' =>
-            str_contains($courseCode, '.') ? 'Lab' : 'Lec',
+            'subject_type' => $facultySubject->subject_type
+                ?: (preg_match('/\.1\s*$/', trim($courseCode)) === 1 ? 'Lab' : 'Lec'),
 
             'instructor' =>
                 $facultySubject->faculty->name,
@@ -773,28 +779,15 @@ public function index(Request $request, $roomId)
 
     $facultySubjects =
         FacultySubject::with([
-            'faculty.department'
+            'faculty.department',
+            'subjectCatalog.program',
         ])
-        ->whereHas(
-            'faculty',
-            function ($query) use ($room) {
-
-                $query
-                    ->where(
-                        'role',
-                        'faculty'
-                    )
-                    ->where(
-                        'department_id',
-                        $room->department_id
-                    );
-
-            }
-        )
         ->orderBy(
             'course_code'
         )
-        ->get();
+        ->get()
+        ->filter(fn ($subject) => $this->chairCanManageFacultySubject($subject, $chair))
+        ->values();
 
     /*
     |--------------------------------------------------------------------------
@@ -933,7 +926,6 @@ public function index(Request $request, $roomId)
         )
     );
 }
-
 public function setFaculty(Request $request)
 {
     if (!Auth::check() || Auth::user()->role !== 'chair') {
@@ -942,28 +934,52 @@ public function setFaculty(Request $request)
 
     $chair = Auth::user();
 
-    // Faculty members whose home department is this department.
     $department = Department::with([
         'users' => function ($query) {
             $query->where('role', 'faculty')
-                ->with('facultySubjects')
+                ->with(['facultySubjects.subjectCatalog.program'])
                 ->orderBy('name');
         }
     ])->findOrFail($chair->department_id);
 
-    // IDs of faculty already imported by this department.
-    $importedFacultyIds = DB::table('department_faculty_imports')
+    $importRecords = DB::table('department_faculty_imports')
         ->where('department_id', $chair->department_id)
-        ->pluck('faculty_id');
+        ->get(['faculty_id', 'created_at']);
 
-    // Imported faculty, with their original department preserved.
+    $importedFacultyIds = $importRecords->pluck('faculty_id');
+    $importedAtByFaculty = $importRecords->keyBy('faculty_id');
+
     $importedFaculty = User::whereIn('id', $importedFacultyIds)
         ->where('role', 'faculty')
-        ->with(['department', 'facultySubjects'])
+        ->with(['department', 'facultySubjects.subjectCatalog.program'])
         ->orderBy('name')
         ->get();
 
-    // Faculty from other departments who can still be imported.
+    $importedFaculty->each(function ($faculty) use ($importedAtByFaculty, $chair) {
+        $importedAt = $importedAtByFaculty->get($faculty->id)?->created_at;
+
+        $faculty->setAttribute('imported_at', $importedAt);
+
+        $departmentSubjects = $faculty->facultySubjects
+            ->filter(function ($subject) use ($chair, $importedAt) {
+                $catalogDepartmentId =
+                    $subject->subjectCatalog?->program?->department_id;
+
+                if ($catalogDepartmentId !== null) {
+                    return (int) $catalogDepartmentId
+                        === (int) $chair->department_id;
+                }
+
+                return $importedAt
+                    && $subject->created_at
+                    && strtotime($subject->created_at)
+                        >= strtotime($importedAt);
+            })
+            ->values();
+
+        $faculty->setRelation('departmentSubjects', $departmentSubjects);
+    });
+
     $availableFaculty = User::where('role', 'faculty')
         ->whereNotNull('department_id')
         ->where('department_id', '!=', $chair->department_id)
@@ -977,22 +993,17 @@ public function setFaculty(Request $request)
     if ($request->filled('faculty')) {
         $facultyId = (int) $request->query('faculty');
 
-        $selectedFaculty = $department->users
-            ->firstWhere('id', $facultyId)
+        $selectedFaculty = $department->users->firstWhere('id', $facultyId)
             ?? $importedFaculty->firstWhere('id', $facultyId);
     }
-
-    $curriculumCourses = $this->chairCurriculumCourses($chair);
 
     return view('chair.setFaculty', compact(
         'department',
         'selectedFaculty',
-        'curriculumCourses',
         'importedFaculty',
         'availableFaculty'
     ));
 }
-
     
 public function importFaculty(Request $request)
 {
@@ -1397,11 +1408,14 @@ if (!$room->save()) {
         'schedule.*.course_code' =>
             'required|string|max:50',
 
+        'schedule.*.faculty_subject_id' =>
+            'required|integer|exists:faculty_subjects,id',
+
         'schedule.*.major' =>
             'nullable|string|max:50',
 
         'schedule.*.program' =>
-            'required|string|max:50',
+            'required|string|max:100',
 
         'schedule.*.color' =>
             'nullable|string|max:20',
@@ -1799,13 +1813,15 @@ if (!$room->save()) {
     foreach ($request->input('schedule', []) as $data) {
         $courseCode = strtoupper(trim($data['course_code'] ?? ''));
 
-        $facultySubject = FacultySubject::with('faculty')
-            ->where('course_code', $courseCode)
-            ->whereHas('faculty', function ($query) use ($chair) {
-                $query->where('role', 'faculty')
-                    ->where('department_id', $chair->department_id);
-            })
-            ->first();
+        $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+            ->find($data['faculty_subject_id'] ?? null);
+
+        if ($facultySubject && (
+            strtoupper(trim($facultySubject->course_code)) !== $courseCode
+            || !$this->chairCanManageFacultySubject($facultySubject, $chair)
+        )) {
+            $facultySubject = null;
+        }
 
         if (!$facultySubject) {
             continue;
@@ -1933,33 +1949,15 @@ if (!$room->save()) {
         |--------------------------------------------------------------------------
         */
 
-        $facultySubject =
-            FacultySubject::with(
-                'faculty'
-            )
-            ->where(
-                'course_code',
-                $courseCode
-            )
-            ->whereHas(
-                'faculty',
-                function ($query) use (
-                    $chair
-                ) {
+        $facultySubject = FacultySubject::with('faculty')
+            ->find($data['faculty_subject_id'] ?? null);
 
-                    $query
-                        ->where(
-                            'role',
-                            'faculty'
-                        )
-                        ->where(
-                            'department_id',
-                            $chair->department_id
-                        );
-
-                }
-            )
-            ->first();
+        if ($facultySubject && (
+            strtoupper(trim($facultySubject->course_code)) !== $courseCode
+            || !$this->chairCanManageFacultySubject($facultySubject, $chair)
+        )) {
+            $facultySubject = null;
+        }
 
         if (!$facultySubject) {
 
@@ -2108,6 +2106,9 @@ if (!$room->save()) {
             'academic_year' =>
                 $academicYear,
 
+            'faculty_subject_id' =>
+                $facultySubject->id,
+
             'course_code' =>
                 $facultySubject->course_code,
 
@@ -2124,12 +2125,8 @@ if (!$room->save()) {
                 $facultySubject->program,
 
             'subject_type' =>
-                str_contains(
-                    $courseCode,
-                    '.'
-                )
-                    ? 'Lab'
-                    : 'Lec',
+                $facultySubject->subject_type
+                    ?: (preg_match('/\.1\s*$/', trim($courseCode)) === 1 ? 'Lab' : 'Lec'),
 
             'instructor' =>
                 $facultySubject
@@ -2745,7 +2742,7 @@ public function reserveRoom(Request $request, Room $room)
 
     $facultySubject = FacultySubject::with([
         'faculty',
-        'curriculumCourse',
+        'subjectCatalog.program',
     ])
         ->where('id', $request->faculty_subject_id)
         ->where('faculty_id', $faculty->id)
@@ -3341,7 +3338,7 @@ public function vacantRooms(Request $request)
 
     $facultySubjectOptions = FacultySubject::with([
         'faculty',
-        'curriculumCourse',
+        'subjectCatalog.program',
     ])
         ->where('faculty_id', $loggedInFaculty?->id)
         ->orderBy('course_code')
@@ -3355,7 +3352,8 @@ public function vacantRooms(Request $request)
                 'program' => $facultySubject->program,
                 'year_level' => $facultySubject->year_level,
                 'major' => $facultySubject->major,
-                'subject_type' => $facultySubject->curriculumCourse?->subject_type,
+                'subject_type' => $facultySubject->subject_type
+                    ?: (preg_match('/\.1\s*$/', trim($facultySubject->course_code)) === 1 ? 'Lab' : 'Lec'),
             ];
         })
         ->values();
@@ -3379,6 +3377,41 @@ public function vacantRooms(Request $request)
 | FACULTY SUBJECTS
 |--------------------------------------------------------------------------
 */
+
+private function chairCanManageFacultySubject(FacultySubject $facultySubject, User $chair): bool
+{
+    $facultySubject->loadMissing(['faculty', 'subjectCatalog.program']);
+    $faculty = $facultySubject->faculty;
+
+    if (!$faculty) {
+        return false;
+    }
+
+    // A faculty member's home department can manage its own assignments.
+    if ((int) $faculty->department_id === (int) $chair->department_id) {
+        return true;
+    }
+
+    $importedAt = DB::table('department_faculty_imports')
+        ->where('department_id', $chair->department_id)
+        ->where('faculty_id', $faculty->id)
+        ->value('created_at');
+
+    if (!$importedAt) {
+        return false;
+    }
+
+    // Program ownership is the clearest signal for which department
+    // created an assignment. Legacy manual entries added after import are
+    // recognized by their creation time.
+    $catalogDepartmentId = $facultySubject->subjectCatalog?->program?->department_id;
+    if ($catalogDepartmentId !== null) {
+        return (int) $catalogDepartmentId === (int) $chair->department_id;
+    }
+
+    return $facultySubject->created_at
+        && $facultySubject->created_at->timestamp >= strtotime((string) $importedAt);
+}
 
 public function facultySubjects($faculty)
 {
@@ -3405,8 +3438,12 @@ $faculty = User::where('id', $faculty)
                     );
             });
     })
-    ->with(['department', 'facultySubjects'])
+    ->with(['department', 'facultySubjects.subjectCatalog.program'])
     ->firstOrFail();
+
+    $faculty->setRelation('facultySubjects', $faculty->facultySubjects
+        ->filter(fn ($subject) => $this->chairCanManageFacultySubject($subject, $chair))
+        ->values());
 
     return response()->json([
         'faculty' => [
@@ -3439,12 +3476,8 @@ public function storeFacultySubject(Request $request)
 
     $request->validate([
         'faculty_id' => 'required|exists:users,id',
-        'course_code' => 'nullable|string|max:50',
-        'subject' => 'nullable|string|max:255',
-        'year_level' => 'nullable|string|max:50',
-        'major' => 'nullable|string|max:100',
-        'program' => 'nullable|string|max:100',
-        'curriculum_course_id' => 'nullable|exists:curriculum_courses,id',
+        'subject_id' => 'required|integer|exists:subjects,id',
+        'course_code' => 'required|string|max:50',
     ]);
 
    $faculty = User::where('id', $request->faculty_id)
@@ -3466,28 +3499,17 @@ public function storeFacultySubject(Request $request)
     })
     ->firstOrFail();
 
-    $course = null;
-    if ($request->filled('curriculum_course_id')) {
-        $course = CurriculumCourse::with('curriculum')
-            ->whereHas('curriculum', function ($query) use ($chair) {
-                $query->where('department_id', $chair->department_id)
-                    ->where('status', 'active');
-            })
-            ->findOrFail($request->curriculum_course_id);
-    }
+    $subjectEntry = Subject::with('program')
+        ->whereHas('program', fn ($query) => $query->where('department_id', $chair->department_id))
+        ->findOrFail($request->subject_id);
 
-    $courseCode = strtoupper(trim($course->course_code ?? $request->input('course_code', '')));
-    $subject = trim($course->subject ?? $request->input('subject', ''));
-    $yearLevel = trim($course->year_level ?? $request->input('year_level', ''));
-    $program = trim($course?->curriculum?->program ?? $request->input('program', ''));
-    $major = $course?->curriculum?->major ?? ($request->filled('major') ? trim($request->major) : null);
-
-    if ($courseCode === '' || $subject === '' || $yearLevel === '' || $program === '') {
-        return back()->withInput()->with('error', 'Course information is incomplete. Select a curriculum course or complete all required fields.');
+    $courseCode = strtoupper(trim($subjectEntry->course_code));
+    if ($courseCode !== strtoupper(trim($request->course_code))) {
+        return back()->withInput()->with('error', 'The course code changed. Enter it again and select the matching subject.');
     }
 
     $exists = FacultySubject::where('faculty_id', $faculty->id)
-        ->where('course_code', $courseCode)
+        ->where('subject_id', $subjectEntry->id)
         ->exists();
 
     if ($exists) {
@@ -3498,12 +3520,13 @@ public function storeFacultySubject(Request $request)
 
     FacultySubject::create([
         'faculty_id' => $faculty->id,
-        'curriculum_course_id' => $course?->id,
+        'subject_id' => $subjectEntry->id,
         'course_code' => $courseCode,
-        'subject' => $subject,
-        'year_level' => $yearLevel,
-        'major' => $major,
-        'program' => $program,
+        'subject' => $subjectEntry->course_title,
+        'year_level' => $subjectEntry->year_level,
+        'major' => $subjectEntry->program?->major,
+        'program' => trim(($subjectEntry->program?->name ?? '') . ' (' . ($subjectEntry->program?->code ?? '') . ')'),
+        'subject_type' => Subject::typeFromCourseCode($subjectEntry->course_code),
     ]);
 
     return redirect()
@@ -3525,10 +3548,12 @@ public function updateFacultySubject(Request $request, $id)
         'year_level' => 'nullable|string|max:50',
         'major' => 'nullable|string|max:100',
         'program' => 'nullable|string|max:100',
-        'curriculum_course_id' => 'nullable|exists:curriculum_courses,id',
     ]);
 
-    $facultySubject = FacultySubject::findOrFail($id);
+    $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])->findOrFail($id);
+    if (!$this->chairCanManageFacultySubject($facultySubject, $chair)) {
+        abort(403, 'You cannot edit this original department subject.');
+    }
 
     // Get the faculty member using the existing subject assignment.
     $faculty = User::where('id', $facultySubject->faculty_id)
@@ -3550,42 +3575,29 @@ public function updateFacultySubject(Request $request, $id)
         })
         ->firstOrFail();
 
-    // Only use an active curriculum belonging to this chair's department.
-    $course = null;
-
-    if ($request->filled('curriculum_course_id')) {
-        $course = CurriculumCourse::with('curriculum')
-            ->whereHas('curriculum', function ($query) use ($chair) {
-                $query->where('department_id', $chair->department_id)
-                    ->where('status', 'active');
-            })
-            ->findOrFail($request->curriculum_course_id);
+    if ($facultySubject->subject_id) {
+        return redirect()
+            ->route('chair.setFaculty', ['faculty' => $faculty->id])
+            ->with('error', 'This assignment is linked to Manage Subjects. Update its catalog entry or remove and reassign it.');
     }
 
     $courseCode = strtoupper(trim(
-        $course->course_code
-        ?? $request->input('course_code', $facultySubject->course_code)
+        $request->input('course_code', $facultySubject->course_code)
     ));
 
     $subject = trim(
-        $course->subject
-        ?? $request->input('subject', $facultySubject->subject)
+        $request->input('subject', $facultySubject->subject)
     );
 
     $yearLevel = trim(
-        $course->year_level
-        ?? $request->input('year_level', $facultySubject->year_level)
+        $request->input('year_level', $facultySubject->year_level)
     );
 
     $program = trim(
-        $course?->curriculum?->program
-        ?? $request->input('program', $facultySubject->program)
+        $request->input('program', $facultySubject->program)
     );
 
-    $major = $course?->curriculum?->major
-        ?? ($request->filled('major')
-            ? trim($request->major)
-            : $facultySubject->major);
+    $major = $request->filled('major') ? trim($request->major) : $facultySubject->major;
 
     if ($courseCode === '' || $subject === '' || $yearLevel === '' || $program === '') {
         return back()
@@ -3605,12 +3617,12 @@ public function updateFacultySubject(Request $request, $id)
     }
 
     $facultySubject->update([
-        'curriculum_course_id' => $course?->id,
         'course_code' => $courseCode,
         'subject' => $subject,
         'year_level' => $yearLevel,
         'major' => $major,
         'program' => $program,
+        'subject_type' => Subject::typeFromCourseCode($courseCode),
     ]);
 
     return redirect()
@@ -3627,7 +3639,10 @@ public function deleteFacultySubject($id)
 
     $chair = Auth::user();
 
-    $facultySubject = FacultySubject::findOrFail($id);
+    $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])->findOrFail($id);
+    if (!$this->chairCanManageFacultySubject($facultySubject, $chair)) {
+        abort(403, 'You cannot remove this original department subject.');
+    }
 
     $faculty = User::where('id', $facultySubject->faculty_id)
         ->where('role', 'faculty')
@@ -3742,28 +3757,15 @@ public function editDraft($roomId)
 
     $facultySubjects =
         FacultySubject::with([
-            'faculty.department'
+            'faculty.department',
+            'subjectCatalog.program',
         ])
-        ->whereHas(
-            'faculty',
-            function ($query) use ($chair) {
-
-                $query
-                    ->where(
-                        'role',
-                        'faculty'
-                    )
-                    ->where(
-                        'department_id',
-                        $chair->department_id
-                    );
-
-            }
-        )
         ->orderBy(
             'course_code'
         )
-        ->get();
+        ->get()
+        ->filter(fn ($subject) => $this->chairCanManageFacultySubject($subject, $chair))
+        ->values();
 
 
     /*
@@ -3982,6 +3984,9 @@ public function publishDraft(Request $request, $roomId)
                     'faculty_id' =>
                         $draft->faculty_id,
 
+                    'faculty_subject_id' =>
+                        $draft->faculty_subject_id,
+
                     'department_id' =>
                         $draft->department_id
                         ?? $chair->department_id,
@@ -4009,8 +4014,6 @@ public function publishDraft(Request $request, $roomId)
                     'course_code' =>
                         $draft->course_code,
 
-                    'curriculum_course_id' =>
-                        $draft->curriculum_course_id,
 
                     'subject' =>
                         $draft->subject,
@@ -4152,31 +4155,15 @@ public function modifySchedule(Request $request)
 
     $facultySubjects =
         FacultySubject::with([
-            'faculty.department'
+            'faculty.department',
+            'subjectCatalog.program',
         ])
-        ->whereHas(
-            'faculty',
-            function (
-                $query
-            ) use (
-                $chair
-            ) {
-
-                $query
-                    ->where(
-                        'role',
-                        'faculty'
-                    )
-                    ->where(
-                        'department_id',
-                        $chair->department_id
-                    );
-            }
-        )
         ->orderBy(
             'course_code'
         )
-        ->get();
+        ->get()
+        ->filter(fn ($subject) => $this->chairCanManageFacultySubject($subject, $chair))
+        ->values();
 
     return view(
         'chair.modifyschedule',
@@ -4252,6 +4239,7 @@ public function storeModifiedSchedule(Request $request)
         'day' => 'required|string|max:20',
         'time' => 'required|string|max:50',
         'course_code' => 'required|string|max:50',
+        'faculty_subject_id' => 'required|integer|exists:faculty_subjects,id',
         'semester' => 'nullable|string|max:100',
         'academic_year' => 'nullable|string|max:100',
         'major' => 'nullable|string|max:50',
@@ -4318,13 +4306,15 @@ public function storeModifiedSchedule(Request $request)
     /* Course must belong to the logged-in Chair's department. */
     $courseCode = strtoupper(trim($request->course_code));
 
-    $facultySubject = FacultySubject::with('faculty')
-        ->where('course_code', $courseCode)
-        ->whereHas('faculty', function ($query) use ($chair) {
-            $query->where('role', 'faculty')
-                ->where('department_id', $chair->department_id);
-        })
-        ->first();
+    $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+        ->find($request->faculty_subject_id);
+
+    if ($facultySubject && (
+        strtoupper(trim($facultySubject->course_code)) !== $courseCode
+        || !$this->chairCanManageFacultySubject($facultySubject, $chair)
+    )) {
+        $facultySubject = null;
+    }
 
     if (!$facultySubject) {
         return back()
@@ -4372,13 +4362,14 @@ public function storeModifiedSchedule(Request $request)
         'academic_year' => $activeTerm->academic_year,
         'day' => $day,
         'time' => $time,
+        'faculty_subject_id' => $facultySubject->id,
         'course_code' => $facultySubject->course_code,
-        'curriculum_course_id' => $facultySubject->curriculum_course_id,
         'subject' => $facultySubject->subject,
         'year_level' => $facultySubject->year_level,
         'major' => $facultySubject->major,
         'program' => $facultySubject->program,
-        'subject_type' => str_contains($courseCode, '.') ? 'Lab' : 'Lec',
+        'subject_type' => $facultySubject->subject_type
+            ?: (preg_match('/\.1\s*$/', trim($courseCode)) === 1 ? 'Lab' : 'Lec'),
         'instructor' => $facultySubject->faculty->name,
         'color' => $request->color ?: '#ffffff',
     ];
@@ -5948,17 +5939,6 @@ private function resolveAcademicTerm(Request $request = null): AcademicTerm
         return $query->where('academic_term_id', $term->id);
     }
 
-    private function chairCurriculumCourses($chair)
-    {
-        return CurriculumCourse::with('curriculum')
-            ->whereHas('curriculum', function ($query) use ($chair) {
-                $query->where('department_id', $chair->department_id)
-                    ->where('status', 'active');
-            })
-            ->orderBy('course_code')
-            ->get();
-    }
-
     private function getActiveAcademicTerm(?int $termId = null): AcademicTerm
 {
     /*
@@ -6305,6 +6285,35 @@ public function academicTerms(Request $request)
             ->route('chair.schedule.library')
             ->with('success', 'Active academic term changed to ' . $term->academic_year . ' • ' . $term->semester . '.');
     }
+
+    public function deleteAcademicTerm(Request $request, $termId)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'chair') {
+            abort(403, 'Unauthorized.');
+        }
+
+        $term = AcademicTerm::findOrFail($termId);
+
+        if ($term->is_active) {
+            return redirect()
+                ->route('chair.schedule.library')
+                ->with('error', 'The active academic term cannot be deleted. Set another term as active first.');
+        }
+
+        // Terms are shared across departments, so protect any schedule or draft using this term.
+        if ($term->schedules()->exists() || $term->drafts()->exists()) {
+            return redirect()
+                ->route('chair.schedule.library')
+                ->with('error', 'This academic term cannot be deleted because schedules or drafts are linked to it.');
+        }
+
+        $term->delete();
+
+        return redirect()
+            ->route('chair.schedule.library')
+            ->with('success', 'Academic term deleted successfully.');
+    }
+
 public function reuseAcademicSchedule(Request $request, $sourceTermId)
 {
     /*
@@ -6545,6 +6554,9 @@ public function reuseAcademicSchedule(Request $request, $sourceTermId)
                 'faculty_id' =>
                     $schedule->faculty_id,
 
+                'faculty_subject_id' =>
+                    $schedule->faculty_subject_id,
+
 
                 /*
                 |----------------------------------------------------------
@@ -6640,8 +6652,6 @@ public function reuseAcademicSchedule(Request $request, $sourceTermId)
                 |----------------------------------------------------------
                 */
 
-                'curriculum_course_id' =>
-                    $schedule->curriculum_course_id,
 
             ]);
 
@@ -6712,357 +6722,7 @@ public function reuseAcademicSchedule(Request $request, $sourceTermId)
     | CURRICULUM
     |--------------------------------------------------------------------------
     */
-
-  public function curriculum(Request $request)
-{
-    if (!Auth::check() || Auth::user()->role !== 'chair') {
-        abort(403, 'Unauthorized.');
-    }
-
-    $chair = Auth::user();
-
-    /*
-    |--------------------------------------------------------------------------
-    | MY DEPARTMENT CURRICULUM
-    |--------------------------------------------------------------------------
-    |
-    | The curriculum management area is always limited to the
-    | department of the currently logged-in Chair. Courses from
-    | other departments are NOT included here.
-    |--------------------------------------------------------------------------
-    */
-
-    $curricula = Curriculum::withCount('courses')
-        ->where('department_id', $chair->department_id)
-        ->with('courses')
-        ->orderBy('program')
-        ->orderBy('curriculum_code')
-        ->get();
-
-    $selectedCurriculum = null;
-
-    if ($request->filled('curriculum')) {
-        $selectedCurriculum = Curriculum::with('courses')
-            ->where('department_id', $chair->department_id)
-            ->find($request->input('curriculum'));
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | GLOBAL FACULTY SUBJECT DIRECTORY
-    |--------------------------------------------------------------------------
-    |
-    | Keep ALL faculty subjects from ALL departments visible here.
-    | This section is for viewing/reference only. It does not make
-    | another department's curriculum part of the Chair's curriculum.
-    |
-    */
-
-    $allDepartmentId = $request->query('all_department');
-    $selectedFacultyId = $request->query('faculty');
-
-    $facultyQuery = User::query()
-        ->where('role', 'faculty')
-        ->with([
-            'department',
-            'facultySubjects' => function ($query) {
-                $query
-                    ->with(['curriculumCourse.curriculum'])
-                    ->orderBy('course_code');
-            }
-        ])
-        ->whereHas('facultySubjects');
-
-    // Optional global directory filter by department.
-    if ($allDepartmentId !== null && $allDepartmentId !== '') {
-        $facultyQuery->where(
-            'department_id',
-            (int) $allDepartmentId
-        );
-    }
-
-    $facultyMembers = $facultyQuery
-        ->orderBy('department_id')
-        ->orderBy('name')
-        ->get();
-
-    /*
-    |--------------------------------------------------------------------------
-    | SELECTED FACULTY IN GLOBAL DIRECTORY
-    |--------------------------------------------------------------------------
-    */
-
-    $selectedFaculty = null;
-
-    if ($selectedFacultyId !== null && $selectedFacultyId !== '') {
-        $selectedFaculty = $facultyMembers->firstWhere(
-            'id',
-            (int) $selectedFacultyId
-        );
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | ALL DEPARTMENTS
-    |--------------------------------------------------------------------------
-    |
-    | Used only by the global All Subjects filter.
-    |--------------------------------------------------------------------------
-    */
-
-    $allDepartments = Department::query()
-        ->orderBy('code')
-        ->orderBy('name')
-        ->get();
-
-    /*
-    |--------------------------------------------------------------------------
-    | RETURN VIEW
-    |--------------------------------------------------------------------------
-    */
-
-    return view(
-        'chair.curriculum',
-        compact(
-            'curricula',
-            'selectedCurriculum',
-            'facultyMembers',
-            'selectedFaculty',
-            'selectedFacultyId',
-            'allDepartments',
-            'allDepartmentId'
-        )
-    );
-}
-    public function storeCurriculum(Request $request)
-    {
-        if (!Auth::check() || Auth::user()->role !== 'chair') {
-            abort(403, 'Unauthorized.');
-        }
-
-        $chair = Auth::user();
-
-        $data = $request->validate([
-            'program' => 'required|string|max:100',
-            'major' => 'nullable|string|max:100',
-            'curriculum_code' => 'required|string|max:100',
-            'effective_year' => 'required|string|max:20',
-            'status' => 'required|in:active,inactive',
-        ]);
-
-        Curriculum::create([
-            'department_id' => $chair->department_id,
-            'program' => trim($data['program']),
-            'major' => $request->filled('major') ? trim($data['major']) : null,
-            'curriculum_code' => trim($data['curriculum_code']),
-            'effective_year' => trim($data['effective_year']),
-            'status' => $data['status'],
-        ]);
-
-        return back()->with('success', 'Curriculum created successfully.');
-    }
-
-    public function updateCurriculum(Request $request, $id)
-    {
-        if (!Auth::check() || Auth::user()->role !== 'chair') {
-            abort(403, 'Unauthorized.');
-        }
-
-        $chair = Auth::user();
-        $curriculum = Curriculum::where('department_id', $chair->department_id)->findOrFail($id);
-
-        $data = $request->validate([
-            'program' => 'required|string|max:100',
-            'major' => 'nullable|string|max:100',
-            'curriculum_code' => 'required|string|max:100',
-            'effective_year' => 'required|string|max:20',
-            'status' => 'required|in:active,inactive',
-        ]);
-
-        $curriculum->update([
-            'program' => trim($data['program']),
-            'major' => $request->filled('major') ? trim($data['major']) : null,
-            'curriculum_code' => trim($data['curriculum_code']),
-            'effective_year' => trim($data['effective_year']),
-            'status' => $data['status'],
-        ]);
-
-        return back()->with('success', 'Curriculum updated successfully.');
-    }
-
-    public function deleteCurriculum($id)
-    {
-        if (!Auth::check() || Auth::user()->role !== 'chair') {
-            abort(403, 'Unauthorized.');
-        }
-
-        $chair = Auth::user();
-        $curriculum = Curriculum::where('department_id', $chair->department_id)->findOrFail($id);
-        $curriculum->delete();
-
-        return redirect()->route('chair.curriculum')->with('success', 'Curriculum removed successfully.');
-    }
-
-    public function storeCurriculumCourse(Request $request, $curriculumId)
-    {
-        if (!Auth::check() || Auth::user()->role !== 'chair') {
-            abort(403, 'Unauthorized.');
-        }
-
-        $chair = Auth::user();
-        $curriculum = Curriculum::where('department_id', $chair->department_id)->findOrFail($curriculumId);
-
-        $data = $request->validate([
-            'course_code' => 'required|string|max:50',
-            'subject' => 'required|string|max:255',
-            'units' => 'required|numeric|min:0|max:20',
-            'year_level' => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
-            'semester' => 'required|in:1st Semester,2nd Semester',
-            'subject_type' => 'nullable|string|max:50',
-            'prerequisite' => 'nullable|string|max:255',
-        ]);
-
-        CurriculumCourse::create([
-            'curriculum_id' => $curriculum->id,
-            'course_code' => strtoupper(trim($data['course_code'])),
-            'subject' => trim($data['subject']),
-            'units' => $data['units'],
-            'year_level' => $data['year_level'],
-            'semester' => $data['semester'],
-            'subject_type' => $request->filled('subject_type') ? trim($data['subject_type']) : null,
-            'prerequisite' => $request->filled('prerequisite') ? trim($data['prerequisite']) : null,
-        ]);
-
-        return back()->with('success', 'Curriculum course added successfully.');
-    }
-
-    public function updateCurriculumCourse(Request $request, $id)
-    {
-        if (!Auth::check() || Auth::user()->role !== 'chair') {
-            abort(403, 'Unauthorized.');
-        }
-
-        $chair = Auth::user();
-
-        $course = CurriculumCourse::with('curriculum')->findOrFail($id);
-
-        // Only the Chair's own department can edit this master course.
-        if (
-            !$course->curriculum ||
-            (int) $course->curriculum->department_id !==
-            (int) $chair->department_id
-        ) {
-            abort(403, 'Unauthorized.');
-        }
-
-        $data = $request->validate([
-            'course_code' => 'required|string|max:50',
-            'subject' => 'required|string|max:255',
-            'units' => 'required|numeric|min:0|max:20',
-            'year_level' => 'required|in:1st Year,2nd Year,3rd Year,4th Year',
-            'semester' => 'required|in:1st Semester,2nd Semester',
-            'subject_type' => 'nullable|string|max:50',
-            'prerequisite' => 'nullable|string|max:255',
-        ]);
-
-        $course->update([
-            'course_code' => strtoupper(trim($data['course_code'])),
-            'subject' => trim($data['subject']),
-            'units' => $data['units'],
-            'year_level' => $data['year_level'],
-            'semester' => $data['semester'],
-            'subject_type' => $request->filled('subject_type')
-                ? trim($data['subject_type'])
-                : null,
-            'prerequisite' => $request->filled('prerequisite')
-                ? trim($data['prerequisite'])
-                : null,
-        ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | SYNCHRONIZE CONNECTED FACULTY SUBJECTS
-        |--------------------------------------------------------------------------
-        |
-        | Only faculty subjects connected to THIS master course are updated.
-        | Subjects belonging to other departments remain separate records.
-        |--------------------------------------------------------------------------
-        */
-
-        FacultySubject::where(
-            'curriculum_course_id',
-            $course->id
-        )->update([
-            'course_code' => $course->course_code,
-            'subject' => $course->subject,
-            'year_level' => $course->year_level,
-            'major' => $course->curriculum->major,
-            'program' => $course->curriculum->program,
-        ]);
-
-        return back()->with(
-            'success',
-            'Curriculum course updated successfully and connected faculty subjects were synchronized.'
-        );
-    }
-
-    public function deleteCurriculumCourse($id)
-    {
-        if (!Auth::check() || Auth::user()->role !== 'chair') {
-            abort(403, 'Unauthorized.');
-        }
-
-        $chair = Auth::user();
-
-        $course = CurriculumCourse::with('curriculum')->findOrFail($id);
-
-        if (
-            !$course->curriculum ||
-            (int) $course->curriculum->department_id !==
-            (int) $chair->department_id
-        ) {
-            abort(403, 'Unauthorized.');
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | KEEP FACULTY SUBJECTS
-        |--------------------------------------------------------------------------
-        |
-        | Removing a curriculum course must not remove faculty subjects from
-        | the global directory. The connection is simply detached.
-        |--------------------------------------------------------------------------
-        */
-
-        FacultySubject::where(
-            'curriculum_course_id',
-            $course->id
-        )->update([
-            'curriculum_course_id' => null,
-        ]);
-
-        $course->delete();
-
-        return back()->with(
-            'success',
-            'Curriculum course removed successfully. Existing faculty subjects were kept and changed to manual/unlinked entries.'
-        );
-    }
-
-    /**
-     * Synchronize one Chair timetable time row with the official
-     * schedule_time_slots table.
-     *
-     * The slot is intentionally not deleted when a class is removed.
-     * A time slot represents a valid recurring timetable row, even when
-     * the room is currently vacant.
-     */
-    /**
-     * Find an existing schedule for the same faculty, day and overlapping
-     * time in the same academic term. Room is intentionally NOT part of
-     * this check because a faculty member cannot teach two rooms at once.
-     */
-    private function findFacultyScheduleConflict(
+private function findFacultyScheduleConflict(
         int $facultyId,
         string $day,
         string $time,
@@ -7346,6 +7006,299 @@ private function chairCanManageFaculty(User $chair, User $faculty): bool
         ->where('faculty_id', $faculty->id)
         ->exists();
 }
+public function manageSubjects(Request $request, $programId = null, $year = null)
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
 
+    $chair = Auth::user();
+    $yearLevels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+    $semesterOptions = ['1st Semester', '2nd Semester'];
+    $programs = Program::query()
+        ->where('department_id', $chair->department_id)
+        ->withCount('subjects')
+        ->orderByDesc('memorandum')
+        ->orderBy('name')
+        ->get();
+
+    $selectedProgram = null;
+    $selectedYear = null;
+    $selectedSemester = null;
+    $subjects = collect();
+
+    if ($programId !== null) {
+        $selectedProgram = Program::query()
+            ->where('department_id', $chair->department_id)
+            ->with('subjects')
+            ->findOrFail($programId);
+
+        if ($year !== null) {
+            $selectedYear = rawurldecode((string) $year);
+            abort_unless(in_array($selectedYear, $yearLevels, true), 404);
+            $requestedSemester = $request->query('semester');
+            if ($requestedSemester !== null) {
+                $selectedSemester = rawurldecode((string) $requestedSemester);
+                abort_unless(in_array($selectedSemester, $semesterOptions, true), 404);
+                $subjects = $selectedProgram->subjects
+                    ->where('year_level', $selectedYear)
+                    ->where('semester', $selectedSemester)
+                    ->sortBy('course_code')
+                    ->values();
+            }
+        }
+    }
+
+    return view('chair.managesubjects', compact(
+        'programs',
+        'selectedProgram',
+        'selectedYear',
+        'selectedSemester',
+        'yearLevels',
+        'semesterOptions',
+        'subjects'
+    ));
+}
+
+public function storeProgram(Request $request)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+
+    $data = $request->validate([
+        'name' => ['required', 'string', 'max:200'],
+        'code' => ['required', 'string', 'max:40'],
+        'memorandum' => ['required', 'string', 'max:500'],
+        'major' => ['nullable', 'string', 'max:120'],
+    ]);
+
+    $code = strtoupper(trim($data['code']));
+    $memorandum = trim($data['memorandum']);
+    $major = trim((string) ($data['major'] ?? '')) ?: null;
+    $duplicate = Program::query()
+        ->where('department_id', $chair->department_id)
+        ->whereRaw('UPPER(code) = ?', [$code])
+        ->where('memorandum', $memorandum)
+        ->where('name', trim($data['name']))
+        ->where(function ($query) use ($major) {
+            $major === null ? $query->whereNull('major') : $query->where('major', $major);
+        })
+        ->exists();
+
+    if ($duplicate) {
+        return back()->withInput()->with('error', 'This program and memorandum already exist.');
+    }
+
+    Program::create([
+        'department_id' => $chair->department_id,
+        'name' => trim($data['name']),
+        'code' => $code,
+        'memorandum' => $memorandum,
+        'major' => $major,
+    ]);
+
+    return redirect()->route('chair.managesubjects')->with('success', 'Program created. Open it to choose a year level and add subjects.');
+}
+
+public function updateProgram(Request $request, $programId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+
+    $program = Program::query()
+        ->where('department_id', $chair->department_id)
+        ->findOrFail($programId);
+
+    $data = $request->validate([
+        'name' => ['required', 'string', 'max:200'],
+        'code' => ['required', 'string', 'max:40'],
+        'memorandum' => ['required', 'string', 'max:500'],
+        'major' => ['nullable', 'string', 'max:120'],
+    ]);
+
+    $code = strtoupper(trim($data['code']));
+    $memorandum = trim($data['memorandum']);
+    $major = trim((string) ($data['major'] ?? '')) ?: null;
+
+    $duplicate = Program::query()
+        ->where('department_id', $chair->department_id)
+        ->where('id', '!=', $program->id)
+        ->whereRaw('UPPER(code) = ?', [$code])
+        ->where('memorandum', $memorandum)
+        ->where('name', trim($data['name']))
+        ->where(function ($query) use ($major) {
+            $major === null ? $query->whereNull('major') : $query->where('major', $major);
+        })
+        ->exists();
+
+    if ($duplicate) {
+        return back()->withInput()->with('error', 'This program and memorandum already exist.');
+    }
+
+    $program->update([
+        'name' => trim($data['name']),
+        'code' => $code,
+        'memorandum' => $memorandum,
+        'major' => $major,
+    ]);
+
+    $subjectIds = $program->subjects()->pluck('id');
+    if ($subjectIds->isNotEmpty()) {
+        FacultySubject::whereIn('subject_id', $subjectIds)->update([
+            'program' => $program->name . ' (' . $program->code . ')',
+            'major' => $program->major,
+        ]);
+    }
+
+    return back()->with('success', 'Program information updated. Its major is now used for all subjects in this program.');
+}
+
+public function deleteProgram($programId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+
+    Program::query()
+        ->where('department_id', $chair->department_id)
+        ->findOrFail($programId)
+        ->delete();
+
+    return redirect()->route('chair.managesubjects')->with('success', 'Program deleted. Existing faculty assignments keep their saved course details.');
+}
+
+public function storeCatalogSubject(Request $request, $programId, $year)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+    $year = rawurldecode((string) $year);
+    abort_unless(in_array($year, ['1st Year', '2nd Year', '3rd Year', '4th Year'], true), 404);
+
+    $program = Program::query()
+        ->where('department_id', $chair->department_id)
+        ->findOrFail($programId);
+
+    $data = $request->validate([
+        'semester' => ['required', 'in:1st Semester,2nd Semester'],
+        'course_code' => ['required', 'string', 'max:50'],
+        'course_title' => ['required', 'string', 'max:255'],
+    ]);
+
+    $courseCode = strtoupper(trim($data['course_code']));
+    $duplicate = Subject::query()
+        ->where('program_id', $program->id)
+        ->where('year_level', $year)
+        ->where('semester', $data['semester'])
+        ->whereRaw('UPPER(course_code) = ?', [$courseCode])
+        ->exists();
+
+    if ($duplicate) {
+        return back()->withInput()->with('error', 'That course code already exists in this program, year level, and semester.');
+    }
+
+    Subject::create([
+        'program_id' => $program->id,
+        'year_level' => $year,
+        'semester' => $data['semester'],
+        'course_code' => $courseCode,
+        'course_title' => trim($data['course_title']),
+    ]);
+
+    return back()->with('success', 'Subject added to ' . $year . ', ' . $data['semester'] . '.');
+}
+
+public function updateCatalogSubject(Request $request, $programId, $year, $subjectId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+    $year = rawurldecode((string) $year);
+    $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+    $subject = Subject::query()->where('program_id', $program->id)->where('year_level', $year)->findOrFail($subjectId);
+    $data = $request->validate([
+        'semester' => ['required', 'in:1st Semester,2nd Semester'],
+        'course_code' => ['required', 'string', 'max:50'],
+        'course_title' => ['required', 'string', 'max:255'],
+    ]);
+    $courseCode = strtoupper(trim($data['course_code']));
+    $duplicate = Subject::query()
+        ->where('program_id', $program->id)
+        ->where('year_level', $year)
+        ->where('semester', $data['semester'])
+        ->where('id', '!=', $subject->id)
+        ->whereRaw('UPPER(course_code) = ?', [$courseCode])
+        ->exists();
+
+    if ($duplicate) {
+        return back()->withInput()->with('error', 'That course code already exists in this program, year level, and semester.');
+    }
+
+    $subject->update([
+        'semester' => $data['semester'],
+        'course_code' => $courseCode,
+        'course_title' => trim($data['course_title']),
+    ]);
+
+    // Keep the assignment snapshot synchronized with its catalog entry.
+    FacultySubject::where('subject_id', $subject->id)->update([
+        'course_code' => $subject->course_code,
+        'subject' => $subject->course_title,
+        'year_level' => $subject->year_level,
+        'major' => $program->major,
+        'program' => $program->name . ' (' . $program->code . ')',
+        'subject_type' => Subject::typeFromCourseCode($subject->course_code),
+    ]);
+
+    return redirect()
+        ->route('chair.managesubjects', [
+            'program' => $program->id,
+            'year' => $year,
+            'semester' => $subject->semester,
+        ])
+        ->with('success', 'Subject details updated.');
+}
+
+public function deleteCatalogSubject($programId, $year, $subjectId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+    $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+    $subject = Subject::query()
+        ->where('program_id', $program->id)
+        ->where('year_level', rawurldecode((string) $year))
+        ->findOrFail($subjectId);
+    $subject->delete();
+
+    return back()->with('success', 'Subject removed from the catalog. Existing faculty assignments keep their saved details.');
+}
+
+public function lookupCatalogSubjects(Request $request)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+    $data = $request->validate(['course_code' => ['required', 'string', 'max:50']]);
+    $courseCode = strtoupper(trim($data['course_code']));
+
+    $matches = Subject::query()
+        ->with('program:id,name,code,major,department_id,memorandum')
+        ->whereRaw('UPPER(course_code) = ?', [$courseCode])
+        ->whereHas('program', fn ($query) => $query->where('department_id', $chair->department_id))
+        ->orderBy('year_level')
+        ->orderBy('semester')
+        ->orderBy('program_id')
+        ->get()
+        ->map(fn (Subject $subject) => [
+            'id' => $subject->id,
+            'course_code' => $subject->course_code,
+            'course_title' => $subject->course_title,
+            'year_level' => $subject->year_level,
+            'semester' => $subject->semester,
+            'major' => $subject->program?->major,
+            'program' => $subject->program?->name . ' (' . $subject->program?->code . ')',
+            'memorandum' => $subject->program?->memorandum,
+            'subject_type' => Subject::typeFromCourseCode($subject->course_code),
+        ])
+        ->values();
+
+    return response()->json(['subjects' => $matches]);
+}
 }
 

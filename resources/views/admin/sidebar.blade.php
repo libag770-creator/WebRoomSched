@@ -1,105 +1,69 @@
-<aside class="sidebar">
-
-    <div class="sidebar-brand">
+<aside class="sidebar faculty-sidebar portal-sidebar" aria-label="Administrator navigation">
+    <div class="faculty-sidebar-brand">
         <img src="{{ asset('images/images.jpg') }}" alt="BSU Bokod Campus">
-        <div>
+        <div class="faculty-sidebar-brand-copy">
             <strong>WebRoomSched</strong>
-            <span>Administrator Portal</span>
+            <span>BSU Bokod Campus</span>
         </div>
     </div>
 
-    <ul class="sidebar-menu">
+ 
 
-        <li class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-            <a href="{{ route('admin.dashboard') }}">
+    <nav class="faculty-sidebar-nav" aria-label="Administrator portal">
+        <span class="faculty-sidebar-section">OVERVIEW</span>
+        <ul class="sidebar-menu">
+            <li class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                <a href="{{ route('admin.dashboard') }}" @if(request()->routeIs('admin.dashboard')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-table-columns" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Dashboard</span>
+                </a>
+            </li>
+            <li class="{{ request()->routeIs('admin.schedules', 'admin.view.schedule') ? 'active' : '' }}">
+                <a href="{{ route('admin.schedules') }}" @if(request()->routeIs('admin.schedules', 'admin.view.schedule')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Schedules</span>
+                </a>
+            </li>
+        </ul>
 
-                <span class="sidebar-icon">
-                    <i class="fa-solid fa-table-columns"></i>
-                </span>
+        <span class="faculty-sidebar-section">CAMPUS</span>
+        <ul class="sidebar-menu">
+            <li class="{{ request()->routeIs('admin.departments*') ? 'active' : '' }}">
+                <a href="{{ route('admin.departments') }}" @if(request()->routeIs('admin.departments*')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Departments</span>
+                </a>
+            </li>
+            <li class="{{ request()->routeIs('admin.buildings*') ? 'active' : '' }}">
+                <a href="{{ route('admin.buildings') }}" @if(request()->routeIs('admin.buildings*')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-building" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Buildings &amp; Rooms</span>
+                </a>
+            </li>
+            <li class="{{ request()->routeIs('admin.roomreassignment*') ? 'active' : '' }}">
+                <a href="{{ route('admin.roomreassignment') }}" @if(request()->routeIs('admin.roomreassignment*')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Schedule Overrides</span>
+                </a>
+            </li>
+        </ul>
 
-                <span class="sidebar-text">
-                    Dashboard
-                </span>
+        <span class="faculty-sidebar-section">PEOPLE</span>
+        <ul class="sidebar-menu">
+            <li class="{{ request()->routeIs('admin.manageusers*') ? 'active' : '' }}">
+                <a href="{{ route('admin.manageusers') }}" @if(request()->routeIs('admin.manageusers*')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Manage Users</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
 
-            </a>
-        </li>
-
-          <li class="{{ request()->routeIs('admin.departments') ? 'active' : '' }}">
-            <a href="{{ route('admin.departments') }}">
-
-                <span class="sidebar-icon">
-                    <i class="fa-solid fa-building-columns"></i>
-                </span>
-
-                <span class="sidebar-text">
-                    Manage College Departments
-                </span>
-
-            </a>
-        </li>
-
-
-        <li class="{{ request()->routeIs('admin.manageusers') ? 'active' : '' }}">
-            <a href="{{ route('admin.manageusers') }}">
-
-                <span class="sidebar-icon">
-                    <i class="fa-solid fa-users"></i>
-                </span>
-
-                <span class="sidebar-text">
-                    Manage Users
-                </span>
-
-            </a>
-        </li>
-
-        {{-- ROOM REASSIGNMENT --}}
-<li class="{{ request()->routeIs('admin.roomreassignment*') ? 'active' : '' }}">
-    <a href="{{ route('admin.roomreassignment') }}">
-
-        <span class="sidebar-icon">
-            <i class="fa-solid fa-right-left"></i>
-        </span>
-
-        <span class="sidebar-text">
-            Override Schedule
-        </span>
-
-    </a>
-</li>
-
-        <li class="{{ request()->routeIs('admin.buildings') ? 'active' : '' }}">
-            <a href="{{ route('admin.buildings') }}">
-
-                <span class="sidebar-icon">
-                    <i class="fa-solid fa-building"></i>
-                </span>
-
-                <span class="sidebar-text">
-                    Manage Buildings
-                </span>
-
-            </a>
-        </li>
-
-
-      
-
-
-        <li class="{{ request()->routeIs('admin.schedules') ? 'active' : '' }}">
-            <a href="{{ route('admin.schedules') }}">
-
-                <span class="sidebar-icon">
-                    <i class="fa-solid fa-calendar"></i>
-                </span>
-
-                <span class="sidebar-text">
-                    View Schedules
-                </span>
-
-            </a>
-        </li>
-
-    </ul>
-
+    <div class="faculty-sidebar-footer">
+        <span class="faculty-footer-indicator" aria-hidden="true"></span>
+        <div>
+            <strong>Administration workspace</strong>
+            <span>Campus rooms, schedules, and users</span>
+        </div>
+    </div>
 </aside>

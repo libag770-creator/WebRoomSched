@@ -12,7 +12,11 @@ use App\Models\Reservation;
 
 use App\Models\Room;
 
+use App\Models\Building;
+
 use App\Models\Department;
+
+use App\Models\User;
 
 use App\Models\Schedule;
 
@@ -23,6 +27,7 @@ use App\Models\RoomScheduleTimeSlot;
 use App\Models\ScheduleMerge;
 
 use App\Models\RoomSwapRequest;
+use App\Models\ScheduleOverride;
 
 use App\Models\FacultySubject;
 
@@ -31,6 +36,8 @@ use Illuminate\Http\Request;
 use App\Models\AcademicTerm;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 use Carbon\Carbon;
 
@@ -60,7 +67,94 @@ class FacultyController extends Controller
 
     */
 
+    $today = $now->copy()->startOfDay();
+    $weekdayName = strtolower($today->format('l'));
+    $weekdayShort = strtolower($today->format('D'));
+
     $totalRooms = Room::count();
+    $totalBuildings = Building::count();
+    $totalDepartments = Department::count();
+    $systemFacultyCount = User::query()
+        ->whereRaw('LOWER(TRIM(role)) = ?', ['faculty'])
+        ->count();
+
+    // Older installs store weekly schedules as day/time only. Apply period
+    // filtering and richer fields only when those columns exist in this DB.
+    $scheduleColumns = Schema::getColumnListing((new Schedule())->getTable());
+    $hasScheduleColumn = static fn (string $column): bool => in_array($column, $scheduleColumns, true);
+
+    $currentSchedules = static function () use ($today, $hasScheduleColumn) {
+        $query = Schedule::query();
+
+        if ($hasScheduleColumn('schedule_start_date') && $hasScheduleColumn('schedule_expiration_date')) {
+            $query->where(function ($period) use ($today) {
+                $period
+                    ->whereNull('schedule_start_date')
+                    ->orWhereNull('schedule_expiration_date')
+                    ->orWhere(function ($bounded) use ($today) {
+                        $bounded
+                            ->whereDate('schedule_start_date', '<=', $today)
+                            ->whereDate('schedule_expiration_date', '>=', $today);
+                    });
+            });
+        }
+
+        return $query;
+    };
+
+    $forToday = static function ($query) use ($weekdayName, $weekdayShort, $hasScheduleColumn) {
+        $dayColumns = array_values(array_filter(
+            ['day', 'day_of_week'],
+            $hasScheduleColumn
+        ));
+
+        if (!$dayColumns) {
+            return;
+        }
+
+        $query->where(function ($dayQuery) use ($weekdayName, $weekdayShort, $dayColumns) {
+            foreach ($dayColumns as $index => $column) {
+                $method = $index === 0 ? 'whereRaw' : 'orWhereRaw';
+                $dayQuery->{$method}("LOWER(`{$column}`) LIKE ?", ["%{$weekdayName}%"])
+                    ->orWhereRaw("LOWER(`{$column}`) LIKE ?", ["%{$weekdayShort}%"]);
+            }
+        });
+    };
+
+    $systemActiveScheduleCount = $currentSchedules()->count();
+    $systemTodayScheduleCount = $currentSchedules()->where($forToday)->count();
+    $todaySchedules = $currentSchedules()->where($forToday);
+    if ($hasScheduleColumn('start_time')) {
+        $todaySchedules->orderBy('start_time');
+    }
+    if ($hasScheduleColumn('time')) {
+        $todaySchedules->orderBy('time');
+    }
+    $todaySchedules = $todaySchedules->limit(8)->get();
+
+    $faculty = Auth::user();
+    $myCurrentSchedules = $currentSchedules()->where(function ($query) use ($faculty, $hasScheduleColumn) {
+        $hasOwnerColumn = false;
+        if ($hasScheduleColumn('faculty_id')) {
+            $query->where('faculty_id', $faculty->id);
+            $hasOwnerColumn = true;
+        }
+
+        if ($hasScheduleColumn('instructor') && !empty($faculty->name)) {
+            $method = $hasOwnerColumn ? 'orWhereRaw' : 'whereRaw';
+            $query->{$method}('LOWER(TRIM(instructor)) = ?', [mb_strtolower(trim($faculty->name))]);
+            $hasOwnerColumn = true;
+        }
+
+        if (!$hasOwnerColumn) {
+            $query->whereRaw('1 = 0');
+        }
+    });
+    $weeklyScheduleCount = (clone $myCurrentSchedules)->count();
+    $todayScheduleCount = (clone $myCurrentSchedules)->where($forToday)->count();
+    $currentReservationsCount = Reservation::query()
+        ->whereRaw('LOWER(TRIM(status)) = ?', ['reserved'])
+        ->count();
 
 
 
@@ -326,7 +420,25 @@ class FacultyController extends Controller
 
             'roomSwapHistory',
 
-            'totalRooms'
+            'totalRooms',
+
+            'totalBuildings',
+
+            'totalDepartments',
+
+            'systemFacultyCount',
+
+            'systemActiveScheduleCount',
+
+            'systemTodayScheduleCount',
+
+            'todaySchedules',
+
+            'weeklyScheduleCount',
+
+            'todayScheduleCount',
+
+            'currentReservationsCount'
 
         )
 
@@ -442,7 +554,7 @@ class FacultyController extends Controller
 
     'date' => 'required|date',
 
-    'time_slot_id' => 'required|integer|exists:schedule_time_slots,id',
+    'time_slot_id' => 'required|string|max:120',
 
     'time' => 'nullable|string|max:50',
 
@@ -450,7 +562,7 @@ class FacultyController extends Controller
 
     'end_time' => 'nullable|string|max:20',
 
-    'faculty_subject_id' => 'required|integer|exists:faculty_subjects,id',
+    'faculty_subject_id' => 'nullable|integer|exists:faculty_subjects,id',
 
     'schedule_id' => 'nullable|integer|exists:schedules,id',
 
@@ -482,23 +594,15 @@ class FacultyController extends Controller
 
 
 
-    $facultySubject = FacultySubject::with([
+    $facultySubject = null;
+    if ($request->filled('faculty_subject_id')) {
+        $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+            ->where('id', $request->faculty_subject_id)
+            ->where('faculty_id', $faculty->id)
+            ->first();
+    }
 
-        'faculty',
-
-        'curriculumCourse'
-
-    ])
-
-        ->where('id', $request->faculty_subject_id)
-
-        ->where('faculty_id', $faculty->id)
-
-        ->first();
-
-
-
-    if (!$facultySubject) {
+    if ($request->filled('faculty_subject_id') && !$facultySubject) {
 
         return back()->with(
 
@@ -544,6 +648,20 @@ class FacultyController extends Controller
 
     $day = strtoupper($date->format('D'));
 
+    if ($date->lt(Carbon::today())) {
+        return back()->with('error', 'Choose today or a future date for your reservation.');
+    }
+
+    $activeTermId = session('active_academic_term_id');
+    $activeTerm = $activeTermId
+        ? AcademicTerm::whereKey($activeTermId)->where('is_active', true)->first()
+        : null;
+    $activeTerm ??= AcademicTerm::where('is_active', true)->orderByDesc('id')->first();
+
+    if (!$activeTerm) {
+        return back()->with('error', 'There is no active academic term for room reservations.');
+    }
+
 
 
     /*
@@ -576,7 +694,7 @@ class FacultyController extends Controller
 
         $timeValue = trim((string) $request->input('time', ''));
 
-        $timeParts = preg_split('/**\s**\*-**\s***/', $timeValue, 2);
+        $timeParts = preg_split('/\s*-\s*/', $timeValue, 2);
 
 
 
@@ -624,6 +742,25 @@ class FacultyController extends Controller
 
     $reservationTime = $startTime . '-' . $endTime;
 
+    $fullDay = match ($day) {
+        'MON' => 'MONDAY', 'TUE' => 'TUESDAY', 'WED' => 'WEDNESDAY',
+        'THU' => 'THURSDAY', 'FRI' => 'FRIDAY', 'SAT' => 'SATURDAY',
+        'SUN' => 'SUNDAY', default => $day,
+    };
+
+    $publishedRoomSlot = RoomScheduleTimeSlot::query()
+        ->where('room_id', $room->id)
+        ->where('academic_term_id', $activeTerm->id)
+        ->where('is_active', true)
+        ->whereIn(DB::raw('UPPER(TRIM(day))'), [$day, $fullDay])
+        ->whereTime('start_time', $startTime)
+        ->whereTime('end_time', $endTime)
+        ->exists();
+
+    if (!$publishedRoomSlot) {
+        return back()->with('error', 'That room is not published for the selected day and time slot. Please search again.');
+    }
+
 
 
     $requestedStart = Carbon::parse(
@@ -654,6 +791,10 @@ class FacultyController extends Controller
 
     }
 
+    if ($date->isToday() && $requestedStart->lessThanOrEqualTo(Carbon::now())) {
+        return back()->with('error', 'A room cannot be reserved for a time that has already started today.');
+    }
+
 
 
     /*
@@ -670,11 +811,13 @@ class FacultyController extends Controller
 
     $roomSchedules = Schedule::where('room_id', $room->id)
 
+        ->where('academic_term_id', $activeTerm->id)
+
         ->where(function ($query) use ($day) {
 
-            $query->whereRaw('UPPER(day) = ?', [$day])
+            $query->whereRaw('UPPER(TRIM(day)) = ?', [$day])
 
-                ->orWhereRaw('UPPER(day) = ?', [
+                ->orWhereRaw('UPPER(TRIM(day)) = ?', [
 
                     match ($day) {
 
@@ -708,7 +851,7 @@ class FacultyController extends Controller
 
         $roomTime = preg_split(
 
-            '/**\s**\*-**\s***/',
+            '/\s*-\s*/',
 
             trim((string) $roomSchedule->time),
 
@@ -896,35 +1039,50 @@ class FacultyController extends Controller
 
 
 
-    Reservation::create([
+    $reservationConflict = DB::transaction(function () use (
+        $room, $date, $requestedStart, $requestedEnd, $faculty, $request,
+        $facultySubject, $day, $reservationTime, $startTime, $endTime
+    ) {
+        // Serialize attempts for the same room, then recheck before inserting.
+        Room::whereKey($room->id)->lockForUpdate()->firstOrFail();
+        $activeForDate = Reservation::query()
+            ->where('room_id', $room->id)
+            ->whereDate('date', $date->format('Y-m-d'))
+            ->where('status', 'Reserved')
+            ->lockForUpdate()
+            ->get();
 
-        'room_id' => $room->id,
+        foreach ($activeForDate as $existing) {
+            if (!$existing->start_time || !$existing->end_time) continue;
+            try {
+                $existingStart = Carbon::parse($date->format('Y-m-d') . ' ' . $existing->start_time);
+                $existingEnd = Carbon::parse($date->format('Y-m-d') . ' ' . $existing->end_time);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if ($requestedStart->lt($existingEnd) && $requestedEnd->gt($existingStart)) return true;
+        }
 
-        'user_id' => $faculty->id,
+        Reservation::create([
+            'room_id' => $room->id,
+            'user_id' => $faculty->id,
+            'schedule_id' => $request->filled('schedule_id') ? (int) $request->schedule_id : null,
+        'faculty_subject_id' => $facultySubject?->id,
+            'date' => $date->format('Y-m-d'),
+            'day' => $day,
+            'time' => $reservationTime,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'purpose' => $room->purpose ?? 'Room Reservation',
+            'status' => 'Reserved',
+        ]);
 
-        'schedule_id' => $request->filled('schedule_id')
+        return false;
+    });
 
-            ? (int) $request->schedule_id
-
-            : null,
-
-        'faculty_subject_id' => $facultySubject->id,
-
-        'date' => $date->format('Y-m-d'),
-
-        'day' => $day,
-
-        'time' => $reservationTime,
-
-        'start_time' => $startTime,
-
-        'end_time' => $endTime,
-
-        'purpose' => $room->purpose ?? 'Room Reservation',
-
-        'status' => 'Reserved',
-
-    ]);
+    if ($reservationConflict) {
+        return back()->with('error', 'This room and time were just reserved by another faculty member. Please choose another room or date.');
+    }
 
 
 
@@ -944,11 +1102,7 @@ class FacultyController extends Controller
 
         'success',
 
-        'Room reserved successfully for ' .
-
-        $facultySubject->course_code .
-
-        '. The room is now reserved.'
+        'Room reserved successfully. The room is reserved for the selected date and time.'
 
     );
 
@@ -959,6 +1113,8 @@ class FacultyController extends Controller
 public function vacantRooms(Request $request)
 
 {
+
+    $this->expireReservations();
 
     /*
 
@@ -1370,7 +1526,18 @@ public function vacantRooms(Request $request)
 
     */
 
+    try {
+        $selectedDate = $request->filled('date')
+            ? Carbon::parse($request->input('date'))->startOfDay()
+            : Carbon::today();
+    } catch (\Throwable $e) {
+        $selectedDate = Carbon::today();
+    }
+
     $selectedDay = $normalizeDay($request->input('day', ''));
+    if ($selectedDay === '') {
+        $selectedDay = $normalizeDay($selectedDate->format('D'));
+    }
 
     $selectedTimeSlotId = $request->input('time_slot_id');
 
@@ -1404,7 +1571,7 @@ public function vacantRooms(Request $request)
 
         $legacyTime = trim((string) $request->input('time'));
 
-        $legacyParts = preg_split('/**\s**\*-**\s***/', $legacyTime, 2);
+        $legacyParts = preg_split('/\s*-\s*/', $legacyTime, 2);
 
 
 
@@ -1462,6 +1629,12 @@ public function vacantRooms(Request $request)
 
     */
 
+    if (!$request->filled('date') && $selectedDay !== '') {
+        while ($normalizeDay($selectedDate->format('D')) !== $selectedDay) {
+            $selectedDate->addDay();
+        }
+    }
+
     if ($selectedTimeSlot && $activeTerm) {
 
         $day = $normalizeDay($selectedTimeSlot->day);
@@ -1472,7 +1645,10 @@ public function vacantRooms(Request $request)
 
 
 
-        if ($slotStartValue && $slotEndValue) {
+        if (
+            $slotStartValue && $slotEndValue
+            && $normalizeDay($selectedDate->format('D')) === $normalizeDay($selectedTimeSlot->day)
+        ) {
 
             $slotStart = Carbon::parse($slotStartValue);
 
@@ -1514,7 +1690,7 @@ public function vacantRooms(Request $request)
 
                 /* Resolve an actual calendar date for reservations. */
 
-                $reservationDate = null;
+                $reservationDate = $selectedDate->format('Y-m-d');
 
 
 
@@ -1529,6 +1705,10 @@ public function vacantRooms(Request $request)
                         if (strtoupper($parsedDate->format('D')) === $day) {
 
                             $reservationDate = $parsedDate->format('Y-m-d');
+
+                        } else {
+
+                            $reservationDate = null;
 
                         }
 
@@ -1648,7 +1828,7 @@ public function vacantRooms(Request $request)
 
                         $parts = preg_split(
 
-                            '/**\s**\*-**\s***/',
+                            '/\s*-\s*/',
 
                             trim((string) $schedule->time),
 
@@ -1743,12 +1923,14 @@ public function vacantRooms(Request $request)
                     */
 
                     $reserved = false;
+                    $overlappingReservations = collect();
 
 
 
                     if ($reservationDate !== null) {
 
-                        $reservations = Reservation::where('room_id', $room->id)
+                        $reservations = Reservation::with(['user', 'facultySubject'])
+                            ->where('room_id', $room->id)
 
                             ->whereDate('date', $reservationDate)
 
@@ -1805,8 +1987,7 @@ public function vacantRooms(Request $request)
                             ) {
 
                                 $reserved = true;
-
-                                break;
+                                $overlappingReservations->push($reservation);
 
                             }
 
@@ -1860,9 +2041,30 @@ public function vacantRooms(Request $request)
 
                         'time' => $slotTime,
 
+                        'start_time' => $slotStart->format('H:i'),
+
+                        'end_time' => $slotEnd->format('H:i'),
+
                         'time_slot_id' => $selectedTimeSlot->id,
 
                         'reservation_date' => $reservationDate,
+
+                        'reserved_by_me' => $overlappingReservations->contains(
+                            fn ($reservation) => (int) $reservation->user_id === (int) Auth::id()
+                        ),
+
+                        'reservations' => $overlappingReservations->map(function ($reservation) {
+                            return [
+                                'faculty' => $reservation->user?->name ?? 'Faculty',
+                                'purpose' => $reservation->facultySubject
+                                    ? trim(($reservation->facultySubject->course_code ?? '') . ' - ' . ($reservation->facultySubject->subject ?? ''))
+                                    : ($reservation->purpose ?? 'Room reservation'),
+                                'date' => $reservation->date
+                                    ? Carbon::parse($reservation->date)->format('Y-m-d')
+                                    : null,
+                                'time' => $reservation->time,
+                            ];
+                        })->values()->all(),
 
                     ];
 
@@ -1894,7 +2096,7 @@ public function vacantRooms(Request $request)
 
         'faculty',
 
-        'curriculumCourse',
+        'subjectCatalog.program',
 
     ])
 
@@ -1922,7 +2124,8 @@ public function vacantRooms(Request $request)
 
                 'major' => $facultySubject->major,
 
-                'subject_type' => $facultySubject->curriculumCourse?->subject_type,
+                'subject_type' => $facultySubject->subject_type
+                    ?: (preg_match('/\.1\s*$/', trim($facultySubject->course_code)) === 1 ? 'Lab' : 'Lec'),
 
             ];
 
@@ -1947,6 +2150,8 @@ public function vacantRooms(Request $request)
             'timeSlots',
 
             'selectedDay',
+
+            'selectedDate',
 
             'selectedTimeSlotId',
 
@@ -2377,6 +2582,7 @@ public function viewSchedule(Room $room)
 {
 
     $this->expireReservations();
+    $this->expireRoomSwaps();
 
 
 
@@ -2761,8 +2967,9 @@ $schedules = $schedulesQuery
                  * After end:
                  *   original schedule is displayed again.
                  */
-                return $now->greaterThanOrEqualTo($start)
-                    && $now->lessThan($end);
+                // Keep approved upcoming swaps visible with their date/time;
+                // the front end labels them as scheduled until they begin.
+                return $end->greaterThan($now);
 
             } catch (\Throwable $e) {
 
@@ -2800,13 +3007,29 @@ $schedules = $schedulesQuery
     foreach ($activeRoomSwaps as $swap) {
 
         $swapData = [
-            'active' => true,
+            'active' => $now->greaterThanOrEqualTo(Carbon::parse(
+                $swap->getRawOriginal('swap_date') . ' ' . $swap->getRawOriginal('start_time')
+            )) && $now->lessThan(Carbon::parse(
+                $swap->getRawOriginal('swap_date') . ' ' . $swap->getRawOriginal('end_time')
+            )),
+
+            'scheduled' => $now->lessThan(Carbon::parse(
+                $swap->getRawOriginal('swap_date') . ' ' . $swap->getRawOriginal('start_time')
+            )),
 
             'swap_id' => $swap->id,
 
             'swap_date' => $swap->swap_date
                 ? Carbon::parse($swap->swap_date)->format('Y-m-d')
                 : null,
+
+            'start_at' => Carbon::parse(
+                $swap->getRawOriginal('swap_date') . ' ' . $swap->getRawOriginal('start_time')
+            )->format('Y-m-d\\TH:i:s'),
+
+            'end_at' => Carbon::parse(
+                $swap->getRawOriginal('swap_date') . ' ' . $swap->getRawOriginal('end_time')
+            )->format('Y-m-d\\TH:i:s'),
 
             'start_time' => $swap->start_time
                 ? Carbon::parse($swap->start_time)->format('g:i A')
@@ -2975,7 +3198,7 @@ $schedules = $schedulesQuery
 
     |--------------------------------------------------------------------------
 
-    | LOAD TODAY'S TEMPORARY ROOM RESERVATIONS
+    | LOAD CURRENT AND UPCOMING ROOM RESERVATIONS
 
     |--------------------------------------------------------------------------
 
@@ -2989,7 +3212,7 @@ $schedules = $schedulesQuery
 
     | Both automatically disappear from the timetable after
 
-    | their end time. The original weekly schedule is never
+    | their individual end time. The original weekly schedule is never
 
     | modified by the reservation.
 
@@ -3005,17 +3228,12 @@ $schedules = $schedulesQuery
 
 
 
-    $now =
-
-        Carbon::now();
-
-
-
     $temporaryReservations =
 
         Reservation::with([
 
             'user',
+            'facultySubject',
 
         ])
 
@@ -3027,105 +3245,27 @@ $schedules = $schedulesQuery
 
         )
 
-        ->whereDate(
+        ->whereDate('date', '>=', $today->format('Y-m-d'))
 
-            'date',
-
-            $today->format('Y-m-d')
-
-        )
-
-        ->where('status', 'Reserved')
+        ->whereRaw('LOWER(TRIM(status)) = ?', ['reserved'])
 
         ->get()
 
-        ->filter(function ($reservation) use ($now) {
-
-
-
-            if (
-
-                !$reservation->start_time ||
-
-                !$reservation->end_time
-
-            ) {
-
-                return false;
-
-            }
-
-
-
-            try {
-
-
-
-                $date =
-
-                    Carbon::parse(
-
-                        $reservation->date
-
-                    )->format('Y-m-d');
-
-
-
-                $start =
-
-                    Carbon::parse(
-
-                        $date .
-
-                        ' ' .
-
-                        $reservation->start_time
-
-                    );
-
-
-
-                $end =
-
-                    Carbon::parse(
-
-                        $date .
-
-                        ' ' .
-
-                        $reservation->end_time
-
-                    );
-
-
-
-                /*
-
-                | Only show reservations that have
-
-                | not ended yet.
-
-                */
-
-
-
-                return $end->greaterThan($now);
-
-
-
-            } catch (\Throwable $e) {
-
-
-
-                return false;
-
-            }
-
-
-
-        })
+        // expireReservations() ran at the start of this endpoint. Return all
+        // remaining current/future reservations without a second Carbon
+        // timestamp filter that can disagree with the app/database timezone.
+        ->filter(fn ($reservation) => $reservation->start_time && $reservation->end_time)
 
         ->values();
+
+    $scheduleOverridesBySchedule = ScheduleOverride::query()
+        ->whereIn('schedule_id', $schedules->pluck('id')->unique())
+        ->where('status', 'active')
+        ->whereDate('override_date', '>=', Carbon::today()->toDateString())
+        ->where('expires_at', '>', now())
+        ->orderBy('override_date')
+        ->get()
+        ->groupBy('schedule_id');
 
 
 
@@ -3150,13 +3290,25 @@ $schedules = $schedulesQuery
 
             use (
                 $mergedPrograms,
-                $roomSwapsBySchedule
+                $roomSwapsBySchedule,
+                $scheduleOverridesBySchedule
             ) {
 
                 $roomSwap =
                     $roomSwapsBySchedule[
                         $schedule->id
                     ] ?? null;
+
+                $scheduleOverrides = ($scheduleOverridesBySchedule[$schedule->id] ?? collect())
+                    ->map(function (ScheduleOverride $override) {
+                        return [
+                            'date' => $override->override_date?->format('Y-m-d'),
+                            'occupied_by' => $override->occupied_by,
+                            'reason' => $override->reason,
+                            'state' => $override->override_date?->isToday() ? 'today' : 'scheduled',
+                        ];
+                    })
+                    ->values();
 
 
                 /*
@@ -3266,7 +3418,9 @@ $schedules = $schedulesQuery
                         $roomSwap,
 
                     'is_room_swap_active' =>
-                        $roomSwap !== null,
+                        (bool) ($roomSwap['active'] ?? false),
+
+                    'schedule_overrides' => $scheduleOverrides,
 
                 ];
 
@@ -3291,13 +3445,19 @@ $schedules = $schedulesQuery
 
 
 
+    $roomTimeSlotRows = RoomScheduleTimeSlot::query()
+        ->where('room_id', $room->id)
+        ->when($activeTerm, fn ($query) => $query->where('academic_term_id', $activeTerm->id))
+        ->where('is_active', true)
+        ->get();
+
     $reservationData =
 
         $temporaryReservations
 
             ->map(
 
-                function ($reservation) {
+                function ($reservation) use ($roomTimeSlotRows) {
 
 
 
@@ -3327,6 +3487,14 @@ $schedules = $schedulesQuery
 
                             : null;
 
+                    $reservationDay = strtoupper(trim((string) ($reservation->day ?? Carbon::parse($reservation->date)->format('D'))));
+                    $reservationDay = substr($reservationDay, 0, 3);
+                    $roomTimeSlot = $roomTimeSlotRows->first(function ($slot) use ($reservationDay, $startTime, $endTime) {
+                        return substr(strtoupper(trim((string) $slot->day)), 0, 3) === $reservationDay
+                            && Carbon::parse($slot->start_time)->format('H:i') === $startTime
+                            && Carbon::parse($slot->end_time)->format('H:i') === $endTime;
+                    });
+
 
 
                     return [
@@ -3336,6 +3504,8 @@ $schedules = $schedulesQuery
                         'id' =>
 
                             $reservation->id,
+
+                        'user_id' => $reservation->user_id,
 
 
 
@@ -3409,6 +3579,8 @@ $schedules = $schedulesQuery
 
                             $endTime,
 
+                        'row_position' => $roomTimeSlot?->row_position,
+
 
 
                         'purpose' =>
@@ -3416,6 +3588,10 @@ $schedules = $schedulesQuery
                             $reservation->purpose
 
                             ?? 'Room Reservation',
+
+                        'course_code' => $reservation->facultySubject?->course_code,
+
+                        'subject' => $reservation->facultySubject?->subject,
 
 
 
@@ -3680,6 +3856,7 @@ public function mySchedules()
 {
 
     $this->expireReservations();
+    $this->expireRoomSwaps();
 
 
 
@@ -3915,6 +4092,41 @@ public function mySchedules()
 
 
 
+    $temporaryReservations = Reservation::with([
+        'room.building',
+        'facultySubject',
+    ])
+        ->where('user_id', $faculty->id)
+        ->where('status', 'Reserved')
+        ->whereDate('date', '>=', Carbon::today()->toDateString())
+        ->orderBy('date')
+        ->orderBy('start_time')
+        ->get();
+
+    $roomSwapRequests = RoomSwapRequest::with([
+        'requester', 'targetUser', 'requesterRoom', 'targetRoom',
+        'requesterSchedule', 'targetSchedule',
+    ])
+        ->whereRaw('LOWER(TRIM(status)) = ?', ['approved'])
+        ->whereDate('swap_date', '>=', Carbon::today()->toDateString())
+        ->where(function ($query) use ($faculty) {
+            $query->where('requester_id', $faculty->id)
+                ->orWhere('target_user_id', $faculty->id);
+        })
+        ->orderBy('swap_date')
+        ->orderBy('start_time')
+        ->get();
+
+    $scheduleOverridesByScheduleId = ScheduleOverride::query()
+        ->whereIn('schedule_id', $mySchedules->pluck('id')->unique())
+        ->where('faculty_id', $faculty->id)
+        ->where('status', 'active')
+        ->whereDate('override_date', '>=', Carbon::today()->toDateString())
+        ->where('expires_at', '>', now())
+        ->orderBy('override_date')
+        ->get()
+        ->groupBy('schedule_id');
+
     return view(
 
         'faculty.myschedules',
@@ -3925,7 +4137,13 @@ public function mySchedules()
 
             'activeTerm',
 
-            'timeSlots'
+            'timeSlots',
+
+            'temporaryReservations',
+
+            'roomSwapRequests',
+
+            'scheduleOverridesByScheduleId'
 
         )
 
@@ -4081,6 +4299,32 @@ public function mySchedules()
 
             });
 
+    }
+
+    private function expireRoomSwaps(): void
+    {
+        $now = Carbon::now();
+
+        RoomSwapRequest::query()
+            ->whereRaw('LOWER(TRIM(status)) = ?', ['approved'])
+            ->whereNotNull('swap_date')
+            ->whereNotNull('end_time')
+            ->get()
+            ->each(function (RoomSwapRequest $swap) use ($now) {
+                try {
+                    $date = $swap->swap_date instanceof Carbon
+                        ? $swap->swap_date->format('Y-m-d')
+                        : Carbon::parse($swap->swap_date)->format('Y-m-d');
+                    $endTime = $swap->getRawOriginal('end_time') ?: $swap->end_time;
+                    $end = Carbon::parse($date . ' ' . $endTime);
+
+                    if ($end->lessThanOrEqualTo($now)) {
+                        $swap->update(['status' => 'expired']);
+                    }
+                } catch (\Throwable $exception) {
+                    // Leave malformed legacy records unchanged for review.
+                }
+            });
     }
 
 

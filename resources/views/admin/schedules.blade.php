@@ -7,7 +7,7 @@
 
         @include('admin.sidebar')
 
-        <main class="content">
+        <main class="content faculty-schedules-view">
 
             <style>
 
@@ -19,7 +19,7 @@
                     background: #f5f7f6;
                 }
 
-                .admin-schedule-page {
+                .faculty-schedule-page {
                     max-width: 1250px;
                     margin: 0 auto;
                     padding: 10px 0 35px;
@@ -689,7 +689,7 @@
     box-sizing: border-box;
 }
 
-.admin-timetable {
+.faculty-timetable {
     width: 100%;
 
     min-width: 1300px;
@@ -713,8 +713,8 @@
    TABLE CELLS
 ========================================================= */
 
-.admin-timetable th,
-.admin-timetable td {
+.faculty-timetable th,
+.faculty-timetable td {
     border-right: 1px solid #dfe5e1;
     border-bottom: 1px solid #dfe5e1;
 
@@ -726,7 +726,7 @@
    TABLE HEADER
 ========================================================= */
 
-.admin-timetable th {
+.faculty-timetable th {
     height: 46px;
 
     padding: 10px 8px;
@@ -749,9 +749,9 @@
    TIME COLUMNS
 ========================================================= */
 
-.admin-timetable th:nth-child(1),
-.admin-timetable th:nth-child(5),
-.admin-timetable .time-column {
+.faculty-timetable th:nth-child(1),
+.faculty-timetable th:nth-child(5),
+.faculty-timetable .time-column {
     width: 125px;
 
     min-width: 125px;
@@ -759,7 +759,7 @@
     max-width: 125px;
 }
 
-.admin-timetable .time-column {
+.faculty-timetable .time-column {
     height: 82px;
 
     padding: 10px;
@@ -784,7 +784,7 @@
    CLASSROOM CELLS
 ========================================================= */
 
-.admin-timetable td:not(.time-column) {
+.faculty-timetable td:not(.time-column) {
     height: 82px;
 
     padding: 6px;
@@ -799,12 +799,12 @@
    REMOVE EXTRA BORDERS
 ========================================================= */
 
-.admin-timetable th:last-child,
-.admin-timetable td:last-child {
+.faculty-timetable th:last-child,
+.faculty-timetable td:last-child {
     border-right: none;
 }
 
-.admin-timetable tbody tr:last-child td {
+.faculty-timetable tbody tr:last-child td {
     border-bottom: none;
 }
 
@@ -1176,7 +1176,7 @@
 
                 @media (max-width: 600px) {
 
-                    .admin-schedule-page {
+                    .faculty-schedule-page {
                         padding: 5px 0 20px;
                     }
 
@@ -1208,10 +1208,486 @@
 
                 }
 
+                /* Refined faculty schedules workspace */
+                .faculty-schedules-view { background: #f5f8f6; }
+                .faculty-schedule-page { max-width: 1320px; padding: 12px 0 42px; }
+                .schedule-header {
+                    position: relative;
+                    margin-bottom: 25px;
+                    padding: 25px 28px;
+                    overflow: hidden;
+                    border: 1px solid #dfeae2;
+                    border-radius: 20px;
+                    background: linear-gradient(115deg, #fff 0%, #f0f8f2 100%);
+                    box-shadow: 0 8px 24px rgba(22, 73, 45, .045);
+                }
+                .schedule-header::after {
+                    position: absolute;
+                    top: -55px;
+                    right: -32px;
+                    width: 210px;
+                    height: 210px;
+                    border: 1px solid rgba(28, 117, 74, .10);
+                    border-radius: 50%;
+                    box-shadow: 0 0 0 24px rgba(28, 117, 74, .035), 0 0 0 48px rgba(28, 117, 74, .025);
+                    content: "";
+                }
+                .schedule-header::before {
+                    display: block;
+                    margin-bottom: 8px;
+                    color: #56816a;
+                    content: "ADMIN WORKSPACE  /  SCHEDULES";
+                    font-size: 9px;
+                    font-weight: 800;
+                    letter-spacing: .14em;
+                }
+                .schedule-title { color: #193e2d; font-size: 27px; font-weight: 760; letter-spacing: -.035em; }
+                .schedule-subtitle { max-width: 580px; margin-top: 7px; color: #708078; font-size: 12px; line-height: 1.65; }
+                .faculty-schedules-section-heading { margin: 0 0 12px; color: #284735; font-size: 14px; font-weight: 750; }
+                .department-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 25px; }
+                .department-card { border-color: #e4ebe6; border-radius: 16px; box-shadow: 0 4px 14px rgba(25, 57, 39, .04); }
+                .department-card:hover { transform: translateY(-2px); border-color: #b9d7c3; box-shadow: 0 12px 24px rgba(25, 80, 49, .08); }
+                .department-card.active { border: 1px solid #19764d; background: #f3faf5; box-shadow: 0 0 0 3px rgba(25, 118, 77, .08); }
+                .department-button { min-height: 136px; padding: 18px 19px; }
+                .department-icon { width: 39px; height: 39px; margin-bottom: 12px; border-radius: 12px; background: #edf6ef; color: #19764d; font-size: 16px; }
+                .department-name { color: #244b35; font-size: 14px; font-weight: 750; line-height: 1.45; }
+                .department-info { color: #829087; font-size: 10px; }
+                .department-arrow { color: #619175; font-size: 17px; }
+                .selected-department-header, .building-card, .schedule-panel { border-color: #e4ebe6; border-radius: 15px; box-shadow: 0 5px 16px rgba(25, 57, 39, .045); }
+                .selected-department-header { padding: 18px 20px; }
+                .selected-department-title { color: #244b35; font-size: 16px; }
+                .selected-department-subtitle { color: #829087; font-size: 11px; }
+                .building-list { gap: 10px; }
+                .building-card { overflow: hidden; }
+                .building-button { padding: 14px 18px; }
+                .building-button:hover, .building-button.active { background: #f1f8f3; }
+                .building-icon { border-radius: 11px; background: #edf6ef; color: #19764d; }
+                .building-name { color: #2d4738; font-size: 13px; font-weight: 750; }
+                .building-department { color: #89958d; font-size: 10px; }
+                .rooms-container { border-top-color: #e9efeb; background: #f8fbf9; }
+                .room-card { border-color: #e4ebe6; border-radius: 12px; box-shadow: 0 2px 8px rgba(25, 57, 39, .025); }
+                .room-card:hover { border-color: #b9d7c3; box-shadow: 0 8px 18px rgba(25, 80, 49, .07); }
+                .room-card.active { border-color: #19764d; background: #f1f8f3; }
+                .room-name { color: #244b35; font-size: 12px; }
+                .room-info { color: #7d8a81; font-size: 10px; line-height: 1.5; }
+                .room-action { color: #19764d; font-size: 10px; }
+                .department-placeholder, .empty-department { border-color: #dce7df; border-radius: 15px; background: #fff; }
+                .department-placeholder h3 { color: #244b35; }
+                .schedule-panel { overflow: hidden; }
+                .schedule-panel-header { background: linear-gradient(100deg, #176b45, #218457); padding: 17px 20px; }
+                .schedule-panel-title { font-size: 15px; }
+                .schedule-panel-subtitle { font-size: 10px; }
+                .faculty-timetable { border-color: #e3ebe5; border-radius: 12px; }
+                .faculty-timetable th { background: #f1f7f3; color: #315c43; font-size: 11px; }
+                .faculty-timetable th, .faculty-timetable td { border-color: #e6ede8; }
+                .faculty-timetable .time-column { background: #fafcfb; color: #526158; font-size: 11px; }
+                .class-entry { border-radius: 9px; }
+                .schedule-error-title { color: #294638; }
+                .retry-schedule-btn { border-radius: 9px; background: #19764d; }
+                @media (max-width: 900px) { .department-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+                @media (max-width: 600px) {
+                    .faculty-schedule-page { padding-top: 4px; }
+                    .schedule-header { margin-bottom: 19px; padding: 21px 19px; border-radius: 16px; }
+                    .schedule-header::after { right: -115px; }
+                    .schedule-title { font-size: 23px; }
+                    .department-list { grid-template-columns: 1fr; gap: 10px; }
+                    .department-button { min-height: 116px; }
+                }
+
+                .shared-reservation-entry { display:flex; flex-direction:column; align-items:flex-start; width:100%; min-height:90px; padding:9px; border:1px solid #ead9ad; border-radius:9px; background:#fff8e8; color:#344054; text-align:left; cursor:pointer; }
+                .shared-reservation-entry:hover { border-color:#d5b66e; background:#fff4d8; box-shadow:0 4px 12px rgba(117,83,12,.09); }
+                .shared-reservation-entry .reservation-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 6px; border-radius:999px; background:#fff0c7; color:#8a5a00; font-size:8px; font-weight:850; }
+                .shared-reservation-entry .reservation-course { margin-top:6px; color:#71500e; font-size:10px; font-weight:850; line-height:1.3; }
+                .shared-reservation-entry .reservation-purpose,.shared-reservation-entry .reservation-requester { margin-top:4px; color:#6c6656; font-size:9px; }
+                .shared-reservation-entry .reservation-expiration { margin-top:auto; padding-top:6px; color:#8a5a00; font-size:8px; font-weight:750; }
+                .room-reservation-details-overlay { position:fixed; inset:0; z-index:100000; display:grid; place-items:center; padding:18px; background:rgba(17,39,27,.5); backdrop-filter:blur(3px); }
+                .room-reservation-details-dialog { width:min(520px,100%); max-height:85vh; overflow:auto; border:1px solid #dce7df; border-radius:17px; background:#fff; box-shadow:0 24px 70px rgba(0,0,0,.22); }
+                .room-reservation-details-dialog header { display:flex; justify-content:space-between; gap:15px; align-items:flex-start; padding:18px 20px; border-bottom:1px solid #e7eee9; background:#f7faf8; }
+                .room-reservation-details-dialog header span { color:#56816a; font-size:9px; font-weight:800; letter-spacing:.12em; }
+                .room-reservation-details-dialog h2 { margin:5px 0 0; color:#193e2d; font-size:17px; }
+                .room-reservation-details-dialog header button { width:32px; height:32px; border:1px solid #e1e9e3; border-radius:9px; background:#fff; color:#66756d; font-size:22px; cursor:pointer; }
+                .room-reservation-details-list { display:grid; gap:9px; padding:16px 20px 20px; }
+                .room-reservation-detail-card { padding:12px; border:1px solid #e4ebe6; border-radius:11px; background:#fbfdfb; }
+                .room-reservation-detail-card > div { display:flex; justify-content:space-between; gap:12px; color:#315b41; font-size:11px; }
+                .room-reservation-detail-card p { margin:8px 0 3px; color:#34483a; font-size:12px; font-weight:750; }
+                .room-reservation-detail-card small { color:#748178; font-size:10px; }
+
             </style>
 
 
-            <div class="admin-schedule-page">
+            <style>
+                /* Administrator schedules: high contrast, larger type, clear selection steps. */
+                .faculty-schedules-view { background: transparent !important; }
+                .faculty-schedule-page { max-width: 1480px; padding: 10px 0 42px; }
+                .faculty-schedule-page,
+                .faculty-schedule-page button,
+                .faculty-schedule-page .room-card { color: #e8f4fb; }
+
+                .faculty-schedule-page .schedule-header {
+                    margin-bottom: 28px; padding: 30px 32px;
+                    border: 1px solid rgba(101,231,255,.3); border-radius: 20px;
+                    background: linear-gradient(120deg, #102b39 0%, #15384b 58%, #242348 100%);
+                    box-shadow: 0 16px 36px rgba(0,0,0,.26), 0 0 26px rgba(101,231,255,.06);
+                }
+                .faculty-schedule-page .schedule-header::before { color: #a9eaf4; font-size: 13px; letter-spacing: .1em; }
+                .faculty-schedule-page .schedule-header::after { border-color: rgba(101,231,255,.18); box-shadow: 0 0 0 24px rgba(101,231,255,.045), 0 0 0 48px rgba(167,139,250,.035); }
+                .faculty-schedule-page .schedule-title { color: #f3fbff !important; font-size: clamp(34px, 3vw, 42px) !important; line-height: 1.2; letter-spacing: -.025em; }
+                .faculty-schedule-page .schedule-subtitle { max-width: 720px; color: #d0e2eb !important; font-size: 17px !important; line-height: 1.6; }
+                .faculty-schedule-page .faculty-schedules-section-heading { margin: 0 0 16px; color: #f0f8fc; font-size: 25px; line-height: 1.35; }
+
+                .faculty-schedule-page .department-list { gap: 16px; margin-bottom: 26px; }
+                .faculty-schedule-page .department-card {
+                    border: 1px solid rgba(146,190,210,.23); border-radius: 16px;
+                    background: #111f2a; box-shadow: 0 12px 28px rgba(0,0,0,.18);
+                }
+                .faculty-schedule-page .department-card:hover { border-color: rgba(101,231,255,.5); box-shadow: 0 14px 30px rgba(0,0,0,.25), 0 0 18px rgba(101,231,255,.07); }
+                .faculty-schedule-page .department-card.active { border: 2px solid #65e7ff !important; background: #142632 !important; box-shadow: 0 0 0 3px rgba(101,231,255,.12) !important; }
+                .faculty-schedule-page .department-button { min-height: 160px; padding: 22px; color: #edf8fc; }
+                .faculty-schedule-page .department-icon { width: 48px; height: 48px; margin-bottom: 16px; border: 1px solid rgba(101,231,255,.22); border-radius: 14px; background: rgba(101,231,255,.1); color: #8cecff; font-size: 21px; }
+                .faculty-schedule-page .department-name { color: #f1f9fc; font-size: 19px; line-height: 1.4; }
+                .faculty-schedule-page .department-info { color: #b7cbd5; font-size: 15px; line-height: 1.5; }
+                .faculty-schedule-page .department-arrow { color: #8cecff; font-size: 22px; }
+
+                .faculty-schedule-page .selected-department-header,
+                .faculty-schedule-page .building-card,
+                .faculty-schedule-page .schedule-panel {
+                    border: 1px solid rgba(146,190,210,.23); border-radius: 16px;
+                    background: #111f2a; box-shadow: 0 12px 28px rgba(0,0,0,.18);
+                }
+                .faculty-schedule-page .selected-department-header { padding: 22px 24px; }
+                .faculty-schedule-page .selected-department-title { color: #f0f8fc; font-size: 23px; line-height: 1.35; }
+                .faculty-schedule-page .selected-department-subtitle { color: #bdcfd8; font-size: 16px; line-height: 1.55; }
+                .faculty-schedule-page .building-list { gap: 13px; }
+                .faculty-schedule-page .building-button { min-height: 76px; padding: 16px 20px; background: #142430; color: #e7f3f8; }
+                .faculty-schedule-page .building-button:hover,
+                .faculty-schedule-page .building-button.active { background: #192d39; }
+                .faculty-schedule-page .building-left { gap: 15px; }
+                .faculty-schedule-page .building-icon { width: 46px; height: 46px; border: 1px solid rgba(101,231,255,.2); border-radius: 13px; background: rgba(101,231,255,.1); color: #8cecff; font-size: 20px; }
+                .faculty-schedule-page .building-name { color: #eff8fc; font-size: 18px; line-height: 1.4; }
+                .faculty-schedule-page .building-department { color: #b6c9d3; font-size: 15px; line-height: 1.4; }
+                .faculty-schedule-page .building-arrow { color: #8cecff; font-size: 21px; }
+                .faculty-schedule-page .rooms-container { gap: 14px; padding: 18px; border-top-color: rgba(146,190,210,.2); background: #0d1821; }
+                .faculty-schedule-page .room-card { min-height: 132px; padding: 18px; border-color: rgba(146,190,210,.22); border-radius: 14px; background: #142430; }
+                .faculty-schedule-page .room-card:hover { border-color: rgba(101,231,255,.55); background: #192d39; box-shadow: 0 10px 24px rgba(0,0,0,.22); }
+                .faculty-schedule-page .room-card.active { border: 2px solid #65e7ff !important; background: #17313d !important; }
+                .faculty-schedule-page .room-name { color: #f0faff; font-size: 18px; line-height: 1.4; }
+                .faculty-schedule-page .room-arrow { color: #8cecff; font-size: 22px; }
+                .faculty-schedule-page .room-info { color: #bdcfd8; font-size: 15px; line-height: 1.5; }
+                .faculty-schedule-page .room-action { margin-top: 14px; color: #8cecff; font-size: 13px; font-weight: 800; letter-spacing: .04em; }
+
+                .faculty-schedule-page .department-placeholder,
+                .faculty-schedule-page .empty-department,
+                .faculty-schedule-page .empty-building {
+                    border-color: rgba(146,190,210,.28); color: #c0d1da;
+                    background: #111f2a; font-size: 16px; line-height: 1.6;
+                }
+                .faculty-schedule-page .department-placeholder h3 { color: #edf8fc; font-size: 24px; }
+                .faculty-schedule-page .department-placeholder p { color: #bdcfd8; font-size: 16px; line-height: 1.6; }
+                .faculty-schedule-page .department-placeholder-icon { font-size: 42px; }
+
+                .faculty-schedule-page .schedule-panel { margin-top: 26px; }
+                .faculty-schedule-page .schedule-panel-header { padding: 20px 24px; background: linear-gradient(105deg, #123b4b, #28244f); }
+                .faculty-schedule-page .schedule-panel-title { color: #f4fbff; font-size: 23px; line-height: 1.35; }
+                .faculty-schedule-page .schedule-panel-subtitle { color: #d1e4ec; font-size: 15px; line-height: 1.5; }
+                .faculty-schedule-page .close-schedule { min-height: 48px; padding: 10px 18px; border: 1px solid rgba(179,230,243,.45); border-radius: 10px; background: rgba(8,19,30,.45); color: #f4fbff; font-size: 15px; }
+                .faculty-schedule-page .schedule-legend { gap: 12px 16px; padding: 16px 20px; border-bottom: 1px solid rgba(146,190,210,.18); background: #14232e; color: #c3d4dd; font-size: 14px; line-height: 1.55; }
+                .faculty-schedule-page .schedule-legend-badge { padding: 7px 10px; border: 1px solid rgba(101,231,255,.28); border-radius: 999px; background: rgba(101,231,255,.1); color: #b9f3ff; font-size: 13px; font-weight: 750; }
+                .faculty-schedule-page .schedule-loading { min-height: 220px; color: #c1d1da; background: #111f2a; font-size: 17px; }
+                .faculty-schedule-page .loading-spinner { width: 38px; height: 38px; border-color: rgba(101,231,255,.18); border-top-color: #65e7ff; }
+                .faculty-schedule-page .schedule-error { color: #ffd6dc; background: #111f2a; }
+                .faculty-schedule-page .schedule-error-title { color: #fff0f2; font-size: 20px; }
+                .faculty-schedule-page .schedule-error-message { color: #d5c4c8; font-size: 15px; line-height: 1.55; }
+                .faculty-schedule-page .retry-schedule-btn { min-height: 48px; padding: 10px 18px; border: 1px solid rgba(101,231,255,.3); background: linear-gradient(120deg,#087c96,#5551a6); color: #f3fcff; font-size: 15px; }
+
+                .faculty-schedule-page .timetable-wrapper { padding: 18px; background: #0d1821; }
+                .faculty-schedule-page .faculty-timetable { min-width: 1380px; border: 1px solid rgba(146,190,210,.24); border-radius: 13px; background: #111f2a; }
+                .faculty-schedule-page .faculty-timetable th { height: 54px; padding: 12px 9px; background: #1b2d39 !important; color: #e0f5fb !important; font-size: 15px !important; }
+                .faculty-schedule-page .faculty-timetable td { background: #111f2a; }
+                .faculty-schedule-page .faculty-timetable th,
+                .faculty-schedule-page .faculty-timetable td { border-color: rgba(146,190,210,.2) !important; }
+                .faculty-schedule-page .faculty-timetable .time-column { background: #172732 !important; color: #e0edf2 !important; font-size: 14px !important; }
+                .faculty-schedule-page .faculty-timetable td:not(.time-column) { height: 92px; }
+                .faculty-schedule-page .empty-schedule-cell { color: #9eb2bd; font-size: 13px; }
+                .faculty-schedule-page .class-entry { min-height: 76px; padding: 8px; }
+                .faculty-schedule-page .class-course { color: #0c2835; font-size: 15px; line-height: 1.3; }
+                .faculty-schedule-page .class-subject { color: #152e3a; font-size: 14px; line-height: 1.35; }
+                .faculty-schedule-page .class-instructor,
+                .faculty-schedule-page .class-program,
+                .faculty-schedule-page .class-major,
+                .faculty-schedule-page .class-type { color: #29404a; font-size: 12px; line-height: 1.35; }
+                .faculty-schedule-page .room-swap-badge { padding: 6px 8px; background: #42340f; border-color: #9f8133; color: #ffe69b; font-size: 11px; }
+                .faculty-schedule-page .room-swap-details,
+                .faculty-schedule-page .room-swap-original { color: #f0d98c; font-size: 12px; line-height: 1.4; }
+                .faculty-schedule-page .shared-reservation-entry { min-height: 108px; padding: 11px; border-color: #9b7931; border-radius: 11px; background: #382c12; color: #fff1c6; }
+                .faculty-schedule-page .shared-reservation-entry:hover { border-color: #d4ae50; background: #493817; }
+                .faculty-schedule-page .shared-reservation-entry .reservation-badge { padding: 6px 8px; background: #624b16; color: #fff0bd; font-size: 11px; }
+                .faculty-schedule-page .shared-reservation-entry .reservation-course { color: #fff0bd; font-size: 14px; line-height: 1.4; }
+                .faculty-schedule-page .shared-reservation-entry .reservation-purpose,
+                .faculty-schedule-page .shared-reservation-entry .reservation-requester { color: #f1dfad; font-size: 12px; line-height: 1.4; }
+                .faculty-schedule-page .shared-reservation-entry .reservation-expiration { color: #ffdf83; font-size: 11px; }
+                .faculty-schedule-page .room-reservation-details-overlay { background: rgba(2,8,13,.82); }
+                .faculty-schedule-page .room-reservation-details-dialog { border-color: rgba(101,231,255,.3); background: #111f2a; }
+                .faculty-schedule-page .room-reservation-details-dialog header { border-color: rgba(146,190,210,.2); background: #172732; }
+                .faculty-schedule-page .room-reservation-details-dialog header span { color: #9befff; font-size: 12px; }
+                .faculty-schedule-page .room-reservation-details-dialog h2 { color: #eff9fc; font-size: 22px; }
+                .faculty-schedule-page .room-reservation-details-dialog header button { border-color: rgba(146,190,210,.25); background: #20313d; color: #edf8fc; }
+                .faculty-schedule-page .room-reservation-detail-card { border-color: rgba(146,190,210,.2); background: #172732; }
+                .faculty-schedule-page .room-reservation-detail-card > div,
+                .faculty-schedule-page .room-reservation-detail-card p { color: #e7f4f8; font-size: 15px; }
+                .faculty-schedule-page .room-reservation-detail-card small { color: #bdcfd8; font-size: 13px; }
+                .faculty-schedule-page button:focus-visible,
+                .faculty-schedule-page .department-card:focus-visible,
+                .faculty-schedule-page .room-card:focus-visible { outline: 3px solid #75eaff; outline-offset: 3px; }
+
+                @media (max-width: 900px) {
+                    .faculty-schedule-page .department-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                    .faculty-schedule-page .rooms-container { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                }
+                @media (max-width: 600px) {
+                    .faculty-schedule-page { padding-top: 4px; }
+                    .faculty-schedule-page .schedule-header { padding: 24px 20px; }
+                    .faculty-schedule-page .schedule-title { font-size: 32px !important; }
+                    .faculty-schedule-page .department-list,
+                    .faculty-schedule-page .rooms-container { grid-template-columns: 1fr; }
+                    .faculty-schedule-page .department-button { min-height: 145px; }
+                    .faculty-schedule-page .building-button { min-height: 82px; }
+                    .faculty-schedule-page .schedule-panel-header { align-items: stretch; flex-direction: column; }
+                    .faculty-schedule-page .close-schedule { width: 100%; }
+                    .faculty-schedule-page .timetable-wrapper { padding: 10px; }
+                }
+            </style>
+
+
+            <style>
+                /* Accessible sage neumorphic redesign for the administrator schedule browser. */
+                .faculty-schedules-view { background: transparent !important; color: #263b31 !important; }
+                .faculty-schedule-page {
+                    --schedule-ink: #263b31;
+                    --schedule-muted: #52665a;
+                    --schedule-green: #36785c;
+                    --schedule-line: #d8e2da;
+                    max-width: 1480px;
+                    padding: 24px clamp(18px, 3vw, 38px) 44px;
+                    color: var(--schedule-ink) !important;
+                    font-size: 17px;
+                    line-height: 1.55;
+                }
+                .faculty-schedule-page * { box-sizing: border-box; }
+                .faculty-schedule-page .schedule-header {
+                    position: relative;
+                    overflow: hidden;
+                    margin-bottom: 30px;
+                    padding: clamp(26px, 4vw, 42px);
+                    border: 1px solid #cbdacf;
+                    border-radius: 22px;
+                    background: linear-gradient(120deg, #e6eee7 0%, #f5f8f4 68%, #e9f0e9 100%);
+                    box-shadow: 9px 9px 20px #dce3dc, -8px -8px 20px #fff;
+                }
+                .faculty-schedule-page .schedule-header::before {
+                    content: "ADMINISTRATOR WORKSPACE";
+                    display: block;
+                    position: static;
+                    margin-bottom: 10px;
+                    color: #3c7358;
+                    font-size: 13px;
+                    font-weight: 800;
+                    letter-spacing: .12em;
+                }
+                .faculty-schedule-page .schedule-header::after {
+                    right: -90px;
+                    top: -125px;
+                    width: 260px;
+                    height: 260px;
+                    border-color: rgba(74, 126, 91, .14);
+                    box-shadow: 0 0 0 24px rgba(74,126,91,.045), 0 0 0 48px rgba(74,126,91,.025);
+                }
+                .faculty-schedule-page .schedule-title {
+                    color: #203c2d !important;
+                    font-size: clamp(32px, 3vw, 42px) !important;
+                    line-height: 1.2;
+                    letter-spacing: -.025em;
+                }
+                .faculty-schedule-page .schedule-subtitle {
+                    max-width: 760px;
+                    color: #4c6254 !important;
+                    font-size: 18px !important;
+                    line-height: 1.6;
+                }
+                .faculty-schedule-page .faculty-schedules-section-heading {
+                    margin: 0 0 17px;
+                    color: #263b31;
+                    font-size: 25px;
+                    line-height: 1.35;
+                }
+                .faculty-schedule-page .department-list { gap: 17px; margin-bottom: 28px; }
+                .faculty-schedule-page .department-card,
+                .faculty-schedule-page .selected-department-header,
+                .faculty-schedule-page .building-card,
+                .faculty-schedule-page .schedule-panel {
+                    border: 1px solid var(--schedule-line) !important;
+                    border-radius: 17px;
+                    background: #f1f5f1 !important;
+                    box-shadow: 6px 6px 14px #dce3dc, -6px -6px 14px #fff !important;
+                    color: var(--schedule-ink) !important;
+                }
+                .faculty-schedule-page .department-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+                .faculty-schedule-page .department-card:hover {
+                    transform: translateY(-3px);
+                    border-color: #9ab9a2 !important;
+                    box-shadow: 8px 9px 18px #d5dfd6, -7px -7px 16px #fff !important;
+                }
+                .faculty-schedule-page .department-card.active {
+                    border: 2px solid #6f9d7b !important;
+                    background: #e7efe8 !important;
+                    box-shadow: inset 3px 3px 7px #d8e2d9, inset -3px -3px 7px #f7faf7 !important;
+                }
+                .faculty-schedule-page .department-button { min-height: 164px; padding: 23px; color: var(--schedule-ink) !important; }
+                .faculty-schedule-page .department-icon,
+                .faculty-schedule-page .building-icon {
+                    border: 1px solid #d7e2d8;
+                    background: #eaf0ea !important;
+                    color: #367456 !important;
+                    box-shadow: 3px 3px 7px #dce3dc, -3px -3px 7px #fff;
+                }
+                .faculty-schedule-page .department-name { color: #294b37 !important; font-size: 20px; line-height: 1.4; }
+                .faculty-schedule-page .department-info,
+                .faculty-schedule-page .selected-department-subtitle,
+                .faculty-schedule-page .building-department { color: var(--schedule-muted) !important; font-size: 16px; line-height: 1.5; }
+                .faculty-schedule-page .department-arrow,
+                .faculty-schedule-page .building-arrow { color: #36785c !important; }
+                .faculty-schedule-page .selected-department-header { padding: 23px 25px; margin-bottom: 16px; }
+                .faculty-schedule-page .selected-department-title { color: #294b37 !important; font-size: 25px; line-height: 1.35; }
+                .faculty-schedule-page .building-list { gap: 14px; }
+                .faculty-schedule-page .building-button {
+                    min-height: 82px;
+                    padding: 17px 21px;
+                    border-radius: 16px;
+                    background: #f1f5f1 !important;
+                    color: var(--schedule-ink) !important;
+                    transition: background .2s ease, box-shadow .2s ease;
+                }
+                .faculty-schedule-page .building-button:hover,
+                .faculty-schedule-page .building-button.active { background: #e8efe9 !important; }
+                .faculty-schedule-page .building-name { color: #263b31 !important; font-size: 19px; line-height: 1.4; }
+                .faculty-schedule-page .rooms-container { gap: 14px; padding: 18px; border-top-color: #dce5dc; background: #e9efea !important; }
+                .faculty-schedule-page .room-card {
+                    min-height: 142px;
+                    padding: 19px;
+                    border: 1px solid #d4dfd5 !important;
+                    border-radius: 15px;
+                    background: #f1f5f1 !important;
+                    color: var(--schedule-ink) !important;
+                    box-shadow: 4px 4px 10px #dce3dc, -4px -4px 10px #fff;
+                }
+                .faculty-schedule-page .room-card:hover { border-color: #9ab9a2 !important; background: #f7faf7 !important; }
+                .faculty-schedule-page .room-card.active { border: 2px solid #6f9d7b !important; background: #e6eee7 !important; }
+                .faculty-schedule-page .room-name { color: #294b37 !important; font-size: 19px; line-height: 1.4; }
+                .faculty-schedule-page .room-info { color: var(--schedule-muted) !important; font-size: 16px; line-height: 1.55; }
+                .faculty-schedule-page .room-action { color: #36785c !important; font-size: 14px; }
+                .faculty-schedule-page .department-placeholder,
+                .faculty-schedule-page .empty-department,
+                .faculty-schedule-page .empty-building { color: #52665a !important; font-size: 17px; line-height: 1.6; }
+                .faculty-schedule-page .department-placeholder {
+                    padding: 42px 24px !important;
+                    border: 1px solid #d8e2da !important;
+                    border-radius: 18px !important;
+                    background: #f1f5f1 !important;
+                    box-shadow: 7px 7px 16px #dce3dc, -7px -7px 16px #fff !important;
+                    color: #52665a !important;
+                }
+                .faculty-schedule-page .department-placeholder-icon {
+                    display: grid;
+                    place-items: center;
+                    width: 64px;
+                    height: 64px;
+                    margin: 0 auto 16px !important;
+                    border: 1px solid #d7e2d8;
+                    border-radius: 18px;
+                    background: #eaf0ea;
+                    box-shadow: 4px 4px 9px #dce3dc, -4px -4px 9px #fff;
+                    font-size: 32px !important;
+                }
+                .faculty-schedule-page .department-placeholder h3 {
+                    margin: 0 0 8px;
+                    color: #294b37 !important;
+                    font-size: 24px !important;
+                    line-height: 1.35;
+                }
+                .faculty-schedule-page .department-placeholder p {
+                    max-width: 660px;
+                    margin: 0 auto;
+                    color: #52665a !important;
+                    font-size: 17px !important;
+                    line-height: 1.6;
+                }
+                .faculty-schedule-page .schedule-panel-header { padding: 21px 24px; background: linear-gradient(110deg, #e5eee6, #f2f6f2) !important; }
+                .faculty-schedule-page .schedule-panel-title { color: #294b37 !important; font-size: 24px; }
+                .faculty-schedule-page .schedule-panel-subtitle { color: #52665a !important; font-size: 16px; }
+                .faculty-schedule-page .close-schedule,
+                .faculty-schedule-page .retry-schedule-btn {
+                    min-height: 48px;
+                    padding: 10px 18px;
+                    border: 1px solid #cbdacf;
+                    border-radius: 12px;
+                    background: #eaf0ea !important;
+                    color: #294b37 !important;
+                    font-size: 16px;
+                    font-weight: 750;
+                    box-shadow: 4px 4px 9px #dce3dc, -4px -4px 9px #fff;
+                }
+                .faculty-schedule-page .schedule-legend { color: #405649 !important; background: #eef3ee !important; font-size: 15px; }
+                .faculty-schedule-page .schedule-legend-badge { border-color: #cddbcf; background: #e5eee6; color: #315f43; font-size: 14px; }
+                .faculty-schedule-page .schedule-loading,
+                .faculty-schedule-page .schedule-error { color: #405649 !important; background: #f1f5f1 !important; font-size: 17px; }
+                .faculty-schedule-page .schedule-error-title { color: #294b37 !important; font-size: 21px; }
+                .faculty-schedule-page .schedule-error-message { color: #52665a !important; font-size: 16px; line-height: 1.6; }
+                .faculty-schedule-page .timetable-wrapper { padding: 18px; background: #e9efea !important; }
+                .faculty-schedule-page .faculty-timetable { border-color: #cfdacf; border-radius: 14px; background: #f8faf8; }
+                .faculty-schedule-page .faculty-timetable th { background: #e3ece4 !important; color: #294b37 !important; font-size: 15px !important; }
+                .faculty-schedule-page .faculty-timetable td { background: #f8faf8; }
+                .faculty-schedule-page .faculty-timetable th,
+                .faculty-schedule-page .faculty-timetable td { border-color: #d9e2da !important; }
+                .faculty-schedule-page .faculty-timetable .time-column { background: #edf2ed !important; color: #344a3b !important; font-size: 15px !important; }
+                .faculty-schedule-page .empty-schedule-cell { color: #596c60 !important; font-size: 14px; }
+                .faculty-schedule-page .class-course { color: #183b2b !important; font-size: 16px; line-height: 1.4; }
+                .faculty-schedule-page .class-subject { color: #263b31 !important; font-size: 15px; line-height: 1.45; }
+                .faculty-schedule-page .class-instructor,
+                .faculty-schedule-page .class-program,
+                .faculty-schedule-page .class-major,
+                .faculty-schedule-page .class-type { color: #344a3b !important; font-size: 14px; line-height: 1.45; }
+                .faculty-schedule-page .room-reservation-details-overlay { background: rgba(24, 42, 30, .48); }
+                .faculty-schedule-page .room-reservation-details-dialog { border-color: #d4dfd5; background: #f5f8f5; }
+                .faculty-schedule-page .room-reservation-details-dialog header { border-color: #dce5dc; background: #eaf0ea; }
+                .faculty-schedule-page .room-reservation-details-dialog header span { color: #36785c; font-size: 13px; }
+                .faculty-schedule-page .room-reservation-details-dialog h2 { color: #294b37; font-size: 23px; }
+                .faculty-schedule-page .room-reservation-details-dialog header button { background: #f1f5f1; color: #344a3b; }
+                .faculty-schedule-page .room-reservation-detail-card { border-color: #d9e3da; background: #f8faf8; }
+                .faculty-schedule-page .room-reservation-detail-card > div,
+                .faculty-schedule-page .room-reservation-detail-card p { color: #344a3b; font-size: 16px; }
+                .faculty-schedule-page .room-reservation-detail-card small { color: #52665a; font-size: 14px; }
+                .faculty-schedule-page button:focus-visible,
+                .faculty-schedule-page [role="button"]:focus-visible { outline: 3px solid #438463; outline-offset: 3px; }
+                @media (max-width: 900px) {
+                    .faculty-schedule-page .department-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                    .faculty-schedule-page .rooms-container { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+                }
+                @media (max-width: 600px) {
+                    .faculty-schedule-page { padding: 16px 14px 30px; }
+                    .faculty-schedule-page .schedule-header { padding: 24px 20px; }
+                    .faculty-schedule-page .schedule-title { font-size: 32px !important; }
+                    .faculty-schedule-page .department-list,
+                    .faculty-schedule-page .rooms-container { grid-template-columns: 1fr; }
+                    .faculty-schedule-page .schedule-panel-header { align-items: stretch; flex-direction: column; }
+                    .faculty-schedule-page .close-schedule { width: 100%; }
+                    .faculty-schedule-page .timetable-wrapper { padding: 10px; }
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .faculty-schedule-page *, .faculty-schedule-page *::before, .faculty-schedule-page *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+                }
+            </style>
+
+
+            <div class="faculty-schedule-page">
 
 
                 <!-- =====================================================
@@ -1231,6 +1707,8 @@
 
                 </div>
 
+                <h2 class="faculty-schedules-section-heading">Browse departments</h2>
+
 
                 <!-- =====================================================
                      DEPARTMENT CARDS
@@ -1242,12 +1720,16 @@
 
                         <div
                             class="department-card"
+                            role="button"
+                            tabindex="0"
+                            aria-label="Open {{ $department['name'] }} department"
                             data-department-id="{{ $department['id'] }}"
                             onclick="
                                 showDepartment(
                                     {{ $department['id'] }}
                                 )
                             "
+                            onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.click(); }"
                         >
 
                             <button
@@ -1400,6 +1882,9 @@
 
                                             <div
                                                 class="room-card"
+                                                role="button"
+                                                tabindex="0"
+                                                aria-label="View schedule for {{ $room->room_name }}"
                                                 data-room-id="{{ $room->id }}"
                                                 onclick="
                                                     loadRoomSchedule(
@@ -1409,6 +1894,7 @@
                                                         '{{ addslashes($building['name']) }}'
                                                     )
                                                 "
+                                                onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.click(); }"
                                             >
 
 
@@ -1499,12 +1985,12 @@
                      DEFAULT MESSAGE
                 ====================================================== -->
 
-               @if(count($departments) > 0)
+                @if($departments->count() > 0)
 
-    <div
-        id="departmentPlaceholder"
-        class="department-placeholder"
-    >
+                    <div
+                        id="departmentPlaceholder"
+                        class="department-placeholder"
+                    >
 
                         <div class="department-placeholder-icon">
                             🏫
@@ -1603,6 +2089,7 @@
           <script>
 
 let reservationExpiryTimer = null;
+let roomSwapTransitionTimer = null;
 
 
 /* =========================================================
@@ -1707,6 +2194,11 @@ function loadRoomSchedule(
     buildingName
 ) {
 
+    if (roomSwapTransitionTimer) {
+        clearTimeout(roomSwapTransitionTimer);
+        roomSwapTransitionTimer = null;
+    }
+
     document
         .querySelectorAll('.room-card')
         .forEach(function(room) {
@@ -1789,7 +2281,7 @@ function loadRoomSchedule(
     `;
 
     fetch(
-        "{{ url('/faculty/schedule/room') }}/" +
+        "{{ url('/admin/view-schedule') }}/" +
         roomId,
         {
             method: 'GET',
@@ -1887,6 +2379,13 @@ function loadRoomSchedule(
 
             scheduleReservationExpiry(
                 data.reservations || [],
+                roomId,
+                roomName,
+                buildingName
+            );
+
+            scheduleRoomSwapTransition(
+                data.schedules || [],
                 roomId,
                 roomName,
                 buildingName
@@ -2019,16 +2518,13 @@ function scheduleReservationExpiry(
 
                 }
 
-                const expiration =
-                    new Date();
-
-                expiration.setHours(
-                    Number(endParts[0]),
-                    Number(endParts[1]),
-                    endParts[2]
-                        ? Number(endParts[2])
-                        : 0,
-                    0
+                const reservationDate = String(reservation.date || '');
+                if (!reservationDate) return null;
+                const expiration = new Date(
+                    reservationDate + 'T' +
+                    String(endParts[0]).padStart(2, '0') + ':' +
+                    String(endParts[1]).padStart(2, '0') + ':' +
+                    String(endParts[2] || 0).padStart(2, '0')
                 );
 
                 return expiration;
@@ -2073,8 +2569,36 @@ function scheduleReservationExpiry(
                 );
 
             },
-            millisecondsUntilExpiry + 1000
+            Math.min(millisecondsUntilExpiry + 1000, 2147480000)
         );
+}
+
+function scheduleRoomSwapTransition(schedules, roomId, roomName, buildingName)
+{
+    if (roomSwapTransitionTimer) {
+        clearTimeout(roomSwapTransitionTimer);
+        roomSwapTransitionTimer = null;
+    }
+
+    const now = Date.now();
+    const transitionTimes = (schedules || [])
+        .map(function(schedule) {
+            const swap = schedule.room_swap;
+            if (!swap) return [];
+            return [swap.start_at, swap.end_at]
+                .map(value => value ? new Date(value).getTime() : NaN)
+                .filter(value => Number.isFinite(value) && value > now);
+        })
+        .flat()
+        .sort((a, b) => a - b);
+
+    if (!transitionTimes.length) return;
+
+    const delay = Math.min(transitionTimes[0] - now + 250, 2147480000);
+    roomSwapTransitionTimer = window.setTimeout(function() {
+        const activeRoom = document.querySelector('.room-card.active');
+        loadRoomSchedule(roomId, activeRoom, roomName, buildingName);
+    }, Math.max(delay, 250));
 }
 
 
@@ -2181,8 +2705,7 @@ function buildFacultyScheduleGroup(items)
 
         if (
             currentReservation &&
-            currentReservation.reservation &&
-            !currentSchedule
+            currentReservation.length > 0
         ) {
 
             html +=
@@ -2288,7 +2811,7 @@ function buildFacultyScheduleGroup(items)
 
             if (
                 next.reservation &&
-                next.reservation.reservation
+                next.reservation.length > 0
             ) {
 
                 break;
@@ -2450,23 +2973,15 @@ function renderSchedule(
 
     const defaultTimes = [
 
-        '8:00-9:00',
-
-        '9:00-10:00',
-
+        '08:00-09:00',
+        '09:00-10:00',
         '10:00-11:00',
-
         '11:00-12:00',
-
-        '12:00-1:00',
-
-        '1:00-2:00',
-
-        '2:00-3:00',
-
-        '3:00-4:00',
-
-        '4:00-5:00'
+        '12:00-13:00',
+        '13:00-14:00',
+        '14:00-15:00',
+        '15:00-16:00',
+        '16:00-17:00'
 
     ];
 
@@ -2504,17 +3019,12 @@ function renderSchedule(
 
             SAT: null,
 
-            MON_RESERVATION: null,
-
-            WED_RESERVATION: null,
-
-            FRI_RESERVATION: null,
-
-            TUE_RESERVATION: null,
-
-            THU_RESERVATION: null,
-
-            SAT_RESERVATION: null
+            MON_RESERVATION: [],
+            WED_RESERVATION: [],
+            FRI_RESERVATION: [],
+            TUE_RESERVATION: [],
+            THU_RESERVATION: [],
+            SAT_RESERVATION: []
 
         };
 
@@ -2780,16 +3290,6 @@ function renderSchedule(
 
             }
 
-            const reservationTarget = {
-
-                reservation:
-                    reservation,
-
-                start:
-                    reservationStart
-
-            };
-
             const dayKeyMap = {
 
                 MON:
@@ -2812,8 +3312,8 @@ function renderSchedule(
 
             };
 
-            const reservationKey =
-                dayKeyMap[day];
+            const normalizedDay = day.slice(0, 3);
+            const reservationKey = dayKeyMap[normalizedDay];
 
             if (!reservationKey) {
 
@@ -2821,32 +3321,21 @@ function renderSchedule(
 
             }
 
-            let reservationPosition =
-                -1;
+            // Match by the actual reservation time first. Room-specific slot
+            // rows may use a default row_position of 0, which would otherwise
+            // place every booking in the first row.
+            let reservationPosition = defaultTimes.findIndex(function(slot) {
+                return normalizeScheduleStartTime(slot) === reservationStart;
+            });
 
-            for (
-                let position = 0;
-                position < defaultTimes.length;
-                position++
-            ) {
-
-                const defaultStart =
-                    normalizeScheduleStartTime(
-                        defaultTimes[position]
-                    );
-
-                if (
-                    defaultStart ===
-                    reservationStart
-                ) {
-
-                    reservationPosition =
-                        position;
-
-                    break;
-
+            if (reservationPosition < 0) {
+                const suppliedPosition = reservation.row_position;
+                const parsedPosition = suppliedPosition === null || suppliedPosition === ''
+                    ? NaN
+                    : Number(suppliedPosition);
+                if (Number.isInteger(parsedPosition) && parsedPosition >= 0 && parsedPosition < defaultTimes.length) {
+                    reservationPosition = parsedPosition;
                 }
-
             }
 
             if (
@@ -2857,12 +3346,7 @@ function renderSchedule(
 
             }
 
-            rows[
-                reservationPosition
-            ][
-                reservationKey
-            ] =
-                reservationTarget;
+            rows[reservationPosition][reservationKey].push(reservation);
 
             rows[
                 reservationPosition
@@ -2891,7 +3375,7 @@ function renderSchedule(
 
         <div class="timetable-wrapper">
 
-            <table class="admin-timetable">
+            <table class="faculty-timetable">
 
                 <thead>
 
@@ -2943,7 +3427,7 @@ function renderSchedule(
         */
 
         if (
-            position === 4
+            position === 5
         ) {
 
             html += `
@@ -3134,88 +3618,82 @@ function normalizeScheduleStartTime(value)
    BUILD RESERVATION CELL
 ========================================================= */
 
-function buildReservationCell(
-    reservation
-)
+function buildReservationCell(reservations)
 {
-    const badge =
-        'Temporary Reservation';
-
-    const requester =
-        reservation.user_name ||
-        reservation.requested_by ||
-        'Faculty';
-
-    const purpose =
-        reservation.purpose ||
-        'Room Reservation';
-
-    const time =
-        reservation.time ||
-        (
-            (reservation.start_time || '') +
-            ' - ' +
-            (reservation.end_time || '')
-        );
+    const faculty = Array.from(new Set(reservations.map(item => item.user_id || item.user_name || 'Faculty')));
+    // Keep JSON safe inside the generated HTML attribute. Text escaping does
+    // not escape quotes for an attribute, while URI encoding does.
+    const encoded = encodeURIComponent(JSON.stringify(reservations));
+    const countLabel = faculty.length === 1 ? '1 faculty member' : faculty.length + ' faculty members';
+    const dateLabel = reservations.length === 1 && reservations[0].date
+        ? new Date(reservations[0].date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
+        : reservations.length + ' reserved dates';
 
     return `
-
-        <td>
-
-            <div class="temporary-reservation-entry">
-
-                <div class="reservation-badge">
-
-                    <i class="fa-solid fa-calendar-check"></i>
-
-                    ${escapeHtml(
-                        badge
-                    )}
-
-                </div>
-
-                <div class="reservation-course">
-
-                    ${escapeHtml(
-                        purpose
-                    )}
-
-                </div>
-
-                <div class="reservation-purpose">
-
-                    Reserved:
-                    ${escapeHtml(
-                        requester
-                    )}
-
-                </div>
-
-                <div class="reservation-requester">
-
-                    ${escapeHtml(
-                        time
-                    )}
-
-                </div>
-
-                <div class="reservation-expiration">
-
-                    <i class="fa-solid fa-hourglass-half"></i>
-
-                    Temporary until
-                    ${escapeHtml(
-                        reservation.end_time || ''
-                    )}
-
-                </div>
-
-            </div>
-
+        <td class="shared-reservation-cell">
+            <button type="button" class="temporary-reservation-entry shared-reservation-entry"
+                data-reservations="${encoded}"
+                aria-label="View ${reservations.length} room reservation${reservations.length === 1 ? '' : 's'}">
+                <span class="reservation-badge"><i class="fa-solid fa-calendar-check"></i> Room Reserved</span>
+                <span class="reservation-course">Reserved by ${countLabel}</span>
+                <span class="reservation-purpose">${escapeHtml(dateLabel || 'View reserved dates')}</span>
+                <span class="reservation-requester">${escapeHtml(reservations[0].start_time || '')} - ${escapeHtml(reservations[0].end_time || '')}</span>
+                <span class="reservation-expiration"><i class="fa-solid fa-arrow-up-right-from-square"></i> View details</span>
+            </button>
         </td>
-
     `;
 }
+
+window.openRoomReservationDetails = function(button)
+{
+    let reservations = [];
+    try {
+        reservations = JSON.parse(decodeURIComponent(button.dataset.reservations || ''));
+    } catch (error) {
+        console.error('Could not read the room reservation details.', error);
+        return;
+    }
+    const items = reservations.map(item => {
+        const date = item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'}) : 'Date unavailable';
+        const purpose = item.course_code ? item.course_code + (item.subject ? ' — ' + item.subject : '') : (item.purpose || 'Room reservation');
+        return `<article class="room-reservation-detail-card"><div><strong>${escapeHtml(date)}</strong><span>${escapeHtml(item.start_time || '')} – ${escapeHtml(item.end_time || '')}</span></div><p>${escapeHtml(item.user_name || 'Faculty')}</p><small>${escapeHtml(purpose)}</small></article>`;
+    }).join('');
+
+    let modal = document.getElementById('roomReservationDetailsModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'roomReservationDetailsModal';
+        modal.className = 'room-reservation-details-overlay';
+        modal.innerHTML = `<section class="room-reservation-details-dialog" role="dialog" aria-modal="true" aria-labelledby="roomReservationDetailsTitle"><header><div><span>ROOM RESERVATIONS</span><h2 id="roomReservationDetailsTitle">Reserved dates and faculty</h2></div><button type="button" data-close-room-reservation-details aria-label="Close">×</button></header><div class="room-reservation-details-list"></div></section>`;
+        document.body.appendChild(modal);
+    }
+    modal.querySelector('.room-reservation-details-list').innerHTML = items || '<p>No active reservations.</p>';
+}
+
+// Reservation cells are created dynamically after the room schedule loads.
+// Delegate clicks from the document so the details action remains active on
+// dynamically inserted cells and their child elements.
+document.addEventListener('click', function(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+
+    const closeButton = target.closest('[data-close-room-reservation-details]');
+    if (closeButton) {
+        document.getElementById('roomReservationDetailsModal')?.remove();
+        return;
+    }
+
+    const overlay = target.closest('#roomReservationDetailsModal');
+    if (overlay && target === overlay) {
+        overlay.remove();
+        return;
+    }
+
+    const reservationButton = target.closest('.shared-reservation-entry');
+    if (reservationButton) {
+        window.openRoomReservationDetails(reservationButton);
+    }
+});
 
 
 /* =========================================================
@@ -3256,14 +3734,12 @@ function buildScheduleCell(
     |--------------------------------------------------------------------------
     */
 
-    if (
-        reservation &&
-        reservation.reservation &&
-        !scheduleOccupied
-    ) {
+    // A dated room reservation takes precedence for the selected timeslot.
+    // The weekly schedule reappears after the reservation expires.
+    if (Array.isArray(reservation) && reservation.length > 0) {
 
         return buildReservationCell(
-            reservation.reservation
+            reservation
         );
 
     }
@@ -3448,7 +3924,7 @@ function buildScheduleCell(
 
     }
 
-    /*
+      /*
     |--------------------------------------------------------------------------
     | ROOM SWAP STATUS
     |--------------------------------------------------------------------------
@@ -3458,16 +3934,26 @@ function buildScheduleCell(
 
     if (
         schedule.room_swap &&
-        schedule.room_swap.active
+        (schedule.room_swap.active || schedule.room_swap.scheduled)
     ) {
 
         const originalRoom =
             schedule.room_swap.original_room_name ||
             'Original room';
 
+        const swappedRoom =
+            schedule.room_swap.swapped_to_room_name ||
+            '';
+
         const endTime =
             schedule.room_swap.end_time ||
             '';
+
+        const swapDate = schedule.room_swap.swap_date
+            ? new Date(schedule.room_swap.swap_date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
+            : 'Scheduled date';
+
+        const swapState = schedule.room_swap.active ? 'Room Swap Active' : 'Room Swap Scheduled';
 
         roomSwapHtml = `
 
@@ -3475,25 +3961,41 @@ function buildScheduleCell(
 
                 <i class="fa-solid fa-right-left"></i>
 
-                Room Swap Active
+                ${escapeHtml(swapState)}
+
+            </div>
+
+            ${
+                swappedRoom
+                    ? `
+                        <div class="room-swap-details">
+
+                            Temporary Room:
+                            ${escapeHtml(swappedRoom)}
+
+                        </div>
+                      `
+                    : ''
+            }
+
+            <div class="room-swap-details">
+
+                Date:
+                ${escapeHtml(swapDate)}
 
             </div>
 
             <div class="room-swap-details">
 
-                Temporary room until
-                ${escapeHtml(
-                    endTime
-                )}
+                Until
+                ${escapeHtml(endTime)}
 
             </div>
 
             <div class="room-swap-original">
 
-                Original:
-                ${escapeHtml(
-                    originalRoom
-                )}
+                Original Room:
+                ${escapeHtml(originalRoom)}
 
             </div>
 
@@ -3722,4 +4224,4 @@ function escapeHtml(value)
 
 </div>
 
-@include('footerheader.footer')
+<!-- @include('footerheader.footer') -->

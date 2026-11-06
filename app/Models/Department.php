@@ -14,6 +14,7 @@ class Department extends Model
     protected $fillable = [
         'code',
         'name',
+        'logo',
     ];
 
 
@@ -69,3 +70,4 @@ class Department extends Model
     }
 
 }
+  

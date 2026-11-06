@@ -52,7 +52,7 @@ body.week-reservation-open{overflow:hidden}
         <div class="time-only-summary">
             <div>
                 <strong>Room availability for {{ $selectedDayName }} • {{ $searchedTime }}</strong>
-                <span>Availability is checked against the active academic term and date-specific reservations.</span>
+                <span>{{ \Carbon\Carbon::parse($selectedDate)->format('F j, Y') }} · checked for this date</span>
             </div>
             <span>{{ $availableRooms }} room(s) available</span>
         </div>
@@ -105,17 +105,20 @@ body.week-reservation-open{overflow:hidden}
                                         <div class="room-status-value">
                                             @if($status === 'Available') 🟢 Available
                                             @elseif($status === 'Occupied') 🔴 Occupied
+                                            @elseif($status === 'Reserved' && !empty($item['reserved_by_me'])) 🟠 Reserved by you
                                             @elseif($status === 'Reserved') 🟠 Reserved
                                             @else {{ $status }}
                                             @endif
                                         </div>
                                         <div class="room-status-help">
                                             @if($status === 'Available')
-                                                This room is free for the selected recurring time. Choose a future calendar date below to reserve it.
+                                                This room is free for the selected time on this date. Choose Reserve This Room to confirm it.
                                             @elseif($status === 'Occupied')
                                                 A regular class is already scheduled in this room during this time.
+                                            @elseif($status === 'Reserved' && !empty($item['reserved_by_me']))
+                                                You already reserved this room for {{ \Carbon\Carbon::parse($item['reservation_date'])->format('F j, Y') }}. It cannot be booked twice for the same time.
                                             @else
-                                                This room already has an active reservation for the selected calendar date.
+                                                Reserved for {{ \Carbon\Carbon::parse($item['reservation_date'])->format('F j, Y') }} by {{ collect($item['reservations'] ?? [])->pluck('faculty')->unique()->join(', ') ?: 'another faculty member' }}.
                                             @endif
                                         </div>
                                     </div>
@@ -146,9 +149,10 @@ body.week-reservation-open{overflow:hidden}
                                             data-building="{{ e($buildingName) }}"
                                             data-day="{{ $selectedDayCode }}"
                                             data-day-name="{{ $selectedDayName }}"
+                                            data-selected-date="{{ $item['reservation_date'] ?? request('date') }}"
                                             data-time="{{ $item['time'] ?? $searchedTime }}"
-                                            data-start-time="{{ \Carbon\Carbon::parse($timeSlots->firstWhere('id', (int)($item['time_slot_id'] ?? request('time_slot_id')))?->start_time ?? '00:00')->format('H:i') }}"
-                                            data-end-time="{{ \Carbon\Carbon::parse($timeSlots->firstWhere('id', (int)($item['time_slot_id'] ?? request('time_slot_id')))?->end_time ?? '00:00')->format('H:i') }}"
+                                            data-start-time="{{ $item['start_time'] ?? '' }}"
+                                            data-end-time="{{ $item['end_time'] ?? '' }}"
                                             data-time-slot-id="{{ $item['time_slot_id'] ?? request('time_slot_id') }}"
                                         >
                                             <i class="fa-solid fa-calendar-plus"></i> Reserve This Room
@@ -178,28 +182,24 @@ body.week-reservation-open{overflow:hidden}
                                                     <input type="hidden" name="start_time" id="weeklyReserveStartInput-{{ $room->id }}">
                                                     <input type="hidden" name="end_time" id="weeklyReserveEndInput-{{ $room->id }}">
 
-                                                    <div class="week-reserve-field">
-                                                        <label for="weeklyReserveDate-{{ $room->id }}">Reservation Date</label>
-                                                        <select name="date" id="weeklyReserveDate-{{ $room->id }}" required></select>
-                                                        <div class="week-reserve-help">Only future dates matching {{ $selectedDayName }} are shown.</div>
-                                                    </div>
+                                                    <input type="hidden" name="date" id="weeklyReserveDate-{{ $room->id }}" value="{{ $item['reservation_date'] ?? request('date') }}">
 
                                                     <div class="week-reserve-field">
-                                                        <label for="weeklyReserveSubject-{{ $room->id }}">Set Faculty Subject</label>
-                                                        <select name="faculty_subject_id" id="weeklyReserveSubject-{{ $room->id }}" required>
-                                                            <option value="">Select subject</option>
+                                                        <label for="weeklyReserveSubject-{{ $room->id }}">Related subject <span>(optional)</span></label>
+                                                        <select name="faculty_subject_id" id="weeklyReserveSubject-{{ $room->id }}">
+                                                            <option value="">Room reservation</option>
                                                             @forelse(($facultySubjectOptions ?? collect()) as $subject)
                                                                 <option value="{{ $subject['id'] ?? '' }}">{{ $subject['course_code'] ?? '' }} — {{ $subject['subject'] ?? '' }}</option>
                                                             @empty
                                                                 <option value="" disabled>No Set Faculty subjects available</option>
                                                             @endforelse
                                                         </select>
-                                                        <div class="week-reserve-help">Choose the subject assigned to your faculty account.</div>
+                                                        <div class="week-reserve-help">You can reserve for a class or leave this as a general room reservation.</div>
                                                     </div>
 
                                                     <div class="week-reserve-actions">
                                                         <button type="button" class="week-reserve-cancel" onclick="closeWeeklyReservation('{{ $room->id }}')">Cancel</button>
-                                                        <button type="submit" class="week-reserve-submit" @if(empty($facultySubjectOptions) || count($facultySubjectOptions) === 0) disabled @endif><i class="fa-solid fa-calendar-check"></i> Reserve Room</button>
+                                                        <button type="submit" class="week-reserve-submit"><i class="fa-solid fa-calendar-check"></i> Reserve Room</button>
                                                     </div>
                                                 </div>
                                             </form>
@@ -215,7 +215,7 @@ body.week-reservation-open{overflow:hidden}
     </div>
 
 @elseif(request('day') && request('time_slot_id'))
-    <div class="no-results"><i class="fa-solid fa-door-open"></i><div style="margin-top:8px;">No rooms were found for the selected day and time slot.</div></div>
+    <div class="no-results"><i class="fa-solid fa-door-open"></i><div style="margin-top:8px;">@if(!empty($selectedDate) && strtoupper($selectedDate->format('D')) !== strtoupper(substr((string) $selectedDay, 0, 3))) The selected date must fall on the chosen weekday. Choose a matching date to see room availability. @else No rooms were found for the selected day and time slot. @endif</div></div>
 @else
     <div class="no-results"><i class="fa-regular fa-clock"></i><div style="margin-top:8px;">Select a day and official time slot to see room availability.</div></div>
 @endif
@@ -225,26 +225,21 @@ body.week-reservation-open{overflow:hidden}
     if (window.__officialTimeSlotReservationHandlersAttached) return;
     window.__officialTimeSlotReservationHandlersAttached = true;
 
-    function pad(n){ return String(n).padStart(2,'0'); }
     function formatDate(date){
         const names=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
         const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
         return names[date.getDay()] + ', ' + months[date.getMonth()] + ' ' + date.getDate() + ', ' + date.getFullYear();
     }
-    function isoDate(date){ return date.getFullYear() + '-' + pad(date.getMonth()+1) + '-' + pad(date.getDate()); }
-
     window.openWeeklyReservation = function(button){
         const roomId=button.dataset.roomId || '';
         const modal=document.getElementById('weeklyReserveModal-' + roomId);
         if(!modal) return;
 
-        const targetDayCode=(button.dataset.day || '').toUpperCase();
-        const targetDayName=button.dataset.dayName || targetDayCode;
+        const targetDayName=button.dataset.dayName || button.dataset.day || '';
         const time=button.dataset.time || '';
         const startTime=button.dataset.startTime || '';
         const endTime=button.dataset.endTime || '';
-        const dayIndexes={MON:1,TUE:2,WED:3,THU:4,FRI:5,SAT:6};
-        const targetDay=dayIndexes[targetDayCode] ?? -1;
+        const selectedSearchDate=button.dataset.selectedDate || '';
 
         const dayText=document.getElementById('weeklyReserveDay-' + roomId);
         const timeText=document.getElementById('weeklyReserveTime-' + roomId);
@@ -260,41 +255,7 @@ body.week-reservation-open{overflow:hidden}
         if(startInput) startInput.value=startTime;
         if(endInput) endInput.value=endTime;
         if(timeSlotInput) timeSlotInput.value=button.dataset.timeSlotId || '';
-
-        if(dateSelect){
-            dateSelect.innerHTML='';
-            const placeholder=document.createElement('option');
-            placeholder.value='';
-            placeholder.textContent='Select reservation date';
-            placeholder.disabled=true;
-            placeholder.selected=true;
-            dateSelect.appendChild(placeholder);
-
-            if(targetDay >= 1 && targetDay <= 6){
-                const today=new Date();
-                today.setHours(0,0,0,0);
-
-                // Reservations are for a future calendar date.
-                let cursor=new Date(today);
-                cursor.setDate(cursor.getDate()+1);
-                let added=0;
-                let safety=0;
-                while(added < 12 && safety < 400){
-                    if(cursor.getDay() === targetDay){
-                        const option=document.createElement('option');
-                        option.value=isoDate(cursor);
-                        option.textContent=formatDate(cursor) + (added===0 ? ' — nearest date' : '');
-                        dateSelect.appendChild(option);
-                        added++;
-                    }
-                    cursor.setDate(cursor.getDate()+1);
-                    safety++;
-                }
-                if(added > 0) dateSelect.selectedIndex=1;
-            } else {
-                placeholder.textContent='Invalid weekday';
-            }
-        }
+        if(dateSelect) dateSelect.value=selectedSearchDate;
 
         modal.classList.add('show');
         modal.setAttribute('aria-hidden','false');
@@ -310,11 +271,11 @@ body.week-reservation-open{overflow:hidden}
     };
 
     // Never allow the reservation form to submit without an official time slot
-    // and a real future date. The controller performs the authoritative checks too.
+    // and a valid date. The controller performs the authoritative checks too.
     document.querySelectorAll('.week-reserve-dialog form').forEach(function(form){
         form.addEventListener('submit',function(event){
             const slotInput=form.querySelector('input[name="time_slot_id"]');
-            const dateInput=form.querySelector('select[name="date"]');
+            const dateInput=form.querySelector('input[name="date"]');
 
             if(!slotInput || !slotInput.value){
                 event.preventDefault();
@@ -325,6 +286,14 @@ body.week-reservation-open{overflow:hidden}
             if(!dateInput || !dateInput.value){
                 event.preventDefault();
                 alert('Please select a reservation date.');
+                return;
+            }
+
+            const roomName=form.closest('.room-card')?.querySelector('.room-name')?.textContent?.trim() || 'this room';
+            const date=new Date(dateInput.value + 'T12:00:00');
+            const confirmed=window.confirm('Confirm reservation of ' + roomName + ' for ' + formatDate(date) + '?');
+            if(!confirmed){
+                event.preventDefault();
             }
         });
     });

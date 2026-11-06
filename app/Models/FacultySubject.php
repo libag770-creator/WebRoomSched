@@ -8,7 +8,8 @@ class FacultySubject extends Model
 {
     protected $fillable = [
         'faculty_id',
-        'curriculum_course_id',
+        'subject_id',
+        'subject_type',
         'course_code',
         'subject',
         'year_level',
@@ -21,9 +22,9 @@ class FacultySubject extends Model
         return $this->belongsTo(User::class, 'faculty_id');
     }
 
-    public function curriculumCourse()
+    public function subjectCatalog()
     {
-        return $this->belongsTo(CurriculumCourse::class, 'curriculum_course_id');
+        return $this->belongsTo(Subject::class, 'subject_id');
     }
 
     public function scheduleMerges()

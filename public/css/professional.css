@@ -302,3 +302,159 @@ tbody tr:hover { background: #f8fbf9 !important; }
     .faculty-sidebar .sidebar-menu a { min-height: 40px !important; padding: 0 10px !important; white-space: nowrap; }
     .faculty-sidebar .faculty-nav-icon { width: 26px; height: 26px; flex-basis: 26px; }
 }
+
+/* Deep forest surfaces for the shared campus shell. */
+:root {
+    --wr-shell-green: #123d2d;
+}
+
+.top-header {
+    background: linear-gradient(112deg, var(--wr-shell-green), #174b35) !important;
+    color: #fff !important;
+    border-bottom: 1px solid rgba(255,255,255,.12) !important;
+    box-shadow: 0 5px 20px rgba(10, 38, 26, .18) !important;
+}
+
+.top-header .header-title small { color: #c1d8ca !important; }
+.top-header .header-title h3 { color: #fff !important; }
+.top-header .logo { border-color: rgba(255,255,255,.38) !important; background: #fff !important; }
+.top-header .header-right button {
+    background: rgba(255,255,255,.11) !important;
+    border-color: rgba(255,255,255,.18) !important;
+    color: #f5fbf7 !important;
+}
+.top-header .header-right button:hover {
+    background: rgba(255,255,255,.2) !important;
+    color: #fff !important;
+}
+.top-header .header-right .profile { background: rgba(255,255,255,.96) !important; color: #183d2d !important; }
+.top-header .header-right .profile:hover { background: #eaf5ee !important; color: #123d2d !important; }
+.top-header .header-profile-photo { border-color: #c5e3d0 !important; }
+.top-header .logout-form button { color: #fff !important; }
+.top-header .header-notification-count { border-color: #174b35 !important; }
+
+.footer {
+    background: var(--wr-shell-green) !important;
+    border-top: 1px solid rgba(255,255,255,.12) !important;
+    color: #d4e5da !important;
+    box-shadow: 0 -4px 18px rgba(10,38,26,.08);
+}
+
+
+/* Administrator shell: soft sage surfaces against a crisp white workspace. */
+:root {
+    --admin-shell: #e9f0ec;
+    --admin-shell-deep: #dce7e0;
+    --admin-ink: #234333;
+    --admin-muted: #708278;
+    --admin-accent: #176e48;
+    --admin-shadow-dark: rgba(63, 87, 72, .16);
+    --admin-shadow-light: rgba(255, 255, 255, .92);
+}
+.admin-neumorphic-header {
+    min-height: 76px !important;
+    background: var(--admin-shell) !important;
+    color: var(--admin-ink) !important;
+    border: 0 !important;
+    border-bottom: 1px solid #dce7e0 !important;
+    box-shadow: 0 7px 18px rgba(57, 78, 66, .08), inset 0 1px 0 #fff !important;
+}
+.admin-neumorphic-header .header-title small { color: #708278 !important; }
+.admin-neumorphic-header .header-title h3 { color: var(--admin-ink) !important; }
+.admin-neumorphic-header .logo {
+    border: 3px solid var(--admin-shell) !important;
+    box-shadow: 5px 5px 11px var(--admin-shadow-dark), -4px -4px 10px var(--admin-shadow-light) !important;
+}
+.admin-neumorphic-header .header-right button {
+    border: 1px solid #dce7e0 !important;
+    border-radius: 12px !important;
+    background: var(--admin-shell) !important;
+    color: var(--admin-ink) !important;
+    box-shadow: 4px 4px 9px var(--admin-shadow-dark), -4px -4px 9px var(--admin-shadow-light) !important;
+}
+.admin-neumorphic-header .header-right button:hover {
+    color: var(--admin-accent) !important;
+    box-shadow: inset 3px 3px 7px rgba(63, 87, 72, .13), inset -3px -3px 7px #fff !important;
+}
+.admin-neumorphic-header .header-right .profile { background: #f5f8f6 !important; color: var(--admin-ink) !important; }
+.admin-neumorphic-header .header-right .profile:hover { background: #f5f8f6 !important; }
+.admin-neumorphic-header .logout-form button { color: var(--admin-ink) !important; }
+.admin-neumorphic-header .header-notification-count { border-color: var(--admin-shell) !important; }
+.admin-neumorphic-sidebar {
+    background: var(--admin-shell) !important;
+    border: 0 !important;
+    box-shadow: inset -1px 0 #dce7e0, inset 0 1px 0 #fff !important;
+}
+.admin-neumorphic-sidebar .faculty-sidebar-brand { border-color: #d6e2da !important; }
+.admin-neumorphic-sidebar .faculty-sidebar-brand img {
+    border: 0 !important;
+    box-shadow: 4px 4px 9px var(--admin-shadow-dark), -4px -4px 9px var(--admin-shadow-light) !important;
+}
+.admin-neumorphic-sidebar .faculty-sidebar-brand-copy strong { color: var(--admin-ink) !important; }
+.admin-neumorphic-sidebar .faculty-sidebar-brand-copy span,
+.admin-neumorphic-sidebar .faculty-workspace-label,
+.admin-neumorphic-sidebar .faculty-sidebar-section { color: var(--admin-muted) !important; }
+.admin-neumorphic-sidebar .faculty-sidebar-workspace {
+    border: 1px solid #e1eae4 !important;
+    background: var(--admin-shell) !important;
+    box-shadow: 5px 5px 11px var(--admin-shadow-dark), -5px -5px 11px var(--admin-shadow-light) !important;
+}
+.admin-neumorphic-sidebar .faculty-workspace-mark {
+    color: var(--admin-accent) !important;
+    background: var(--admin-shell) !important;
+    box-shadow: inset 3px 3px 6px rgba(63, 87, 72, .14), inset -3px -3px 6px #fff !important;
+}
+.admin-neumorphic-sidebar .faculty-sidebar-workspace strong { color: var(--admin-ink) !important; }
+.admin-neumorphic-sidebar .sidebar-menu a {
+    border-color: transparent !important;
+    color: #53675b !important;
+    background: transparent !important;
+}
+.admin-neumorphic-sidebar .sidebar-menu a:hover {
+    color: var(--admin-accent) !important;
+    background: var(--admin-shell) !important;
+    box-shadow: 4px 4px 8px var(--admin-shadow-dark), -4px -4px 8px var(--admin-shadow-light) !important;
+}
+.admin-neumorphic-sidebar .sidebar-menu a:hover .faculty-nav-icon {
+    color: var(--admin-accent) !important;
+    background: #edf3ef !important;
+}
+.admin-neumorphic-sidebar .sidebar-menu li.active a {
+    color: var(--admin-accent) !important;
+    background: var(--admin-shell) !important;
+    border-color: #e1eae4 !important;
+    box-shadow: inset 4px 4px 8px var(--admin-shadow-dark), inset -4px -4px 8px var(--admin-shadow-light) !important;
+}
+.admin-neumorphic-sidebar .sidebar-menu li.active .faculty-nav-icon {
+    color: var(--admin-accent) !important;
+    background: #e1ebe4 !important;
+    box-shadow: 2px 2px 5px rgba(63, 87, 72, .12), -2px -2px 5px #fff !important;
+}
+.admin-neumorphic-sidebar .faculty-sidebar-footer { border-color: #d6e2da !important; }
+.admin-neumorphic-sidebar .faculty-sidebar-footer strong { color: #52675b !important; }
+.admin-neumorphic-footer {
+    padding: 17px 20px !important;
+    background: var(--admin-shell) !important;
+    border-top: 1px solid #dce7e0 !important;
+    color: #65796d !important;
+    box-shadow: 0 -5px 16px rgba(57, 78, 66, .06), inset 0 -1px 0 #fff !important;
+}
+/* Keep administrator work surfaces white and give dashboard cards a gentle raised edge. */
+body:has(.admin-neumorphic-sidebar) .content { background: #fff !important; }
+body:has(.admin-neumorphic-sidebar) .ah-stat,
+body:has(.admin-neumorphic-sidebar) .ah-panel {
+    border-color: #e8efeb !important;
+    box-shadow: 6px 6px 15px rgba(54, 77, 62, .07), -5px -5px 14px #fff !important;
+}
+body:has(.admin-neumorphic-sidebar) .ah-manage-link {
+    border-color: #e8efeb !important;
+    box-shadow: 3px 3px 8px rgba(54, 77, 62, .055), -3px -3px 8px #fff !important;
+}
+body:has(.admin-neumorphic-sidebar) .ah-manage-link:hover {
+    border-color: #cbded1 !important;
+    background: #f7faf8 !important;
+}
+@media (max-width: 760px) {
+    .admin-neumorphic-sidebar { box-shadow: inset 0 -1px #dce7e0, inset 0 1px 0 #fff !important; }
+    .admin-neumorphic-header { min-height: 66px !important; }
+}

@@ -760,6 +760,152 @@
             }
         }
     </style>
+    <style>
+        /* Welcome and sign-in screen: white neumorphism with readable slate-blue accents */
+        :root { --text:#24382f; --muted:#5e7087; --green-dark:#286657; --green:#337767; --green-light:#7898bb; --gold:#7898bb; --border:#dfe7e0; --soft:#eaf0f7; }
+        body { color:#344740 !important; background:radial-gradient(circle at 8% 18%,rgba(112,151,193,.12),transparent 28%),radial-gradient(circle at 92% 82%,rgba(112,151,193,.12),transparent 30%),#f2f4f1 !important; }
+        .page-shell { max-width:1100px !important; }
+        .split-card { background:#f0f3ef !important; border:1px solid #dfe6ef !important; border-radius:26px !important; box-shadow:12px 12px 28px #d5dce6,-12px -12px 28px #fff !important; }
+        .content-panel { background:#f0f3ef !important; }
+        .brand-panel { color:#fff !important; background:linear-gradient(145deg,#337767 0%,#3c7764 55%,#385f89 100%) !important; }
+        .brand-panel::before { background:rgba(255,255,255,.09) !important; }
+        .brand-panel::after { background:rgba(205,224,244,.16) !important; }
+        .brand-logo { border-color:rgba(255,255,255,.82) !important; box-shadow:0 12px 30px rgba(30,56,85,.24) !important; }
+        .brand-title { color:#fff !important; font-size:clamp(27px,3vw,34px) !important; }
+        .brand-title span { color:#dceafa !important; }
+        .brand-text { color:#f3f6f3 !important; font-size:16px !important; line-height:1.65 !important; }
+        .brand-campus { color:#fff !important; font-size:15px !important; }
+        .eyebrow,.small-title { color:#3c7764 !important; font-size:15px !important; letter-spacing:1.2px !important; }
+        .welcome-content h1 { color:#263b55 !important; font-size:clamp(44px,5vw,58px) !important; line-height:1.08 !important; }
+        .campus { color:#405873 !important; font-size:18px !important; }
+        .description { color:#5e7087 !important; font-size:17px !important; line-height:1.7 !important; }
+        .access-info { background:#e8eee9 !important; border:1px solid #d5e0ed !important; border-left:4px solid #4f8978 !important; box-shadow:inset 3px 3px 6px #dfe6df,inset -3px -3px 6px #fff !important; }
+        .access-info strong { color:#304a69 !important; font-size:15px !important; }
+        .access-info p { color:#435b4b !important; font-size:16px !important; line-height:1.65 !important; }
+        .btn { min-height:50px !important; font-size:16px !important; border-radius:13px !important; }
+        .btn-schedule,.login-button { color:#fff !important; background:#337767 !important; box-shadow:4px 5px 11px rgba(51,103,78,.2) !important; }
+        .btn-schedule:hover,.login-button:hover { background:#3c7764 !important; }
+        .btn-login { color:#286657 !important; background:#f0f3ef !important; border:1px solid #d4dfeb !important; box-shadow:4px 4px 9px #d8dfe8,-4px -4px 9px #fff !important; }
+        .btn-login:hover { color:#274f78 !important; background:#e7eee8 !important; }
+        .login-panel-title h2 { color:#263b55 !important; font-size:30px !important; line-height:1.25 !important; }
+        .login-panel-title p { color:#5e7087 !important; font-size:16px !important; line-height:1.6 !important; }
+        .form-label { color:#344d40 !important; font-size:15px !important; }
+        .form-input { color:#293c53 !important; background:#f2f4f1 !important; border-color:#d4deea !important; font-size:16px !important; box-shadow:inset 3px 3px 6px #dfe6df,inset -3px -3px 6px #fff !important; }
+        .form-input::placeholder { color:#78889c !important; opacity:1 !important; }
+        .form-input:focus { background:#f7f8f6 !important; border-color:#4f8978 !important; box-shadow:0 0 0 3px rgba(99,138,184,.16) !important; }
+        .input-icon { color:#647b96 !important; }
+        .password-toggle { color:#526b87 !important; }
+        .password-toggle:hover,.back-link-button:hover { color:#286657 !important; background:#e7eee8 !important; }
+        .remember { color:#52675a !important; font-size:15px !important; }
+        .remember input { accent-color:#337767 !important; }
+        .back-link-button { color:#52675a !important; font-size:15px !important; }
+        .footer-note { color:#687b92 !important; font-size:13px !important; }
+        .error-box { color:#842f37 !important; background:#fff0f0 !important; border-color:#edcaca !important; font-size:15px !important; line-height:1.55 !important; }
+        .form-input:focus-visible,.btn:focus-visible,.login-button:focus-visible,.password-toggle:focus-visible,.back-link-button:focus-visible { outline:3px solid #337767 !important; outline-offset:3px !important; }
+        @media(max-width:850px) {
+            .brand-panel { background:linear-gradient(145deg,#337767 0%,#3c7764 55%,#385f89 100%) !important; }
+            .welcome-content h1 { font-size:clamp(38px,8vw,48px) !important; }
+            .description { font-size:16px !important; }
+        }
+        @media(max-width:520px) {
+            .content-panel { background:#f0f3ef !important; }
+            .brand-title { font-size:26px !important; }
+            .campus { font-size:16px !important; }
+            .login-panel-title h2 { font-size:26px !important; }
+        }
+    </style>
+    <style>
+        /* Keep this standalone page readable without relying on the shared portal theme. */
+        html, body { color-scheme:light !important; background-color:#f2f4f1 !important; }
+        body { color:#24382f !important; }
+        .page-shell, .split-card, .content-panel, .welcome-content, .login-content, .login-content-inner { color:#24382f !important; }
+        .content-panel { background:#f0f3ef !important; }
+        .welcome-content .eyebrow, .login-content .small-title { color:#285c50 !important; }
+        .welcome-content h1, .login-content h2 { color:#263b55 !important; }
+        .welcome-content .campus, .login-content .form-label { color:#344d40 !important; }
+        .welcome-content .description, .login-panel-title p, .remember, .back-link-button, .footer-note { color:#52675a !important; }
+        .welcome-content .access-info { color:#40546d !important; background:#e8eee9 !important; border-color:#d3e0ee !important; }
+        .welcome-content .access-info strong { color:#304a69 !important; }
+        .welcome-content .access-info p { color:#4e627a !important; }
+        .brand-panel { color:#fff !important; background:linear-gradient(145deg,#337767,#3c7764 58%,#385f89) !important; }
+        .brand-panel .brand-title, .brand-panel .brand-title span, .brand-panel .brand-text, .brand-panel .brand-campus { color:#fff !important; }
+        .brand-panel .brand-title span { color:#e2f0e6 !important; }
+        .form-group, .login-options { color:#344740 !important; }
+        .form-input { color:#24382f !important; background:#f2f4f1 !important; border-color:#cbd8e6 !important; }
+        .form-input::placeholder { color:#687b92 !important; opacity:1 !important; }
+        .input-icon, .password-toggle { color:#526a86 !important; }
+        .btn-login { color:#286657 !important; background:#f0f3ef !important; border-color:#cbd9e8 !important; }
+        .btn-schedule, .login-button { color:#fff !important; background:#337767 !important; }
+        .error-box { color:#842f37 !important; }
+        @media (prefers-contrast: more) {
+            .welcome-content .description, .login-panel-title p, .remember, .back-link-button, .footer-note,
+            .welcome-content .access-info p { color:#24382f !important; }
+        }
+    </style>
+    <style>
+        /* Override the shared .page-shell .panel surface specifically for the brand panel. */
+        .page-shell .brand-panel {
+            color:#fff !important;
+            background:linear-gradient(145deg,#337767 0%,#3c7764 58%,#385f89 100%) !important;
+            border:0 !important;
+        }
+        .page-shell .brand-panel .brand-title,
+        .page-shell .brand-panel .brand-text,
+        .page-shell .brand-panel .brand-campus,
+        .page-shell .brand-panel .brand-title span { color:#fff !important; }
+        .page-shell .brand-panel .brand-title span { color:#e2f0e6 !important; }
+        .page-shell .brand-panel::before { background:rgba(255,255,255,.09) !important; }
+        .page-shell .brand-panel::after { background:rgba(205,224,244,.16) !important; }
+    </style>
+    <style>
+        /* Accessibility pass: larger type, stronger contrast, and easier spacing. */
+        body, .page-shell { font-size:18px !important; }
+        .welcome-content .eyebrow, .login-content .small-title {
+            font-size:17px !important; line-height:1.5 !important; letter-spacing:1px !important;
+        }
+        .welcome-content h1 {
+            font-size:clamp(48px,5.4vw,64px) !important; line-height:1.12 !important;
+            letter-spacing:-.7px !important; margin-bottom:18px !important;
+        }
+        .welcome-content .campus { font-size:21px !important; line-height:1.5 !important; margin-bottom:20px !important; }
+        .welcome-content .description { font-size:19px !important; line-height:1.8 !important; max-width:540px !important; margin-bottom:28px !important; }
+        .welcome-content .access-info { padding:19px 20px !important; margin-top:28px !important; }
+        .welcome-content .access-info strong { font-size:18px !important; margin-bottom:8px !important; }
+        .welcome-content .access-info p { font-size:16px !important; line-height:1.75 !important; }
+        .page-shell .brand-title { font-size:clamp(30px,3.3vw,38px) !important; line-height:1.25 !important; }
+        .page-shell .brand-text { font-size:18px !important; line-height:1.75 !important; }
+        .page-shell .brand-campus { font-size:17px !important; line-height:1.6 !important; }
+        .login-panel-title { margin-bottom:27px !important; }
+        .login-panel-title h2 { font-size:clamp(30px,3vw,36px) !important; line-height:1.3 !important; margin-bottom:11px !important; }
+        .login-panel-title p { font-size:18px !important; line-height:1.75 !important; }
+        .form-group { margin-bottom:23px !important; }
+        .form-label { font-size:17px !important; line-height:1.5 !important; margin-bottom:9px !important; }
+        .form-input { height:56px !important; font-size:18px !important; padding-left:48px !important; }
+        .form-input::placeholder { font-size:16px !important; }
+        .input-icon { font-size:17px !important; }
+        .password-toggle { width:38px !important; height:38px !important; font-size:17px !important; }
+        .remember { font-size:16px !important; gap:10px !important; }
+        .remember input { width:19px !important; height:19px !important; }
+        .login-button, .btn { min-height:56px !important; font-size:18px !important; }
+        .back-link-button { font-size:16px !important; padding:8px 10px !important; }
+        .footer-note { font-size:16px !important; line-height:1.6 !important; }
+        .error-box { font-size:16px !important; line-height:1.7 !important; padding:15px 17px !important; }
+        @media (max-width:850px) {
+            body { padding:18px !important; }
+            .welcome-content, .login-content { padding:36px 30px !important; }
+            .welcome-content h1 { font-size:clamp(42px,8vw,54px) !important; }
+        }
+        @media (max-width:520px) {
+            body { padding:12px !important; }
+            .welcome-content, .login-content { padding:30px 23px !important; }
+            .welcome-content .description { font-size:17px !important; }
+            .welcome-content .access-info p { font-size:15px !important; }
+            .login-panel-title h2 { font-size:28px !important; }
+            .login-panel-title p { font-size:17px !important; }
+            .form-input { font-size:17px !important; }
+            .login-button, .btn { font-size:17px !important; }
+        }
+    </style>
 </head>
 
 @php
@@ -1369,3 +1515,10 @@
 
 </body>
 </html>
+
+
+
+
+
+
+

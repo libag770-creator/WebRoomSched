@@ -541,8 +541,36 @@
         .building-name { color:#869289; }
         .temporary-reservation-entry { min-height:86px; border-color:#f0dca9; border-radius:10px; background:linear-gradient(145deg,#fff8e8,#fffdf8); box-shadow:inset 3px 0 #d69a22; }
         .temporary-reservation-badge { background:#fff0c7; color:#8a5a00; }
+        .my-room-swap-entry { display:grid; gap:4px; margin-top:8px; padding:9px; border:1px solid #c8d9f2; border-radius:9px; background:#f2f7ff; color:#425c83; font-size:9px; line-height:1.35; }
+        .my-room-swap-entry strong { color:#385786; font-size:9px; }
+        .my-schedule-override-entry { display:grid; gap:4px; margin-top:8px; padding:9px; border:1px solid #d3a749; border-radius:9px; background:#fff6df; color:#513b12; font-size:12px; line-height:1.4; }
+        .my-schedule-override-entry strong { color:#533c11; font-size:12px; }
         .empty-schedule-page { border-color:#dce7df; border-radius:16px; box-shadow:0 5px 16px rgba(25,57,39,.035); }
         .empty-schedule-page i,.empty-schedule-page strong { color:#19764d; }
+        /* Keep timetable rows calm when several dated items share one weekly slot. */
+        .excel-table { min-width: 1380px; }
+        .excel-table thead th { position: sticky; top: 0; z-index: 3; }
+        .schedule-cell { height: 118px; padding: 6px; vertical-align: top; }
+        .schedule-cell-stack { display: grid; max-height: 154px; gap: 5px; overflow-y: auto; overflow-x: hidden; padding: 1px 3px 1px 1px; scrollbar-width: thin; scrollbar-color: #c4d8ca transparent; }
+        .schedule-cell-stack::-webkit-scrollbar { width: 5px; }
+        .schedule-cell-stack::-webkit-scrollbar-thumb { border-radius: 9px; background: #c4d8ca; }
+        .schedule-cell .class-entry, .schedule-cell .temporary-reservation-entry { min-height: 0; padding: 8px 9px; border-radius: 9px; }
+        .schedule-cell .class-entry { padding-right: 56px; }
+        .schedule-cell .class-course, .schedule-cell .temporary-reservation-course { margin-top: 0; font-size: 10px; line-height: 1.3; }
+        .schedule-cell .class-subject { margin-top: 2px; font-size: 9px; line-height: 1.3; }
+        .schedule-cell .class-detail, .schedule-cell .temporary-reservation-detail { margin-top: 3px; font-size: 8px; line-height: 1.25; }
+        .schedule-cell .room-name { margin-top: 4px; font-size: 8px; }
+        .schedule-cell .building-name { margin-top: 2px; font-size: 7.5px; }
+        .schedule-cell .year-level { top: 6px; right: 6px; }
+        .schedule-cell .temporary-reservation-badge { margin-bottom: 5px; padding: 3px 6px; font-size: 7px; }
+        .schedule-cell .temporary-reservation-time { margin-top: 4px; font-size: 8px; }
+        .my-room-swap-entry { gap: 2px; margin-top: 5px; padding: 6px 7px; font-size: 7.5px; line-height: 1.3; }
+        .my-room-swap-entry strong { font-size: 8px; }
+        .schedule-cell .empty-cell { min-height: 100px; }
+        @media(max-width:800px) {
+            .excel-table { min-width: 1240px; }
+            .schedule-cell-stack { max-height: 138px; }
+        }
         @media(max-width:800px) {
             .my-schedules-page { padding:4px 0 28px; }
             .schedule-header { padding:21px 19px; border-radius:16px; }
@@ -633,7 +661,7 @@
                 </div>
 
 
-                @if(($mySchedules ?? collect())->count() || ($temporaryReservations ?? collect())->count())
+                @if(($mySchedules ?? collect())->count() || ($temporaryReservations ?? collect())->count() || ($roomSwapRequests ?? collect())->count())
 
 
                     <!-- =====================================================
@@ -705,6 +733,8 @@
                                         '10:00-11:00',
 
                                         '11:00-12:00',
+
+                                        '12:00-1:00',
 
                                         
 
@@ -991,6 +1021,10 @@
                                                     )
                                                 );
 
+                                            $reservationDate = $reservation->date
+                                                ? Carbon\Carbon::parse($reservation->date)->format('M j, Y')
+                                                : 'Date unavailable';
+
                                             return '
                                                 <div class="temporary-reservation-entry">
 
@@ -1015,6 +1049,16 @@
                                                     <div class="temporary-reservation-detail">
                                                         <strong>Room:</strong>
                                                         ' . e($room) . '
+                                                    </div>
+
+                                                    <div class="temporary-reservation-detail">
+                                                        <strong>Date:</strong>
+                                                        ' . e($reservationDate) . '
+                                                    </div>
+
+                                                    <div class="temporary-reservation-detail">
+                                                        <strong>Reserved by:</strong>
+                                                        ' . e(Auth::user()->name ?? 'Faculty') . '
                                                     </div>
 
                                                     ' .
@@ -1080,12 +1124,30 @@
 
                                         $reservationPosition = null;
 
+                                        $reservationStartValue = Carbon\Carbon::parse($startTime)->format('H:i');
+                                        $matchingOfficialSlot = $timeSlots->first(function ($slot) use ($reservationDay, $reservationStartValue) {
+                                            return substr(strtoupper(trim((string) $slot->day)), 0, 3) === $reservationDay
+                                                && Carbon\Carbon::parse($slot->start_time)->format('H:i') === $reservationStartValue;
+                                        });
+
+                                        if ($matchingOfficialSlot && $matchingOfficialSlot->row_position !== null) {
+                                            $reservationPosition = (int) $matchingOfficialSlot->row_position;
+                                        }
+
                                         foreach ($defaultTimes as $defaultPosition => $defaultTime) {
+
+                                            if ($reservationPosition !== null) {
+                                                break;
+                                            }
 
                                             $defaultStart =
                                                 trim(
                                                     explode('-', $defaultTime, 2)[0]
                                                 );
+
+                                            if ($defaultPosition >= 5 && preg_match('/^(\d{1,2}):(\d{2})$/', $defaultStart, $timeParts) && (int) $timeParts[1] < 12) {
+                                                $defaultStart = sprintf('%02d:%s', (int) $timeParts[1] + 12, $timeParts[2]);
+                                            }
 
                                             if (
                                                 substr($defaultStart, 0, 5) ===
@@ -1144,8 +1206,18 @@
                                     |--------------------------------------------------------------------------
                                     */
 
-                                    $renderScheduleCell =
-                                        function ($schedule) {
+                                    $roomSwapByScheduleId = [];
+                                    foreach (($roomSwapRequests ?? collect()) as $swapRequest) {
+                                        $ownedSwapSchedule = (int) $swapRequest->requester_id === (int) Auth::id()
+                                            ? $swapRequest->requesterSchedule
+                                            : $swapRequest->targetSchedule;
+                                        if ($ownedSwapSchedule) {
+                                            $roomSwapByScheduleId[(int) $ownedSwapSchedule->id] = $swapRequest;
+                                        }
+                                    }
+
+        $renderScheduleCell =
+                                        function ($schedule) use ($roomSwapByScheduleId, $scheduleOverridesByScheduleId) {
 
                                             $course =
                                                 $schedule->course_code
@@ -1193,6 +1265,33 @@
                                                     ??
                                                     null;
 
+                                            }
+
+                                            $swapRequest = $roomSwapByScheduleId[(int) $schedule->id] ?? null;
+                                            $swapMarkup = '';
+                                            if ($swapRequest) {
+                                                $isRequester = (int) $swapRequest->requester_id === (int) Auth::id();
+                                                $swapDate = $swapRequest->swap_date?->format('M j, Y') ?? 'Date unavailable';
+                                                $partner = $isRequester
+                                                    ? ($swapRequest->targetUser?->name ?? 'Other faculty')
+                                                    : ($swapRequest->requester?->name ?? 'Other faculty');
+                                                $temporaryRoom = $isRequester
+                                                    ? ($swapRequest->targetRoom?->room_name ?? 'Other room')
+                                                    : ($swapRequest->requesterRoom?->room_name ?? 'Other room');
+                                                $swapTime = Carbon\Carbon::parse($swapRequest->start_time)->format('g:i A')
+                                                    . ' – ' . Carbon\Carbon::parse($swapRequest->end_time)->format('g:i A');
+                                                $swapStartAt = Carbon\Carbon::parse($swapRequest->swap_date->format('Y-m-d') . ' ' . $swapRequest->start_time)->format('Y-m-d\\TH:i:s');
+                                                $swapEndAt = Carbon\Carbon::parse($swapRequest->swap_date->format('Y-m-d') . ' ' . $swapRequest->end_time)->format('Y-m-d\\TH:i:s');
+                                                $swapMarkup = '<div class="my-room-swap-entry" data-swap-start="' . e($swapStartAt) . '" data-swap-end="' . e($swapEndAt) . '"><strong><i class="fa-solid fa-right-left"></i> Room swap scheduled</strong><span>Date: ' . e($swapDate) . '</span><span>Time: ' . e($swapTime) . '</span><span>Temporary room: ' . e($temporaryRoom) . '</span><span>With: ' . e($partner) . '</span></div>';
+                                            }
+
+                                            $overrideMarkup = '';
+                                            foreach (($scheduleOverridesByScheduleId[(int) $schedule->id] ?? collect()) as $scheduleOverride) {
+                                                $overrideDate = $scheduleOverride->override_date?->format('M j, Y') ?? 'Date unavailable';
+                                                $overrideState = $scheduleOverride->override_date?->isToday()
+                                                    ? 'This schedule is occupied today'
+                                                    : 'Schedule override scheduled';
+                                                $overrideMarkup .= '<div class="my-schedule-override-entry" data-override-date="' . e($scheduleOverride->override_date?->format('Y-m-d')) . '"><strong><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> ' . e($overrideState) . '</strong><span>Date: ' . e($overrideDate) . '</span><span>Occupied by: ' . e($scheduleOverride->occupied_by) . '</span><span>Reason: ' . e($scheduleOverride->reason) . '</span><span>Your regular schedule returns after this day.</span></div>';
                                             }
 
 
@@ -1271,6 +1370,11 @@
                                                     )
                                                     .
 
+                                                    $overrideMarkup
+                                                    .
+                                                    $swapMarkup
+                                                    .
+
                                                 '</div>
 
                                             ';
@@ -1301,9 +1405,18 @@
                                         }
                                     }
 
+                                    $maxReservationPosition = $reservationRows
+                                        ? max(array_keys($reservationRows))
+                                        : -1;
+                                    $maxOfficialTimePosition = $timeSlots->isNotEmpty()
+                                        ? (int) $timeSlots->max('row_position')
+                                        : -1;
+
                                     $publishedRowCount = max(
                                         9,
-                                        $maxSchedulePosition + 1
+                                        $maxSchedulePosition + 1,
+                                        $maxReservationPosition + 1,
+                                        $maxOfficialTimePosition + 1
                                     );
 
                                     /*
@@ -1311,7 +1424,7 @@
                                     | MOVE NOON BREAK WHEN POSITION 4 IS A CUSTOM ROW
                                     |--------------------------------------------------------------------------
                                     */
-                                    $breakBeforePosition = 4;
+                                    $breakBeforePosition = 5;
 
                                     $positionFourTime = null;
 
@@ -1473,7 +1586,7 @@
 
 
                                         foreach (
-                                            ['TUE','THU']
+                                            ['TUE','THU','SAT']
                                             as $rightDay
                                         ) {
 
@@ -1505,6 +1618,17 @@
 
                                         }
 
+
+                                        if ($rightTime === '') {
+                                            foreach (['TUE','THU','SAT'] as $rightDay) {
+                                                $reservation = $reservationRows[$position][$rightDay][0] ?? null;
+                                                if ($reservation && !empty($reservation->time)) {
+                                                    $rightTime = $reservation->time;
+                                                    break;
+                                                }
+                                            }
+                                        }
+
                                     @endphp
 
 
@@ -1527,6 +1651,7 @@
                                         ================================================== -->
 
                                         <td class="schedule-cell" data-day="MON">
+<div class="schedule-cell-stack">
 
                                             @php
 
@@ -1579,7 +1704,9 @@
 
                                             @endif
 
-                                        </td>
+                                        
+</div>
+</td>
 
 
                                         <!-- =================================================
@@ -1587,6 +1714,7 @@
                                         ================================================== -->
 
                                         <td class="schedule-cell" data-day="WED">
+<div class="schedule-cell-stack">
 
                                             @php
 
@@ -1639,7 +1767,9 @@
 
                                             @endif
 
-                                        </td>
+                                        
+</div>
+</td>
 
 
                                         <!-- =================================================
@@ -1647,6 +1777,7 @@
                                         ================================================== -->
 
                                         <td class="schedule-cell" data-day="FRI">
+<div class="schedule-cell-stack">
 
                                             @php
 
@@ -1699,7 +1830,9 @@
 
                                             @endif
 
-                                        </td>
+                                        
+</div>
+</td>
 
 
                                         <!-- =================================================
@@ -1718,6 +1851,7 @@
                                         ================================================== -->
 
                                         <td class="schedule-cell" data-day="TUE">
+<div class="schedule-cell-stack">
 
                                             @php
 
@@ -1770,7 +1904,9 @@
 
                                             @endif
 
-                                        </td>
+                                        
+</div>
+</td>
 
 
                                         <!-- =================================================
@@ -1778,6 +1914,7 @@
                                         ================================================== -->
 
                                         <td class="schedule-cell" data-day="THU">
+<div class="schedule-cell-stack">
 
                                             @php
 
@@ -1830,7 +1967,9 @@
 
                                             @endif
 
-                                        </td>
+                                        
+</div>
+</td>
 
 
 
@@ -1839,6 +1978,7 @@
                                         ================================================== -->
 
                                         <td class="schedule-cell" data-day="SAT">
+<div class="schedule-cell-stack">
 
                                             @php
 
@@ -1891,7 +2031,9 @@
 
                                             @endif
 
-                                        </td>
+                                        
+</div>
+</td>
 
 
                                     </tr>
@@ -2069,6 +2211,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 ['TUE', 'THU', 'SAT']
             );
         });
+
+    const swapTransitions = Array.from(document.querySelectorAll('.my-room-swap-entry'))
+        .flatMap(function (entry) {
+            return [entry.dataset.swapStart, entry.dataset.swapEnd]
+                .map(function (value) { return value ? new Date(value).getTime() : NaN; })
+                .filter(function (value) { return Number.isFinite(value) && value > Date.now(); });
+        })
+        .sort(function (a, b) { return a - b; });
+
+    if (swapTransitions.length) {
+        window.setTimeout(function () { window.location.reload(); }, Math.min(swapTransitions[0] - Date.now() + 500, 2147480000));
+    }
+
+    if (document.querySelector('.my-schedule-override-entry')) {
+        const now = new Date();
+        const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 2);
+        window.setTimeout(function () { window.location.reload(); }, Math.min(nextMidnight.getTime() - now.getTime(), 2147480000));
+    }
 
 });
 </script>

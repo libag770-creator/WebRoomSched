@@ -6,7 +6,7 @@
 
         @include('chair.sidebar')
 
-        <main class="content">
+        <main class="content chair-workspace-redesign chair-drafts-redesign">
 
             <style>
 
@@ -486,6 +486,8 @@
                 }
 
             </style>
+            <link rel="stylesheet" href="{{ asset('css/chair-workspace.css') }}">
+
 
 
             <div class="draft-page">

@@ -1537,7 +1537,7 @@ $pendingIncomingSwapRequests = \App\Models\RoomSwapRequest::with([
 
             @endphp
 
-            <div class="dashboard-panel schedule-panel room-swap-dashboard-card">
+            <div class="dashboard-panel schedule-panel room-swap-dashboard-card" id="roomSwapCenter">
                 <div class="dashboard-panel-header">
                     <div class="panel-title">
                         <span class="panel-title-icon"><i class="fas fa-right-left"></i></span>
@@ -1763,6 +1763,20 @@ $pendingIncomingSwapRequests = \App\Models\RoomSwapRequest::with([
                     myButton.setAttribute('aria-selected', mine ? 'true' : 'false');
                     receivedButton.setAttribute('aria-selected', mine ? 'false' : 'true');
                 }
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    const requestedPanel = window.location.hash;
+                    if (requestedPanel === '#receivedSwapPanel') {
+                        switchRoomSwapTab('received');
+                    } else if (requestedPanel === '#mySwapPanel') {
+                        switchRoomSwapTab('my');
+                    } else {
+                        return;
+                    }
+                    window.setTimeout(function () {
+                        document.getElementById('roomSwapCenter')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 80);
+                });
             </script>
 
             <style>

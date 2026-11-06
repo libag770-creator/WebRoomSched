@@ -6,7 +6,7 @@
 
         @include('admin.sidebar')
 
-        <main class="content">
+        <main class="content buildings-admin-view" data-initial-department="{{ old('department_id', '') }}">
 
             <style>
 
@@ -806,13 +806,14 @@
 
             <!-- TITLE -->
 
-            <div class="title">
-                Manage Buildings
-            </div>
-
-            <div class="subtitle">
-                Add, edit and remove buildings and rooms by department.
-            </div>
+            <header class="buildings-hero">
+                <div class="buildings-hero-copy">
+                    <p class="buildings-hero-eyebrow">CAMPUS FACILITIES</p>
+                    <h1>Manage Buildings and Rooms</h1>
+                    <p class="buildings-hero-description">Follow the steps below to organize classrooms by department and building.</p>
+                </div>
+                <div class="buildings-hero-mark" aria-hidden="true"><i class="fa-solid fa-building-columns"></i><span>LOCATION DIRECTORY</span></div>
+            </header>
 
 
             <!-- Success message is handled by the shared header to prevent duplicate message boxes. -->
@@ -840,7 +841,9 @@
 
             <div class="add-form">
 
-                <h3>Add New Building</h3>
+                <div class="building-form-step">STEP 2</div>
+                <h3>Add a Building</h3>
+                <p class="building-form-instruction">Choose a name for a new building under the department you selected, then select <strong>Add Building</strong>.</p>
 
                 <form action="{{ route('admin.buildings.store') }}" method="POST">
 
@@ -858,7 +861,7 @@
 
                         @foreach($departments as $dept)
 
-                            <option value="{{ $dept->id }}">
+                            <option value="{{ $dept->id }}" {{ (string) old('department_id') === (string) $dept->id ? 'selected' : '' }}>
                                 {{ $dept->name }}
                             </option>
 
@@ -875,6 +878,7 @@
                         type="text"
                         name="name"
                         placeholder="Example: Flavier Building"
+                        value="{{ old('name') }}"
                         required
                     >
 
@@ -1432,6 +1436,7 @@
             // Remove active state from all college buttons.
             document.querySelectorAll('.dept-btn').forEach(function (button) {
                 button.classList.remove('active');
+                button.setAttribute('aria-pressed', 'false');
             });
 
             // Show selected college.
@@ -1448,7 +1453,11 @@
             });
 
             if (matchingButton) {
-                matchingButton.classList.add('active');
+                if (typeof window.showDept === 'function') {
+                    window.showDept(collegeId, matchingButton);
+                } else {
+                    matchingButton.classList.add('active');
+                }
 
                 // Bring the selected college button/section into view.
                 matchingButton.scrollIntoView({
@@ -1469,27 +1478,16 @@
             const department = roomsContainer.closest('.dept-content');
 
             if (department) {
-                document.querySelectorAll('.dept-content').forEach(function (content) {
-                    content.classList.remove('active');
-                });
-
-                department.classList.add('active');
-
                 const departmentId = department.id.replace('dept', '');
-
-                document.querySelectorAll('.dept-btn').forEach(function (button) {
-                    button.classList.remove('active');
-
-                    const action = button.getAttribute('onclick');
-
-                    if (action && action.includes('showDept(' + departmentId)) {
-                        button.classList.add('active');
-                    }
-                });
+                const departmentButton = document.querySelector('.dept-btn[data-department-id="' + departmentId + '"]');
+                if (typeof window.showDept === 'function') window.showDept(departmentId, departmentButton);
+                else department.classList.add('active');
             }
 
             document.querySelectorAll('.building-rooms').forEach(function (container) {
                 container.classList.remove('open');
+                const addRoomButton = container.closest('.building-card')?.querySelector('.building-add-room');
+                if (addRoomButton) addRoomButton.style.display = 'none';
             });
 
             document.querySelectorAll('.building-toggle').forEach(function (button) {
@@ -1498,6 +1496,8 @@
             });
 
             roomsContainer.classList.add('open');
+            const addRoomButton = roomsContainer.closest('.building-card')?.querySelector('.building-add-room');
+            if (addRoomButton) addRoomButton.style.display = 'inline-flex';
 
             const buildingButton = document.querySelector(
                 '.building-toggle[aria-controls="rooms-' + buildingId + '"]'
@@ -1721,6 +1721,195 @@
 })();
 </script>
 
+<style>
+    /* Administrator building workflow: choose a department, add buildings, then open a building for rooms. */
+    .buildings-admin-view {
+        --ba-ink: #263b31;
+        --ba-muted: #52665a;
+        --ba-green: #3f7b5d;
+        --ba-line: #d8e2da;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        min-width: 0;
+        padding: 22px clamp(18px, 3vw, 38px) 42px !important;
+        color: var(--ba-ink) !important;
+        font-size: 17px;
+        line-height: 1.55;
+    }
+    .buildings-admin-view > .buildings-hero { order: 1; position: relative; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 174px; margin: 0 0 24px; padding: clamp(25px, 4vw, 38px); overflow: hidden; border: 1px solid #cbdacf; border-radius: 22px; background: linear-gradient(120deg, #e6eee7 0%, #f5f8f4 68%, #e9f0e9 100%); box-shadow: 9px 9px 20px #dce3dc, -8px -8px 20px #fff; }
+    .buildings-admin-view .buildings-hero-copy { position: relative; z-index: 1; min-width: 0; }
+    .buildings-admin-view .buildings-hero-eyebrow { margin: 0 0 10px; color: #3c7358; font-size: 13px; font-weight: 850; letter-spacing: .12em; }
+    .buildings-admin-view .buildings-hero h1 { margin: 0; color: #203c2d; font-size: clamp(31px, 3vw, 40px); font-weight: 850; line-height: 1.2; letter-spacing: -.025em; }
+    .buildings-admin-view .buildings-hero-description { margin: 10px 0 0; color: #4c6254; font-size: 18px; line-height: 1.55; }
+    .buildings-admin-view .buildings-hero-mark { display: flex; flex: 0 0 116px; flex-direction: column; align-items: center; justify-content: center; gap: 11px; width: 116px; height: 116px; border: 1px solid #d3dfd4; border-radius: 20px; background: #eaf0ea; color: #36785c; box-shadow: 5px 5px 12px #dce3dc, -5px -5px 12px #fff; }
+    .buildings-admin-view .buildings-hero-mark i { font-size: 37px; }
+    .buildings-admin-view .buildings-hero-mark span { color: #52665a; font-size: 10px; font-weight: 850; letter-spacing: .08em; text-align: center; }
+    .buildings-admin-view > .error-message { order: 2; margin: 0 0 18px; padding: 15px 18px; border: 1px solid #d9b7b9; border-left: 5px solid #9a4a50; border-radius: 12px; background: #f3e9e9 !important; color: #642f34 !important; font-size: 16px; }
+    .buildings-admin-view > .workflow-dept-heading { order: 3; margin: 0 0 12px; color: #294b37; font-size: 22px; line-height: 1.4; }
+    .buildings-admin-view > .departments { order: 4; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 0 0 22px; }
+    .buildings-admin-view > .no-buildings-step { order: 4; }
+    .buildings-admin-view > .add-form { order: 5; display: none; margin: 0 0 22px; padding: 23px; border: 1px solid var(--ba-line); border-radius: 18px; border-top: 3px solid #7da58a; background: #f1f5f1; box-shadow: 7px 7px 16px #dce3dc, -7px -7px 16px #fff; }
+    .buildings-admin-view > .dept-content { order: 6; width: 100%; }
+    .buildings-admin-view > .room-finder { order: 7; width: 100%; margin-top: 28px; }
+    .buildings-admin-view > .modal { order: 8; }
+    .buildings-admin-view .workflow-dept-heading { display: flex; align-items: flex-start; gap: 13px; }
+    .buildings-admin-view .workflow-dept-heading .step-number { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; border: 1px solid #c8d9ca; border-radius: 12px; background: #e6eee7; color: #315f43; font-size: 18px; font-weight: 850; box-shadow: 3px 3px 7px #dce3dc, -3px -3px 7px #fff; }
+    .buildings-admin-view .workflow-dept-heading.workflow-step-complete .step-number { border-color: #3f7b5d; background: #3f7b5d; color: #fff; }
+    .buildings-admin-view .workflow-dept-heading p { margin: 3px 0 0; color: #52665a; font-size: 16px; font-weight: 500; }
+    .buildings-admin-view .departments .dept-btn {
+        display: flex; flex-direction: column; align-items: flex-start; gap: 7px;
+        min-width: 0; min-height: 112px; padding: 18px;
+        border: 1px solid var(--ba-line) !important; border-radius: 16px !important;
+        background: #f1f5f1 !important; color: #263b31 !important;
+        text-align: left; box-shadow: 5px 5px 11px #dce3dc, -5px -5px 11px #fff;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+    .buildings-admin-view .departments .dept-btn:hover { transform: translateY(-2px); border-color: #a9c1ad !important; }
+    .buildings-admin-view .departments .dept-btn.active { border: 2px solid #6f9d7b !important; background: #e7efe8 !important; color: #294b37 !important; box-shadow: inset 3px 3px 7px #d8e2d9, inset -3px -3px 7px #f7faf7; }
+    .buildings-admin-view .dept-btn-name { font-size: 20px; font-weight: 850; line-height: 1.3; }
+    .buildings-admin-view .dept-btn-hint { color: #52665a; font-size: 15px; font-weight: 600; }
+    .buildings-admin-view .dept-btn.active .dept-btn-hint { color: #3f6d50; }
+    .buildings-admin-view .add-form h3 { margin: 3px 0 5px; color: #294b37; font-size: 25px; line-height: 1.35; }
+    .buildings-admin-view .building-form-step { color: #3c7358; font-size: 13px; font-weight: 850; letter-spacing: .1em; }
+    .buildings-admin-view .building-form-instruction { margin: 0 0 18px; color: #52665a; font-size: 16px; line-height: 1.55; }
+    .buildings-admin-view .add-form form { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(240px, 1.4fr) auto; grid-template-areas: "dept-label name-label ." "dept name submit"; align-items: end; gap: 8px 16px; }
+    .buildings-admin-view .add-form form label { margin: 0; color: #344a3b; font-size: 16px; }
+    .buildings-admin-view .add-form form label:nth-of-type(1) { grid-area: dept-label; }
+    .buildings-admin-view .add-form form label:nth-of-type(2) { grid-area: name-label; }
+    .buildings-admin-view .add-form form select,
+    .buildings-admin-view .add-form form input { min-height: 52px; margin: 0; border: 1px solid #cbdacf; border-radius: 11px; background: #edf2ed; color: #263b31; font: inherit; font-size: 17px; box-shadow: inset 3px 3px 6px #dce3dc, inset -3px -3px 6px #fff; }
+    .buildings-admin-view .add-form form select { grid-area: dept; }
+    .buildings-admin-view .add-form form input[name="name"] { grid-area: name; }
+    .buildings-admin-view .add-form form button { grid-area: submit; min-height: 52px; padding: 11px 20px; border: 1px solid #6f9d7b; border-radius: 12px; background: #3f7b5d; color: #fff; font-size: 16px; font-weight: 800; white-space: nowrap; box-shadow: 4px 4px 9px #d1dbd2, -4px -4px 9px #fff; }
+    .buildings-admin-view .add-form form button:hover { background: #32684d; }
+    .buildings-admin-view .dept-content { margin: 0 0 18px; }
+    .buildings-admin-view .department-building-guide { margin: 0 0 16px; padding: 17px 20px; border: 1px solid #d8e2da; border-radius: 15px; background: #eaf0ea; color: #294b37; box-shadow: inset 3px 3px 6px #dce3dc, inset -3px -3px 6px #fff; }
+    .buildings-admin-view .department-building-guide strong { display: block; margin-bottom: 3px; color: #294b37; font-size: 18px; }
+    .buildings-admin-view .department-building-guide span { color: #52665a; font-size: 16px; }
+    .buildings-admin-view .building-card { overflow: hidden; margin-bottom: 14px; padding: 0; border: 1px solid var(--ba-line); border-radius: 17px; background: #f1f5f1; box-shadow: 6px 6px 14px #dce3dc, -6px -6px 14px #fff; }
+    .buildings-admin-view .building-header { min-height: 86px; padding: 17px 20px; border-radius: 17px; background: #f1f5f1; }
+    .buildings-admin-view .building-name-area { gap: 13px; }
+    .buildings-admin-view .building-name-area h3 { color: #294b37; font-size: 20px; line-height: 1.4; cursor: pointer; }
+    .buildings-admin-view .building-toggle { flex: 0 0 42px; width: 42px; height: 42px; border: 1px solid #d2dfd3; border-radius: 12px; background: #e8efe8; color: #36785c; box-shadow: 3px 3px 7px #dce3dc, -3px -3px 7px #fff; }
+    .buildings-admin-view .building-toggle:hover,
+    .buildings-admin-view .building-toggle.open { background: #dfeae0; color: #315f43; }
+    .buildings-admin-view .building-actions { gap: 9px; flex-wrap: wrap; }
+    .buildings-admin-view .building-add-room { display: none; }
+    .buildings-admin-view .building-actions .btn,
+    .buildings-admin-view .room-actions .btn { min-height: 43px; padding: 9px 14px; border: 1px solid transparent; border-radius: 10px; font-size: 15px; font-weight: 750; }
+    .buildings-admin-view .building-actions .btn.green,
+    .buildings-admin-view .room-actions .btn.green { background: #3f7b5d; color: #fff; }
+    .buildings-admin-view .building-actions .btn.blue,
+    .buildings-admin-view .room-actions .btn.blue { border-color: #b9c9d4; background: #e7edf0; color: #334b5c; }
+    .buildings-admin-view .building-actions .btn.red,
+    .buildings-admin-view .room-actions .btn.red { border-color: #ca9a9e; background: #f4e9e9; color: #752e36; }
+    .buildings-admin-view .building-actions .move-btn,
+    .buildings-admin-view .room-actions .move-btn { border: 1px solid #cdbb8c; background: #f2eddf; color: #5b4a25; }
+    .buildings-admin-view .building-rooms { margin: 0; padding: 0 20px 20px; }
+    .buildings-admin-view .building-rooms.open { padding-top: 2px; }
+    .buildings-admin-view .building-rooms.open ~ .building-header .building-add-room { display: inline-flex; }
+    .buildings-admin-view .building-card:has(.building-rooms.open) .building-add-room { display: inline-flex; }
+    .buildings-admin-view .building-step-note { margin: 0 0 16px; padding: 14px 16px; border: 1px solid #d7e2d8; border-radius: 13px; background: #eaf0ea; color: #52665a; font-size: 16px; line-height: 1.5; }
+    .buildings-admin-view .building-step-note strong { color: #294b37; }
+    .buildings-admin-view .room-title { margin-bottom: 6px; color: #294b37; font-size: 20px; }
+    .buildings-admin-view .room-order-note { margin: 0 0 14px; color: #52665a; font-size: 15px; }
+    .buildings-admin-view .room-card { padding: 17px; border: 1px solid #d7e1d8; border-radius: 14px; background: #f7f9f7; }
+    .buildings-admin-view .room-header strong { color: #263b31; font-size: 18px; }
+    .buildings-admin-view .room-details { color: #405649; font-size: 16px; line-height: 1.7; }
+    .buildings-admin-view .room-details strong { color: #294b37; }
+    .buildings-admin-view .no-rooms,
+    .buildings-admin-view .no-buildings-step { padding: 16px; border: 1px dashed #c6d5c8; border-radius: 12px; background: #edf2ed; color: #52665a; font-size: 16px; }
+    .buildings-admin-view .room-finder { border-color: var(--ba-line); border-radius: 18px; background: #f1f5f1; box-shadow: 7px 7px 16px #dce3dc, -7px -7px 16px #fff; }
+    .buildings-admin-view .room-finder__top { border-bottom-color: #dce5dc; background: #e9f0e9; }
+    .buildings-admin-view .room-finder__title { color: #294b37; font-size: 23px; }
+    .buildings-admin-view .room-finder__description { color: #52665a; font-size: 16px; }
+    .buildings-admin-view .room-finder__body { background: #f1f5f1; }
+    .buildings-admin-view .room-finder__steps { color: #52665a; font-size: 13px; }
+    .buildings-admin-view .room-finder__step--active { color: #315f43; }
+    .buildings-admin-view .room-finder__step-number { width: 28px; height: 28px; border-color: #c8d9ca; background: #e6eee7; color: #315f43; font-size: 14px; }
+    .buildings-admin-view .room-finder__step--active .room-finder__step-number { border-color: #3f7b5d; background: #3f7b5d; color: #fff; }
+    .buildings-admin-view .room-finder__label { color: #344a3b; font-size: 15px; }
+    .buildings-admin-view .room-finder__select,
+    .buildings-admin-view .room-finder__input { height: 52px; border-color: #cbdacf; border-radius: 11px; background: #edf2ed; color: #263b31; font-size: 17px; box-shadow: inset 3px 3px 6px #dce3dc, inset -3px -3px 6px #fff; }
+    .buildings-admin-view .room-finder__hint { color: #52665a; font-size: 14px; }
+    .buildings-admin-view .room-finder__message--info,
+    .buildings-admin-view .room-finder__message--success { border-color: #cbdacf; border-radius: 11px; background: #eaf0ea; color: #344a3b; font-size: 16px; }
+    .buildings-admin-view .room-finder__message--info { border-color: #cbdacf; border-radius: 11px; background: #eef1ed; color: #344a3b; font-size: 16px; }
+    .buildings-admin-view .room-finder__message--error { border-color: #d9c3c4; border-radius: 11px; background: #f3eaea; color: #683b3d; font-size: 16px; }
+    .buildings-admin-view .room-finder__message-icon { background: #dce8dd; color: #315f43; }
+    .buildings-admin-view .room-finder__message--error .room-finder__message-icon { background: #ead9da; color: #82454a; }
+    .buildings-admin-view .room-search-highlight { border: 3px solid #6e9577 !important; outline: 2px solid #ccddce !important; background: #e6eee7 !important; box-shadow: 0 0 0 4px rgba(77,126,88,.12), 0 8px 18px rgba(50,70,55,.12) !important; }
+    .buildings-admin-view .new-building-highlight { border-color: #7da58a !important; background: #e9f0e9 !important; box-shadow: 0 0 0 4px rgba(77,126,88,.10), 0 8px 18px rgba(50,70,55,.10) !important; }
+    .buildings-admin-view .new-room-highlight { border: 3px solid #6e9577 !important; background: #e6eee7 !important; box-shadow: 0 0 0 4px rgba(77,126,88,.12), 0 8px 18px rgba(50,70,55,.12) !important; }
+    .buildings-admin-view .success-overlay,
+    .buildings-admin-view .modal { background: rgba(29, 45, 35, .48) !important; backdrop-filter: blur(5px); }
+    .buildings-admin-view .success-modal,
+    .buildings-admin-view .modal-content { border: 1px solid #d3dfd4 !important; border-top: 3px solid #7da58a !important; border-radius: 18px; background: #f1f5f1 !important; color: #263b31 !important; box-shadow: 8px 8px 24px rgba(42,61,47,.22), -4px -4px 12px rgba(255,255,255,.72) !important; }
+    .buildings-admin-view .confirm-delete-content { width: min(500px, 92vw); padding: 30px; text-align: center; }
+    .buildings-admin-view .delete-confirm-icon { display: grid; place-items: center; width: 54px; height: 54px; margin: 0 auto 14px; border: 1px solid #dfc9c9; border-radius: 17px; background: #f0e5e5; color: #82454a; font-size: 28px; font-weight: 850; box-shadow: 4px 4px 9px #dce3dc, -4px -4px 9px #fff; }
+    .buildings-admin-view #deleteConfirmMessage { margin: 8px 0; color: #405649; font-size: 17px; line-height: 1.55; }
+    .buildings-admin-view .delete-confirm-note { margin: 0; color: #69796e; font-size: 14px; }
+    .buildings-admin-view .confirm-delete-content .modal-buttons { justify-content: center; margin-top: 22px; }
+    .buildings-admin-view .success-modal h2,
+    .buildings-admin-view .modal-content h3 { color: #294b37 !important; font-size: 25px !important; }
+    .buildings-admin-view .modal-step-instruction { margin: -8px 0 18px; color: #52665a; font-size: 16px; line-height: 1.55; }
+    .buildings-admin-view .success-modal p,
+    .buildings-admin-view .move-description { color: #52665a !important; font-size: 17px; line-height: 1.6; }
+    .buildings-admin-view .success-icon { background: #e3ece4 !important; }
+    .buildings-admin-view .success-icon svg { stroke: #3f7b5d; }
+    .buildings-admin-view .success-modal.error .success-icon { background: #f0e5e5 !important; }
+    .buildings-admin-view .success-modal.error .success-icon svg { stroke: #82454a; }
+    .buildings-admin-view .success-modal.error .success-ok-btn { background: #82454a; }
+    .buildings-admin-view .success-ok-btn { background: #3f7b5d; color: #fff; font-size: 16px; }
+    .buildings-admin-view .success-close { color: #52665a; }
+    .buildings-admin-view .success-close:hover { background: #e5ece5; color: #294b37; }
+    .buildings-admin-view .modal-content label { color: #344a3b; font-size: 16px; }
+    .buildings-admin-view .modal-content input:not([type=checkbox]),
+    .buildings-admin-view .modal-content select,
+    .buildings-admin-view .modal-content textarea { min-height: 48px; border: 1px solid #cbdacf; border-radius: 10px; background: #edf2ed; color: #263b31; font: inherit; font-size: 17px; box-shadow: inset 3px 3px 6px #dce3dc, inset -3px -3px 6px #fff; }
+    .buildings-admin-view .modal-content input::placeholder,
+    .buildings-admin-view .modal-content textarea::placeholder { color: #69796e; opacity: 1; }
+    .buildings-admin-view .selected-building-box { border-color: #d3dfd4; border-radius: 12px; background: #e8efe8; }
+    .buildings-admin-view .selected-building-label { color: #52665a; font-size: 13px; }
+    .buildings-admin-view #addRoomBuildingName { color: #294b37; font-size: 17px; }
+    .buildings-admin-view .move-warning { border: 1px solid #d5c9a8; border-left: 4px solid #a28b51; border-radius: 10px; background: #f1eee5; color: #51472e; font-size: 15px; }
+    .buildings-admin-view .modal-buttons .btn { min-height: 46px; padding: 10px 16px; border-radius: 10px; font-size: 16px; }
+    .buildings-admin-view .modal-buttons .btn.green { background: #3f7b5d; color: #fff; }
+    .buildings-admin-view .modal-buttons .btn.gray { border: 1px solid #cbdacf; background: #e6ece6; color: #344a3b; }
+    .buildings-admin-view .modal-buttons .btn.red { background: #8b3b45; color: #fff; }
+    .buildings-admin-view :focus-visible { outline: 3px solid #438463 !important; outline-offset: 3px !important; }
+    @media (max-width: 760px) {
+        .buildings-admin-view { padding: 16px 14px 28px !important; }
+        .buildings-admin-view .buildings-hero-mark { display: none; }
+        .buildings-admin-view .buildings-hero { min-height: 0; padding: 23px 20px; }
+        .buildings-admin-view .buildings-hero-description { font-size: 16px; }
+        .buildings-admin-view > .departments { grid-template-columns: 1fr; }
+        .buildings-admin-view .add-form { padding: 18px; }
+        .buildings-admin-view .add-form form { grid-template-columns: 1fr; grid-template-areas: "dept-label" "dept" "name-label" "name" "submit"; gap: 8px; }
+        .buildings-admin-view .building-header,
+        .buildings-admin-view .room-header { align-items: flex-start; flex-direction: column; }
+        .buildings-admin-view .building-actions,
+        .buildings-admin-view .room-actions { width: 100%; }
+        .buildings-admin-view .building-actions .btn,
+        .buildings-admin-view .room-actions .btn { flex: 1 1 auto; }
+        .buildings-admin-view .building-rooms { padding: 0 14px 16px; }
+        .buildings-admin-view .room-finder__grid { grid-template-columns: 1fr; }
+        .buildings-admin-view .room-finder__steps { flex-wrap: wrap; gap: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .buildings-admin-view *, .buildings-admin-view *::before, .buildings-admin-view *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+</style>
+
+<div class="workflow-dept-heading">
+    <span class="step-number">1</span>
+    <div>
+        Choose a Department
+        <p>Select the department where the building will be added. Its buildings and rooms appear after selection.</p>
+    </div>
+</div>
+
 
 <div class="departments">
 
@@ -1728,17 +1917,23 @@
 
                     <button
                         type="button"
-                        class="dept-btn {{ $index == 0 ? 'active' : '' }}"
+                        class="dept-btn"
+                        data-department-id="{{ $dept->id }}"
+                        aria-pressed="false"
                         onclick="showDept({{ $dept->id }}, this)"
                     >
-
-                        {{ $dept->name }}
+                        <span class="dept-btn-name">{{ $dept->name }}</span>
+                        <span class="dept-btn-hint">{{ $dept->buildings->count() }} building(s) · Select to manage</span>
 
                     </button>
 
                 @endforeach
 
             </div>
+
+            @if($departments->isEmpty())
+                <div class="no-buildings-step">No departments are available yet. Add a department first, then return here to create its buildings and rooms.</div>
+            @endif
 
 
             <!-- DEPARTMENT CONTENT -->
@@ -1747,8 +1942,13 @@
 
                 <div
                     id="dept{{ $dept->id }}"
-                    class="dept-content {{ $index == 0 ? 'active' : '' }}"
+                    class="dept-content"
                 >
+
+                    <div class="department-building-guide">
+                        <strong>Step 3 — Choose a building to manage its rooms</strong>
+                        <span>Use the building arrow or name to open it. The Add Room button appears after the building is opened.</span>
+                    </div>
 
                    @forelse($dept->buildings as $building)
 
@@ -1772,7 +1972,9 @@
                     <span class="arrow">▼</span>
                 </button>
 
-                <h3>
+                <h3 role="button" tabindex="0"
+                    onclick="toggleBuilding({{ $building->id }}, this.parentElement.querySelector('.building-toggle'))"
+                    onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleBuilding({{ $building->id }}, this.parentElement.querySelector('.building-toggle')); }">
                     {{ $building->name }}
                 </h3>
 
@@ -1811,6 +2013,7 @@
                 <form
                     action="{{ route('admin.buildings.delete', $building->id) }}"
                     method="POST"
+                    data-confirm-delete="Delete this building and its rooms?"
                 >
 
                     @csrf
@@ -1819,9 +2022,6 @@
                     <button
                         type="submit"
                         class="btn red"
-                        onclick="return confirm(
-                            'Delete this building and its rooms?'
-                        )"
                     >
                         Delete
                     </button>
@@ -1838,6 +2038,8 @@
             id="rooms-{{ $building->id }}"
             class="building-rooms"
         >
+
+            <div class="building-step-note"><strong>Step 3 — Add or manage rooms:</strong> Select <strong>+ Add Room</strong> to create a room for this building. Existing rooms and their details appear below.</div>
 
             <div class="room-section">
 
@@ -1900,6 +2102,7 @@
     <form
         action="{{ route('admin.rooms.delete', $room->id) }}"
         method="POST"
+        data-confirm-delete="Delete this room?"
     >
 
         @csrf
@@ -1908,9 +2111,6 @@
         <button
             type="submit"
             class="btn red"
-            onclick="return confirm(
-                'Delete this room?'
-            )"
         >
             Delete
         </button>
@@ -2082,6 +2282,7 @@
                     <h3>
                         Add Room
                     </h3>
+                    <p class="modal-step-instruction">Step 3: Add this room to the building you opened. Capacity is required; equipment and notes are optional.</p>
 
                     <form
                         action="{{ route('admin.rooms.store') }}"
@@ -2375,8 +2576,6 @@
 
             </div>
 
-
-        </main>
 <!-- ========================================= -->
 <!-- MOVE ROOM MODAL -->
 <!-- ========================================= -->
@@ -2496,6 +2695,21 @@
     </div>
 
 </div>
+
+<div id="deleteConfirmModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+    <div class="modal-content confirm-delete-content">
+        <div class="delete-confirm-icon" aria-hidden="true">!</div>
+        <h3 id="deleteConfirmTitle">Confirm deletion</h3>
+        <p id="deleteConfirmMessage">Are you sure you want to delete this item?</p>
+        <p class="delete-confirm-note">This action cannot be undone.</p>
+        <div class="modal-buttons">
+            <button type="button" class="btn gray" id="cancelDeleteButton">Cancel</button>
+            <button type="button" class="btn red" id="acceptDeleteButton">Delete</button>
+        </div>
+    </div>
+</div>
+
+        </main>
     </div>
  @include('footerheader.footer')
 </div>
@@ -2550,6 +2764,7 @@ function showDept(id, btn)
         .forEach(function(button) {
 
             button.classList.remove('active');
+            button.setAttribute('aria-pressed', 'false');
 
         });
 
@@ -2558,14 +2773,34 @@ function showDept(id, btn)
         document.getElementById('dept' + id);
 
 
-    if (department) {
+    if (department) department.classList.add('active');
 
-        department.classList.add('active');
-
+    const selectedButton = btn || document.querySelector('.dept-btn[data-department-id="' + id + '"]');
+    if (selectedButton) {
+        selectedButton.classList.add('active');
+        selectedButton.setAttribute('aria-pressed', 'true');
     }
 
+    const buildingForm = document.querySelector('.buildings-admin-view .add-form');
+    const buildingDepartmentSelect = document.querySelector('.buildings-admin-view .add-form select[name="department_id"]');
+    if (buildingForm) buildingForm.style.display = 'block';
+    if (buildingDepartmentSelect) buildingDepartmentSelect.value = String(id);
 
-    btn.classList.add('active');
+    document.querySelectorAll('.building-rooms.open').forEach(function (rooms) {
+        rooms.classList.remove('open');
+        const toggle = document.querySelector('.building-toggle[aria-controls="' + rooms.id + '"]');
+        if (toggle) {
+            toggle.classList.remove('open');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+        const addRoomButton = rooms.closest('.building-card')?.querySelector('.building-add-room');
+        if (addRoomButton) addRoomButton.style.display = 'none';
+    });
+
+    const selectedDepartmentStep = document.querySelector('.buildings-admin-view .workflow-dept-heading');
+    if (selectedDepartmentStep) {
+        selectedDepartmentStep.classList.add('workflow-step-complete');
+    }
 }
 
 
@@ -2859,10 +3094,26 @@ function toggleBuilding(buildingId, button)
             'aria-expanded',
             'false'
         );
+        const addRoomButton = button.closest('.building-card')?.querySelector('.building-add-room');
+        if (addRoomButton) addRoomButton.style.display = 'none';
 
     }
 
     else {
+
+        document.querySelectorAll('.building-rooms.open').forEach(function (otherRooms) {
+            if (otherRooms === rooms) return;
+
+            otherRooms.classList.remove('open');
+            const otherCard = otherRooms.closest('.building-card');
+            const otherToggle = otherCard ? otherCard.querySelector('.building-toggle') : null;
+            const otherAddRoom = otherCard ? otherCard.querySelector('.building-add-room') : null;
+            if (otherToggle) {
+                otherToggle.classList.remove('open');
+                otherToggle.setAttribute('aria-expanded', 'false');
+            }
+            if (otherAddRoom) otherAddRoom.style.display = 'none';
+        });
 
         rooms.classList.add('open');
 
@@ -2872,6 +3123,8 @@ function toggleBuilding(buildingId, button)
             'aria-expanded',
             'true'
         );
+        const addRoomButton = button.closest('.building-card')?.querySelector('.building-add-room');
+        if (addRoomButton) addRoomButton.style.display = 'inline-flex';
 
     }
 }
@@ -3291,18 +3544,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const department = document.getElementById('dept' + buildingDepartmentId);
 
         if (department) {
-            document.querySelectorAll('.dept-content').forEach(function (content) {
-                content.classList.remove('active');
-            });
-            department.classList.add('active');
-
-            document.querySelectorAll('.dept-btn').forEach(function (button) {
-                button.classList.remove('active');
-                const onclickValue = button.getAttribute('onclick');
-                if (onclickValue && onclickValue.includes('showDept(' + buildingDepartmentId)) {
-                    button.classList.add('active');
-                }
-            });
+            const departmentButton = document.querySelector('.dept-btn[data-department-id="' + buildingDepartmentId + '"]');
+            showDept(buildingDepartmentId, departmentButton);
         }
 
         const newBuilding = document.querySelector(
@@ -3321,6 +3564,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 toggleButton.classList.add('open');
                 toggleButton.setAttribute('aria-expanded', 'true');
             }
+            const addRoomButton = newBuilding.querySelector('.building-add-room');
+            if (addRoomButton) addRoomButton.style.display = 'inline-flex';
 
             newBuilding.classList.add('new-building-highlight');
 
@@ -3357,25 +3602,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const department = document.getElementById('dept' + departmentId);
 
         if (department) {
-
-            document.querySelectorAll('.dept-content').forEach(function(content) {
-                content.classList.remove('active');
-            });
-
-            department.classList.add('active');
-
-            document.querySelectorAll('.dept-btn').forEach(function(button) {
-                button.classList.remove('active');
-
-                const onclickValue = button.getAttribute('onclick');
-
-                if (
-                    onclickValue &&
-                    onclickValue.includes('showDept(' + departmentId)
-                ) {
-                    button.classList.add('active');
-                }
-            });
+            const departmentButton = document.querySelector('.dept-btn[data-department-id="' + departmentId + '"]');
+            showDept(departmentId, departmentButton);
         }
 
         // 2. Open the correct building
@@ -3393,6 +3621,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 toggleButton.classList.add('open');
                 toggleButton.setAttribute('aria-expanded', 'true');
             }
+            const addRoomButton = roomsContainer.closest('.building-card')?.querySelector('.building-add-room');
+            if (addRoomButton) addRoomButton.style.display = 'inline-flex';
 
             // 3. Find the exact room that was just created
             setTimeout(function () {
@@ -3419,7 +3649,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
 
-                // 4. Highlight the exact new room in yellow
+                // 4. Highlight the exact new room with the sage accent
                 newRoom.classList.add('new-room-highlight');
 
                 // 5. Scroll directly to it
@@ -3428,7 +3658,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     block: 'center'
                 });
 
-                // 6. Keep the yellow highlight long enough to identify it
+                // 6. Keep the sage highlight long enough to identify it
                 setTimeout(function () {
                     newRoom.classList.remove('new-room-highlight');
                 }, 8000);
@@ -3480,47 +3710,36 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        // Open building
-        roomsContainer.classList.add('open');
-
         const buildingId = roomsContainer.id.replace('rooms-', '');
 
         const toggleButton = document.querySelector(
             '.building-toggle[aria-controls="rooms-' + buildingId + '"]'
         );
 
+        // Open the department containing this building
+        const departmentContent = roomsContainer.closest('.dept-content');
+
+        if (departmentContent) {
+            const departmentId = departmentContent.id.replace('dept', '');
+            const departmentButton = document.querySelector('.dept-btn[data-department-id="' + departmentId + '"]');
+            if (typeof window.showDept === 'function') window.showDept(departmentId, departmentButton);
+            else departmentContent.classList.add('active');
+        }
+
+        // Open the building after selecting its department, because selecting a department closes other building panels.
+        document.querySelectorAll('.building-rooms.open').forEach(function (container) {
+            container.classList.remove('open');
+            const addButton = container.closest('.building-card')?.querySelector('.building-add-room');
+            if (addButton) addButton.style.display = 'none';
+        });
+        roomsContainer.classList.add('open');
         if (toggleButton) {
             toggleButton.classList.add('open');
             toggleButton.setAttribute('aria-expanded', 'true');
         }
 
-        // Open the department containing this building
-        const departmentContent = roomsContainer.closest('.dept-content');
-
-        if (departmentContent) {
-
-            document.querySelectorAll('.dept-content').forEach(function (dept) {
-                dept.classList.remove('active');
-            });
-
-            departmentContent.classList.add('active');
-
-            const departmentId = departmentContent.id.replace('dept', '');
-
-            document.querySelectorAll('.dept-btn').forEach(function (button) {
-
-                button.classList.remove('active');
-
-                const onclickValue = button.getAttribute('onclick');
-
-                if (
-                    onclickValue &&
-                    onclickValue.includes('showDept(' + departmentId)
-                ) {
-                    button.classList.add('active');
-                }
-            });
-        }
+        const addRoomButton = roomsContainer.closest('.building-card')?.querySelector('.building-add-room');
+        if (addRoomButton) addRoomButton.style.display = 'inline-flex';
     }
 
     function searchRooms() {
@@ -3584,11 +3803,11 @@ document.addEventListener('DOMContentLoaded', function () {
             room.classList.remove('room-search-hidden');
             room.classList.add('room-search-highlight');
 
-            // Force the exact yellow search result appearance.
-            room.style.setProperty('background-color', '#fff3a6', 'important');
-            room.style.setProperty('border', '4px solid #f4b400', 'important');
+            // Apply the restrained sage search highlight.
+            room.style.setProperty('background-color', '#e6eee7', 'important');
+            room.style.setProperty('border', '3px solid #6e9577', 'important');
             room.style.setProperty('box-shadow',
-                '0 0 0 5px rgba(244, 180, 0, 0.25), 0 8px 25px rgba(244, 180, 0, 0.35)',
+                '0 0 0 4px rgba(77, 126, 88, 0.12), 0 8px 18px rgba(50, 70, 55, 0.12)',
                 'important'
             );
         });
@@ -3601,7 +3820,7 @@ document.addEventListener('DOMContentLoaded', function () {
             'Room "' + searchInput.value + '" found' +
             '</span>';
 
-        // Scroll directly to the yellow room.
+        // Scroll directly to the matching room.
         setTimeout(function () {
             foundRooms[0].scrollIntoView({
                 behavior: 'smooth',
@@ -3629,4 +3848,68 @@ document.addEventListener('DOMContentLoaded', function () {
     searchInput.addEventListener('input', searchRooms);
 });
 
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const page = document.querySelector('.buildings-admin-view');
+    const initialDepartmentId = page ? page.getAttribute('data-initial-department') : '';
+    const departmentSelect = document.querySelector('.buildings-admin-view .add-form select[name="department_id"]');
+
+    if (initialDepartmentId) {
+        const departmentButton = document.querySelector('.dept-btn[data-department-id="' + initialDepartmentId + '"]');
+        if (typeof window.showDept === 'function') window.showDept(initialDepartmentId, departmentButton);
+    }
+
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function () {
+            if (this.value && typeof window.showDept === 'function') {
+                window.showDept(this.value);
+            }
+        });
+    }
+
+    let pendingDeleteForm = null;
+    let deleteTrigger = null;
+    const deleteModal = document.getElementById('deleteConfirmModal');
+    const deleteMessage = document.getElementById('deleteConfirmMessage');
+    const cancelDelete = document.getElementById('cancelDeleteButton');
+    const acceptDelete = document.getElementById('acceptDeleteButton');
+
+    const closeDeleteModal = function () {
+        if (deleteModal) deleteModal.style.display = 'none';
+        pendingDeleteForm = null;
+        if (deleteTrigger) deleteTrigger.focus();
+        deleteTrigger = null;
+    };
+
+    document.addEventListener('click', function (event) {
+        const trigger = event.target.closest('[data-confirm-delete] button[type="submit"]');
+        if (!trigger) return;
+
+        const form = trigger.closest('[data-confirm-delete]');
+        if (!form || !deleteModal) return;
+
+        event.preventDefault();
+        pendingDeleteForm = form;
+        deleteTrigger = trigger;
+        if (deleteMessage) deleteMessage.textContent = form.getAttribute('data-confirm-delete') || 'Are you sure you want to delete this item?';
+        deleteModal.style.display = 'block';
+        if (cancelDelete) cancelDelete.focus();
+    });
+
+    if (cancelDelete) cancelDelete.addEventListener('click', closeDeleteModal);
+    if (deleteModal) deleteModal.addEventListener('click', function (event) {
+        if (event.target === deleteModal) closeDeleteModal();
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && deleteModal && deleteModal.style.display === 'block') closeDeleteModal();
+    });
+    if (acceptDelete) acceptDelete.addEventListener('click', function () {
+        if (!pendingDeleteForm) return;
+        const form = pendingDeleteForm;
+        pendingDeleteForm = null;
+        form.submit();
+    });
+});
 </script>

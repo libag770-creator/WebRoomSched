@@ -13,6 +13,7 @@ class Reservation extends Model
         'room_id',
         'user_id',
         'schedule_id',
+        'academic_term_id',
         'faculty_subject_id',
         'date',
         'day',

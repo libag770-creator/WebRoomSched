@@ -500,8 +500,8 @@
     color: #b54708;
 }
 
-         
-              
+
+
 
                 /* =========================================================
                    ROOM FEATURES
@@ -697,6 +697,9 @@
                 .form-group { gap: 7px; }
                 .form-group label { color: #405348; font-size: 11px; font-weight: 750; }
                 .select-control { position: relative; width: 255px; }
+                .date-control { width:220px; }
+                .date-control input { width:100%; height:48px; padding:0 12px; border:1px solid #dce6df; border-radius:12px; background:#fbfdfb; color:#294638; font-size:12px; font-weight:650; outline:0; }
+                .date-control input:focus { border-color:#278257; background:#fff; box-shadow:0 0 0 4px rgba(39,130,87,.11); }
                 .select-control > i:first-child { position: absolute; z-index: 1; top: 50%; left: 14px; transform: translateY(-50%); color: #538167; font-size: 13px; pointer-events: none; }
                 .form-group .select-control select {
                     width: 100%; height: 48px; padding: 0 40px 0 40px; appearance: none; -webkit-appearance: none;
@@ -729,6 +732,7 @@
                     .vacant-title { font-size: 23px; }
                     .search-box { padding: 16px; }
                     .select-control { width: 100%; }
+                    .date-control { width:100%; }
                     .form-group .select-control select { height: 46px; }
                     .search-button { height: 46px; }
                 }
@@ -760,6 +764,13 @@
                 >
 
                     <div class="search-row">
+
+                        <div class="form-group">
+                            <label for="dateSearch">Reservation date</label>
+                            <div class="date-control">
+                                <input id="dateSearch" type="date" name="date" required min="{{ now()->toDateString() }}" value="{{ $selectedDate->format('Y-m-d') }}" aria-label="Choose reservation date">
+                            </div>
+                        </div>
 
                         {{-- DAY --}}
                         <div class="form-group">
@@ -907,6 +918,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const daySearch =
         document.getElementById('daySearch');
 
+    const dateSearch =
+        document.getElementById('dateSearch');
+
     const timeSlotSearch =
         document.getElementById('timeSlotSearch');
 
@@ -917,6 +931,12 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('vacantResults');
 
     let activeRequest = null;
+
+    function showSearchPrompt() {
+        if (resultsContainer) {
+            resultsContainer.innerHTML = '<div class="no-results"><i class="fa-regular fa-clock"></i><div style="margin-top:8px;">Choose a matching day and time slot to see room availability.</div></div>';
+        }
+    }
 
 
     /*
@@ -1024,7 +1044,20 @@ document.addEventListener('DOMContentLoaded', function () {
             'change',
             function () {
 
+                if (dateSearch && daySearch.value) {
+                    const indexes = { MON:1, TUE:2, WED:3, THU:4, FRI:5, SAT:6, SUN:0 };
+                    const target = indexes[daySearch.value.toUpperCase()];
+                    if (target !== undefined) {
+                        const date = dateSearch.value ? new Date(dateSearch.value + 'T12:00:00') : new Date();
+                        date.setHours(12, 0, 0, 0);
+                        date.setDate(date.getDate() + ((target - date.getDay() + 7) % 7));
+                        dateSearch.value = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+                    }
+                }
+
                 filterTimeSlots();
+
+                if (!timeSlotSearch || !timeSlotSearch.value) showSearchPrompt();
 
                 /*
                  * Search automatically when both
@@ -1040,6 +1073,21 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         );
 
+    }
+
+    if (dateSearch) {
+        dateSearch.addEventListener('change', function () {
+            if (!dateSearch.value) return;
+            const date = new Date(dateSearch.value + 'T12:00:00');
+            const dayCodes = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+            const matchingDay = dayCodes[date.getDay()];
+            if (daySearch && Array.from(daySearch.options).some(option => option.value === matchingDay)) {
+                daySearch.value = matchingDay;
+                filterTimeSlots();
+            }
+            if (!timeSlotSearch || !timeSlotSearch.value) showSearchPrompt();
+            if (daySearch && daySearch.value && timeSlotSearch && timeSlotSearch.value) runSearch();
+        });
     }
 
 
@@ -1074,6 +1122,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (
             !searchForm ||
             !daySearch ||
+            !dateSearch ||
             !timeSlotSearch ||
             !resultsContainer
         ) {
@@ -1088,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', function () {
             timeSlotSearch.value.trim();
 
 
-        if (!day || !timeSlotId) {
+        if (!day || !timeSlotId || !dateSearch.value) {
 
             return;
 
@@ -1128,6 +1177,12 @@ document.addEventListener('DOMContentLoaded', function () {
             'time_slot_id',
             timeSlotId
         );
+
+        url.searchParams.set('date', dateSearch.value);
+
+        const pageUrl = new URL(url.toString());
+        pageUrl.searchParams.delete('partial');
+        window.history.replaceState(null, '', pageUrl.toString());
 
         url.searchParams.set(
             'partial',

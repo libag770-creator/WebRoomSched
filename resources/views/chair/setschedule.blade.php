@@ -7,630 +7,176 @@
 
         @include('chair.sidebar')
 
-        <main class="content">
+        <main class="content chair-set-schedule chair-workspace-redesign">
 
             <style>
-
-    * {
-        box-sizing: border-box;
-    }
-
-    body {
-        background: #f4f7f5;
-    }
-
-    .page {
-        max-width: 1150px;
-        margin: auto;
-        padding-bottom: 40px;
-    }
-
-
-    /* =========================================================
-       PAGE HEADER
-    ========================================================= */
-
-    .page-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        margin-bottom: 25px;
-    }
-
-    .title-area {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-    }
-
-    .title-icon {
-        width: 48px;
-        height: 48px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        background: #e8f5e9;
-        color: #2e7d32;
-
-        border-radius: 10px;
-
-        font-size: 20px;
-    }
-
-    .title {
-        font-size: 26px;
-        font-weight: 700;
-
-        color: #1f2937;
-
-        margin: 0;
-    }
-
-    .subtitle {
-        color: #667085;
-
-        font-size: 13px;
-
-        margin: 4px 0 0;
-    }
-
-
-    /* =========================================================
-       MAIN SECTION
-    ========================================================= */
-
-    .section {
-        background: #ffffff;
-
-        padding: 25px;
-
-        border-radius: 12px;
-
-        border: 1px solid #e4e9e5;
-
-        box-shadow:
-            0 2px 8px rgba(0,0,0,.04);
-    }
-
-
-    /* =========================================================
-       DEPARTMENT
-    ========================================================= */
-
-    .department-display {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-
-        background: #f0f8f2;
-
-        border: 1px solid #d8eadb;
-
-        padding: 15px 18px;
-
-        border-radius: 9px;
-
-        margin-bottom: 25px;
-    }
-
-    .department-icon {
-        width: 42px;
-        height: 42px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        background: #ffffff;
-
-        color: #2e7d32;
-
-        border-radius: 8px;
-
-        font-size: 17px;
-    }
-
-    .department-label {
-        font-size: 11px;
-
-        color: #667085;
-
-        margin-bottom: 2px;
-    }
-
-    .department-name {
-        font-size: 18px;
-
-        font-weight: 700;
-
-        color: #176b3a;
-    }
-
-
-    /* =========================================================
-       SECTION HEADER
-    ========================================================= */
-
-    .section-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-
-        margin-bottom: 15px;
-    }
-
-    .section-title {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-
-        color: #1f2937;
-
-        font-size: 16px;
-
-        font-weight: 700;
-    }
-
-    .section-title i {
-        color: #2e7d32;
-    }
-
-    .section-help {
-        color: #98a2b3;
-
-        font-size: 11px;
-    }
-
-
-    /* =========================================================
-       BUILDING ACCORDION
-    ========================================================= */
-
-    .building-list {
-        display: flex;
-        flex-direction: column;
-
-        gap: 10px;
-    }
-
-    .building {
-        border: 1px solid #e0e6e2;
-
-        border-radius: 10px;
-
-        overflow: hidden;
-
-        background: #ffffff;
-
-        transition:
-            border-color .2s ease,
-            box-shadow .2s ease;
-    }
-
-    .building.open {
-        border-color: #b8d8bd;
-
-        box-shadow:
-            0 3px 10px rgba(46,125,50,.07);
-    }
-
-
-    /* =========================================================
-       BUILDING BUTTON
-    ========================================================= */
-
-    .building-toggle {
-        width: 100%;
-
-        border: none;
-
-        background: #ffffff;
-
-        padding: 16px 18px;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: space-between;
-
-        cursor: pointer;
-
-        text-align: left;
-
-        transition: background .2s ease;
-    }
-
-    .building-toggle:hover {
-        background: #f8fbf9;
-    }
-
-    .building.open .building-toggle {
-        background: #f0f8f2;
-    }
-
-    .building-left {
-        display: flex;
-
-        align-items: center;
-
-        gap: 13px;
-    }
-
-    .building-icon {
-        width: 40px;
-        height: 40px;
-
-        display: flex;
-
-        align-items: center;
-        justify-content: center;
-
-        background: #e8f5e9;
-
-        color: #2e7d32;
-
-        border-radius: 8px;
-
-        font-size: 16px;
-    }
-
-    .building-info {
-        display: flex;
-
-        flex-direction: column;
-
-        gap: 3px;
-    }
-
-    .building-name {
-        color: #1f2937;
-
-        font-size: 14px;
-
-        font-weight: 700;
-    }
-
-    .building-meta {
-        color: #98a2b3;
-
-        font-size: 11px;
-    }
-
-    .building-arrow {
-        width: 30px;
-        height: 30px;
-
-        display: flex;
-
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 7px;
-
-        color: #667085;
-
-        transition: transform .25s ease,
-                    background .2s ease;
-    }
-
-    .building-toggle:hover .building-arrow {
-        background: #e8f5e9;
-
-        color: #2e7d32;
-    }
-
-    .building.open .building-arrow {
-        transform: rotate(180deg);
-
-        background: #dcefdF;
-
-        color: #2e7d32;
-    }
-
-
-    /* =========================================================
-       ROOMS CONTAINER
-    ========================================================= */
-
-    .rooms-container {
-        display: none;
-
-        background: #fafcfb;
-
-        border-top: 1px solid #e5ebe7;
-
-        padding: 15px;
-    }
-
-    .building.open .rooms-container {
-        display: block;
-    }
-
-
-    /* =========================================================
-       ROOM GRID
-    ========================================================= */
-
-    .room-grid {
-        display: grid;
-
-        grid-template-columns:
-            repeat(auto-fill, minmax(245px, 1fr));
-
-        gap: 12px;
-    }
-
-
-    /* =========================================================
-       ROOM CARD
-    ========================================================= */
-
-    .room-card {
-        background: #ffffff;
-
-        border: 1px solid #e1e7e3;
-
-        border-radius: 9px;
-
-        padding: 15px;
-
-        transition:
-            transform .18s ease,
-            box-shadow .18s ease,
-            border-color .18s ease;
-    }
-
-    .room-card:hover {
-        transform: translateY(-2px);
-
-        border-color: #b8d8bd;
-
-        box-shadow:
-            0 5px 13px rgba(0,0,0,.06);
-    }
-
-    .room-top {
-        display: flex;
-
-        align-items: center;
-
-        gap: 10px;
-
-        margin-bottom: 14px;
-    }
-
-    .room-icon {
-        width: 37px;
-        height: 37px;
-
-        display: flex;
-
-        align-items: center;
-        justify-content: center;
-
-        background: #f0f8f2;
-
-        color: #2e7d32;
-
-        border-radius: 7px;
-
-        font-size: 15px;
-    }
-
-    .room-name {
-        color: #1f2937;
-
-        font-size: 14px;
-
-        font-weight: 700;
-    }
-
-    .room-label {
-        color: #98a2b3;
-
-        font-size: 10px;
-
-        margin-top: 2px;
-    }
-
-
-    /* =========================================================
-       SET SCHEDULE BUTTON
-    ========================================================= */
-
-    .btn {
-        border: none;
-
-        border-radius: 7px;
-
-        padding: 9px 13px;
-
-        cursor: pointer;
-
-        font-weight: 700;
-
-        text-decoration: none;
-
-        display: inline-flex;
-
-        align-items: center;
-
-        justify-content: center;
-
-        gap: 7px;
-
-        font-size: 11px;
-    }
-
-    .green {
-        background: #2e7d32;
-
-        color: #ffffff;
-
-        width: 100%;
-    }
-
-    .green:hover {
-        background: #256b2a;
-
-        color: #ffffff;
-    }
-
-
-    /* =========================================================
-       PERMISSION
-    ========================================================= */
-
-    .permission-box {
-        margin-top: 13px;
-
-        padding-top: 12px;
-
-        border-top: 1px solid #edf0ee;
-    }
-
-    .permission-label {
-        display: flex;
-
-        align-items: flex-start;
-
-        gap: 8px;
-
-        cursor: pointer;
-
-        font-size: 11px;
-
-        color: #667085;
-
-        line-height: 1.4;
-    }
-
-    .permission-label input {
-        width: 15px;
-
-        height: 15px;
-
-        margin-top: 1px;
-
-        cursor: pointer;
-
-        accent-color: #2e7d32;
-    }
-
-    .permission-status {
-        margin-top: 5px;
-
-        margin-left: 23px;
-
-        font-size: 10px;
-
-        font-weight: 700;
-    }
-
-    .status-on {
-        color: #2e7d32;
-    }
-
-    .status-off {
-        color: #98a2b3;
-    }
-
-
-    /* =========================================================
-       EMPTY
-    ========================================================= */
-
-    .empty {
-        padding: 22px;
-
-        text-align: center;
-
-        color: #98a2b3;
-
-        background: #f9faf9;
-
-        border-radius: 8px;
-
-        font-size: 12px;
-    }
-
-
-    /* =========================================================
-       MESSAGES
-    ========================================================= */
-
-    .message {
-        display: flex;
-
-        align-items: center;
-
-        gap: 9px;
-
-        padding: 12px 15px;
-
-        border-radius: 8px;
-
-        margin-bottom: 18px;
-
-        font-size: 12px;
-
-        font-weight: 600;
-    }
-
-    .success {
-        background: #ecfdf3;
-
-        border: 1px solid #b7e4c7;
-
-        color: #176b3a;
-    }
-
-    .error {
-        background: #fef3f2;
-
-        border: 1px solid #f3c7c3;
-
-        color: #b42318;
-    }
-
-
-    /* =========================================================
-       MOBILE
-    ========================================================= */
-
-    @media (max-width: 700px) {
-
-        .page {
-            padding: 0 12px 30px;
-        }
-
-        .section {
-            padding: 17px;
-        }
-
-        .page-header {
-            align-items: flex-start;
-        }
-
-        .title {
-            font-size: 22px;
-        }
-
-        .section-help {
-            display: none;
-        }
-
-        .room-grid {
-            grid-template-columns: 1fr;
-        }
-
-    }
-
+/* Soft blue neumorphism for the chair room and schedule workspace. */
+:root {
+    --chair-ink:#1e2d43;
+    --chair-text:#344b68;
+    --chair-muted:#52647b;
+    --chair-blue:#315f9b;
+    --chair-blue-deep:#284f83;
+    --chair-border:#dbe4ef;
+    --chair-shadow:8px 8px 18px #dfe5ed,-7px -7px 18px #ffffff,inset 1px 1px 0 rgba(255,255,255,.92);
+    --chair-inset:inset 4px 4px 9px #dfe5ed,inset -4px -4px 9px #ffffff;
+}
+.chair-set-schedule {
+    min-height:100%;
+    background:#f1f4f9 !important;
+    color:var(--chair-ink) !important;
+    font-size:16px;
+    line-height:1.55;
+}
+.chair-set-schedule * { box-sizing:border-box; }
+.chair-set-schedule .page { width:100%; max-width:1540px; margin:0 auto; padding:24px clamp(15px,2.2vw,32px) 44px; }
+.chair-set-schedule .page-header {
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    min-height:156px; margin:0 0 23px; padding:clamp(23px,3vw,35px);
+    border:1px solid var(--chair-border); border-radius:23px;
+    background:linear-gradient(145deg,#fff,#eff3fa) !important;
+    box-shadow:10px 10px 22px #dce3ec,-8px -8px 20px #ffffff,inset 1px 1px 0 #fff !important;
+}
+.chair-set-schedule .title-area { display:flex; align-items:center; gap:19px; min-width:0; }
+.chair-set-schedule .title-icon {
+    display:flex; flex:0 0 62px; align-items:center; justify-content:center; width:62px; height:62px;
+    border:1px solid #d4dfed; border-radius:19px; background:#eaf0f8 !important; color:#315f9b !important;
+    font-size:25px; box-shadow:inset 4px 4px 9px #dce4ef,inset -4px -4px 9px #fff !important;
+}
+.chair-set-schedule .title { margin:0; color:#1d2b40 !important; font-size:clamp(31px,3vw,40px); font-weight:850; line-height:1.18; letter-spacing:-.025em; }
+.chair-set-schedule .subtitle { margin:8px 0 0; color:#52647b !important; font-size:17px; line-height:1.55; }
+.chair-set-schedule .section {
+    padding:clamp(18px,2.3vw,28px); border:1px solid var(--chair-border) !important; border-radius:21px;
+    background:linear-gradient(145deg,#fff,#f0f4fa) !important;
+    color:var(--chair-ink) !important;
+    box-shadow:9px 9px 20px #dfe5ed,-8px -8px 19px #fff,inset 1px 1px 0 #fff !important;
+}
+.chair-set-schedule .department-display {
+    display:flex; align-items:center; gap:15px; margin:0 0 24px; padding:16px 19px;
+    border:1px solid #d7e1ee; border-radius:17px; background:#eaf0f8 !important; box-shadow:var(--chair-inset);
+}
+.chair-set-schedule .department-icon {
+    display:flex; flex:0 0 50px; align-items:center; justify-content:center; width:50px; height:50px;
+    border:1px solid #d5e0ee; border-radius:16px; background:#edf2f9 !important; color:#315f9b !important;
+    font-size:20px; box-shadow:5px 5px 10px #d7dfeb,-5px -5px 10px #fff,inset 1px 1px 0 #fff;
+}
+.chair-set-schedule .department-label { margin-bottom:3px; color:#52647b !important; font-size:14px; font-weight:700; }
+.chair-set-schedule .department-name { color:#203650 !important; font-size:21px; font-weight:850; line-height:1.35; overflow-wrap:anywhere; }
+.chair-set-schedule .section-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin:0 0 16px; }
+.chair-set-schedule .section-title { display:flex; align-items:center; gap:11px; color:#1e3049 !important; font-size:22px; font-weight:850; line-height:1.35; }
+.chair-set-schedule .section-title i { color:#315f9b !important; }
+.chair-set-schedule .section-subtitle { margin:6px 0 0; color:#52647b !important; font-size:15px; }
+.chair-set-schedule .section-help { color:#52647b !important; font-size:14px; font-weight:650; }
+.chair-set-schedule .building-list { display:flex; flex-direction:column; gap:14px; }
+.chair-set-schedule .building {
+    overflow:hidden; border:1px solid #d8e1ed !important; border-radius:18px; background:linear-gradient(145deg,#f7f9fd,#edf2f9) !important;
+    box-shadow:6px 6px 14px #dce3ec,-6px -6px 14px #fff,inset 1px 1px 0 #fff !important;
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.chair-set-schedule .building.open { border-color:#b9cbe2 !important; box-shadow:inset 4px 4px 9px #dfe5ed,inset -4px -4px 9px #fff !important; }
+.chair-set-schedule .building-toggle {
+    display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; min-height:78px; padding:15px 19px;
+    border:0; background:transparent !important; color:#203650 !important; text-align:left; cursor:pointer;
+    transition:background .18s ease,color .18s ease;
+}
+.chair-set-schedule .building-toggle:hover,.chair-set-schedule .building.open .building-toggle { background:#eaf0f8 !important; color:#244f88 !important; }
+.chair-set-schedule .building-left { display:flex; align-items:center; gap:14px; min-width:0; }
+.chair-set-schedule .building-icon {
+    display:flex; flex:0 0 46px; align-items:center; justify-content:center; width:46px; height:46px;
+    border:1px solid #d6e1ef; border-radius:15px; background:#e9eff8 !important; color:#315f9b !important;
+    font-size:18px; box-shadow:inset 3px 3px 7px #dce4ef,inset -3px -3px 7px #fff !important;
+}
+.chair-set-schedule .building-info { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.chair-set-schedule .building-name { color:#203650 !important; font-size:18px; font-weight:800; line-height:1.35; overflow-wrap:anywhere; }
+.chair-set-schedule .building-meta { color:#52647b !important; font-size:14px; }
+.chair-set-schedule .building-arrow { display:flex; flex:0 0 36px; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid #d7e1ee; border-radius:13px; background:#edf2f9; color:#41638e !important; box-shadow:inset 2px 2px 5px #dfe5ed,inset -2px -2px 5px #fff; transition:transform .22s ease; }
+.chair-set-schedule .building.open .building-arrow { transform:rotate(180deg); }
+.chair-set-schedule .rooms-container { display:none; padding:17px; border-top:1px solid #dce4ef; background:#e9eef6 !important; }
+.chair-set-schedule .building.open .rooms-container { display:block; }
+.chair-set-schedule .room-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,285px),1fr)); gap:14px; }
+.chair-set-schedule .room-card {
+    min-width:0; padding:17px; border:1px solid #d6dfec !important; border-radius:18px;
+    background:linear-gradient(145deg,#f3f6fc,#e9eff8) !important; color:#263d59 !important;
+    box-shadow:7px 7px 15px #d2dbe8,-7px -7px 15px #fff,inset 1px 1px 0 #fff !important;
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.chair-set-schedule .room-card:hover { transform:translateY(-2px); border-color:#b9cbe2 !important; box-shadow:9px 9px 18px #cdd7e5,-8px -8px 16px #fff,inset 1px 1px 0 #fff !important; }
+.chair-set-schedule .room-top { display:flex; align-items:center; gap:12px; min-height:48px; margin-bottom:15px; }
+.chair-set-schedule .room-icon { display:flex; flex:0 0 44px; align-items:center; justify-content:center; width:44px; height:44px; border:1px solid #d5e0ee; border-radius:15px; background:#e8eff9 !important; color:#315f9b !important; font-size:19px; box-shadow:inset 3px 3px 7px #dce4ef,inset -3px -3px 7px #fff !important; }
+.chair-set-schedule .room-icon i { color:#315f9b !important; opacity:1 !important; }
+.chair-set-schedule .room-name { color:#203650 !important; font-size:18px; font-weight:850; line-height:1.35; overflow-wrap:anywhere; }
+.chair-set-schedule .room-label { margin-top:3px; color:#52647b !important; font-size:14px; }
+.chair-set-schedule .room-features { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:0 0 15px; }
+.chair-set-schedule .room-feature { display:flex; align-items:center; gap:9px; min-width:0; min-height:58px; padding:9px 10px; border:1px solid #d8e1ed; border-radius:13px; background:#eaf0f8 !important; color:#344b68 !important; box-shadow:inset 3px 3px 7px #dfe5ed,inset -3px -3px 7px #fff !important; }
+.chair-set-schedule .room-feature > i { flex:0 0 19px; color:#315f9b !important; text-align:center; font-size:16px; }
+.chair-set-schedule .room-feature > span { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.chair-set-schedule .room-feature strong { color:#52647b !important; font-size:12px; font-weight:800; line-height:1.3; }
+.chair-set-schedule .room-feature > span > span { color:#233a56 !important; font-size:14px; font-weight:750; line-height:1.35; overflow-wrap:anywhere; }
+.chair-set-schedule .room-feature.feature-available { border-color:#cbded3; background:#eaf3ed !important; }
+.chair-set-schedule .room-feature.feature-available > i { color:#2e7250 !important; }
+.chair-set-schedule .room-feature.feature-unavailable { background:#e8edf4 !important; }
+.chair-set-schedule .room-feature.feature-unavailable > i { color:#64748b !important; }
+.chair-set-schedule .room-feature.room-purpose { grid-column:1/-1; }
+.chair-set-schedule .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; padding:11px 15px; border-radius:14px; font-size:15px; font-weight:800; line-height:1.35; text-align:center; text-decoration:none; box-shadow:5px 5px 11px #cbd4e1,-5px -5px 11px #fff,inset 1px 1px 0 rgba(255,255,255,.35) !important; transition:transform .18s ease,box-shadow .18s ease,background .18s ease; }
+.chair-set-schedule .btn:hover { transform:translateY(-1px); }
+.chair-set-schedule .btn:focus-visible,.chair-set-schedule button:focus-visible,.chair-set-schedule a:focus-visible,.chair-set-schedule input:focus-visible,.chair-set-schedule select:focus-visible { outline:3px solid rgba(49,95,155,.28); outline-offset:3px; }
+.chair-set-schedule .btn.green { width:100%; border:1px solid #315f9b !important; background:#315f9b !important; color:#fff !important; }
+.chair-set-schedule .btn.green:hover { background:#284f83 !important; color:#fff !important; }
+.chair-set-schedule .permission-box { margin-top:14px; padding:13px 14px; border:1px solid #d8e1ed; border-radius:14px; background:#e8eef7; box-shadow:var(--chair-inset); }
+.chair-set-schedule .permission-label { display:flex; align-items:flex-start; gap:10px; color:#344b68 !important; font-size:14px; font-weight:650; line-height:1.5; cursor:pointer; }
+.chair-set-schedule .permission-label input { flex:0 0 19px; width:19px; height:19px; margin:1px 0 0; accent-color:#315f9b; cursor:pointer; }
+.chair-set-schedule .permission-status { margin:7px 0 0 29px; font-size:13px; font-weight:800; }
+.chair-set-schedule .status-on { color:#246344 !important; }
+.chair-set-schedule .status-off { color:#52647b !important; }
+.chair-set-schedule .empty { padding:24px; border:1px dashed #c6d2e2; border-radius:16px; background:#e9eff8 !important; color:#52647b !important; text-align:center; font-size:16px; line-height:1.6; box-shadow:var(--chair-inset); }
+.chair-set-schedule .message { display:flex; align-items:center; gap:10px; margin:0 0 17px; padding:14px 17px; border-radius:14px; font-size:15px; font-weight:700; line-height:1.5; box-shadow:var(--chair-shadow); }
+.chair-set-schedule .message.success { border:1px solid #c5ddce; background:#eaf5ee !important; color:#205d3d !important; }
+.chair-set-schedule .message.error { border:1px solid #e5c5c4; background:#fff0ef !important; color:#8f302e !important; }
+.chair-set-schedule [style*="margin-bottom:18px"][style*="background:#eef8ef"],.chair-set-schedule [style*="margin-bottom:18px"][style*="background: #eef8ef"] { display:flex; gap:16px; padding:17px 19px !important; border:1px solid #d8e1ed !important; border-radius:17px !important; background:#eaf0f8 !important; box-shadow:var(--chair-inset); }
+.chair-set-schedule [style*="margin-bottom:18px"] > div:first-child > div:first-child { color:#52647b !important; font-size:13px !important; line-height:1.4; }
+.chair-set-schedule [style*="margin-bottom:18px"] > div:first-child > div:nth-child(2) { color:#244b7c !important; font-size:20px !important; line-height:1.4; }
+.chair-set-schedule [style*="margin-bottom:18px"] > div:first-child > div:nth-child(3) { color:#52647b !important; font-size:14px !important; line-height:1.5; }
+.chair-set-schedule select[aria-label="Choose academic term to activate"] { min-width:min(280px,100%); min-height:48px; padding:9px 13px !important; border:1px solid #cbd8e8 !important; border-radius:12px !important; background:#edf2f9 !important; color:#243850 !important; font-size:15px !important; box-shadow:var(--chair-inset); }
+.chair-set-schedule select option { background:#fff; color:#243850; }
+.chair-set-schedule a[href*="schedule-library"],.chair-set-schedule a[href*="schedule/library"] { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:10px 15px !important; border:1px solid #315f9b !important; border-radius:13px !important; background:#315f9b !important; color:#fff !important; font-size:15px !important; font-weight:800 !important; text-decoration:none; box-shadow:5px 5px 10px #cbd4e1,-5px -5px 10px #fff !important; }
+.chair-set-schedule a[href*="schedule-library"]:hover,.chair-set-schedule a[href*="schedule/library"]:hover { background:#284f83 !important; }
+@media(max-width:1050px) {
+    .chair-set-schedule .page { padding-left:18px; padding-right:18px; }
+    .chair-set-schedule .room-grid { grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr)); }
+}
+@media(max-width:760px) {
+    .chair-set-schedule .page { padding:17px 13px 30px; }
+    .chair-set-schedule .page-header { align-items:flex-start; padding:22px 20px; }
+    .chair-set-schedule .section-header { align-items:flex-start; flex-direction:column; gap:5px; }
+    .chair-set-schedule .section-help { font-size:14px; }
+    .chair-set-schedule .room-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:560px) {
+    .chair-set-schedule .page-header { min-height:0; padding:19px 16px; border-radius:19px; }
+    .chair-set-schedule .title-area { align-items:flex-start; gap:12px; }
+    .chair-set-schedule .title-icon { flex-basis:48px; width:48px; height:48px; border-radius:15px; font-size:20px; }
+    .chair-set-schedule .title { font-size:28px; }
+    .chair-set-schedule .subtitle { font-size:15px; }
+    .chair-set-schedule .section { padding:16px 13px; }
+    .chair-set-schedule .department-display { padding:13px; }
+    .chair-set-schedule .department-name { font-size:18px; }
+    .chair-set-schedule .section-title { font-size:19px; }
+    .chair-set-schedule .building-toggle { min-height:70px; padding:12px; }
+    .chair-set-schedule .building-name { font-size:16px; }
+    .chair-set-schedule .rooms-container { padding:12px; }
+    .chair-set-schedule .room-grid { grid-template-columns:1fr; }
+    .chair-set-schedule [style*="margin-bottom:18px"][style*="background:#eef8ef"],.chair-set-schedule [style*="margin-bottom:18px"][style*="background: #eef8ef"] { align-items:stretch; flex-direction:column; }
+    .chair-set-schedule [style*="margin-bottom:18px"] > div:nth-child(2),.chair-set-schedule [style*="margin-bottom:18px"] form { width:100%; }
+    .chair-set-schedule [style*="margin-bottom:18px"] form { display:flex !important; flex-direction:column; align-items:stretch !important; }
+    .chair-set-schedule select[aria-label="Choose academic term to activate"] { width:100%; min-width:0; }
+    .chair-set-schedule a[href*="schedule-library"],.chair-set-schedule a[href*="schedule/library"] { width:100%; margin-top:9px; }
+}
+@media(prefers-reduced-motion:reduce) {
+    .chair-set-schedule *, .chair-set-schedule *::before, .chair-set-schedule *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; }
+}
 </style>
+            <link rel="stylesheet" href="{{ asset('css/chair-workspace.css') }}">
+
 
 
 <div class="page-header">
@@ -1012,6 +558,30 @@
                             </div>
 
 
+                            <div class="room-features" aria-label="Room facilities and capacity">
+                                <div class="room-feature">
+                                    <i class="fa-solid fa-users" aria-hidden="true"></i>
+                                    <span><strong>Capacity</strong><span>{{ $room->capacity ?? 'Not specified' }}</span></span>
+                                </div>
+                                <div class="room-feature">
+                                    <i class="fa-solid fa-computer" aria-hidden="true"></i>
+                                    <span><strong>Computers</strong><span>{{ $room->computers ?? 0 }}</span></span>
+                                </div>
+                                <div class="room-feature {{ $room->has_tv ? 'feature-available' : 'feature-unavailable' }}">
+                                    <i class="fa-solid fa-tv" aria-hidden="true"></i>
+                                    <span><strong>TV</strong><span>{{ $room->has_tv ? 'Available' : 'No' }}</span></span>
+                                </div>
+                                <div class="room-feature {{ $room->has_projector ? 'feature-available' : 'feature-unavailable' }}">
+                                    <i class="fa-solid fa-video" aria-hidden="true"></i>
+                                    <span><strong>Projector</strong><span>{{ $room->has_projector ? 'Available' : 'No' }}</span></span>
+                                </div>
+                                @if(filled($room->purpose))
+                                    <div class="room-feature room-purpose">
+                                        <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                                        <span><strong>Purpose</strong><span>{{ $room->purpose }}</span></span>
+                                    </div>
+                                @endif
+                            </div>
                             {{-- SET SCHEDULE --}}
 
                             <a

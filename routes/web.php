@@ -10,6 +10,7 @@ use App\Http\Controllers\FacultyController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RoomSwapRequestController;
 use App\Http\Controllers\RoomReassignmentController;
+use App\Http\Controllers\UserNotificationController;
 
 use App\Http\Controllers\StudentController;
 
@@ -98,18 +99,6 @@ Route::post(
 |--------------------------------------------------------------------------
 */
 
-
-Route::get(
-
-    '/admin/room-reassignment',
-
-    function () {
-
-        return view('admin.roomreassignment');
-
-    }
-
-)->name('admin.roomreassignment');
 
 Route::get(
 
@@ -257,9 +246,9 @@ Route::post(
 )->name('admin.roomreassignment.store');
 
 Route::delete(
-    '/admin/room-reassignment/{roomReassignment}',
-    [RoomReassignmentController::class, 'destroy']
-)->name('admin.roomreassignment.destroy');
+    '/admin/room-reassignment/{scheduleOverride}',
+    [RoomReassignmentController::class, 'cancel']
+)->name('admin.roomreassignment.cancel');
 
 
 /*
@@ -279,8 +268,8 @@ Route::post(
 )->name('roomreassignment.store');
 
 Route::delete(
-    '/room-reassignment/{roomReassignment}',
-    [RoomReassignmentController::class, 'destroy']
+    '/room-reassignment/{scheduleOverride}',
+    [RoomReassignmentController::class, 'cancel']
 )->name('roomreassignment.destroy');
 });
 
@@ -457,7 +446,11 @@ Route::post('/faculty/room-swap/{id}/cancel', [
         'viewSchedule'
     ])->name('faculty.view.schedule');
 
-       
+    Route::get('/notifications/latest', [UserNotificationController::class, 'latest'])
+    ->name('notifications.latest');
+
+Route::get('/notifications/{notificationId}', [UserNotificationController::class, 'open'])
+    ->name('notifications.open');
 });
 
 
@@ -593,6 +586,46 @@ Route::delete('/chair/import-faculty/{facultyId}', [
         ChairController::class,
         'deleteFacultySubject'
     ])->name('chair.faculty.subjects.delete');
+
+    Route::get('/chair/subjects/lookup', [
+        ChairController::class,
+        'lookupCatalogSubjects'
+    ])->name('chair.subjects.lookup');
+
+    Route::get('/chair/manage-subjects/{program?}/{year?}', [
+        ChairController::class,
+        'manageSubjects'
+    ])->where(['program' => '[0-9]+', 'year' => '[^/]+'])->name('chair.managesubjects');
+
+    Route::post('/chair/manage-subjects/programs', [
+        ChairController::class,
+        'storeProgram'
+    ])->name('chair.managesubjects.program.store');
+
+    Route::put('/chair/manage-subjects/programs/{program}', [
+        ChairController::class,
+        'updateProgram'
+    ])->name('chair.managesubjects.program.update');
+
+    Route::delete('/chair/manage-subjects/programs/{program}', [
+        ChairController::class,
+        'deleteProgram'
+    ])->name('chair.managesubjects.program.delete');
+
+    Route::post('/chair/manage-subjects/programs/{program}/years/{year}/subjects', [
+        ChairController::class,
+        'storeCatalogSubject'
+    ])->where('year', '[^/]+')->name('chair.managesubjects.subject.store');
+
+    Route::put('/chair/manage-subjects/programs/{program}/years/{year}/subjects/{subject}', [
+        ChairController::class,
+        'updateCatalogSubject'
+    ])->where('year', '[^/]+')->name('chair.managesubjects.subject.update');
+
+    Route::delete('/chair/manage-subjects/programs/{program}/years/{year}/subjects/{subject}', [
+        ChairController::class,
+        'deleteCatalogSubject'
+    ])->where('year', '[^/]+')->name('chair.managesubjects.subject.delete');
 
 
     /*
@@ -731,123 +764,15 @@ Route::post('/chair/modifyschedule/clear', [
         'activateAcademicTerm'
     ])->name('chair.academic.terms.activate');
 
+    Route::delete('/chair/academic-terms/{termId}', [
+        ChairController::class,
+        'deleteAcademicTerm'
+    ])->name('chair.academic.terms.delete');
+
     Route::post('/chair/schedule-library/{sourceTermId}/reuse', [
         ChairController::class,
         'reuseAcademicSchedule'
     ])->name('chair.schedule.library.reuse');
-
-    /*
-    |--------------------------------------------------------------------------
-    | CURRICULUM
-    |--------------------------------------------------------------------------
-    */
-
-   
-    Route::get('/chair/curriculum/{curriculum?}', [
-
-        ChairController::class,
-
-        'curriculum'
-
-    ])->name('chair.curriculum');
-
-    Route::post('/chair/curriculum', [
-
-        ChairController::class,
-
-        'storeCurriculum'
-
-    ])->name('chair.curriculum.store');
-
-    Route::post('/chair/curriculum/store-upload', [
-
-        ChairController::class,
-
-        'storeCurriculumWithUpload'
-
-    ])->name('chair.curriculum.store.upload');
-
-    Route::post('/chair/curriculum/{curriculum}/upload', [
-
-        ChairController::class,
-
-        'uploadCurriculum'
-
-    ])->name('chair.curriculum.upload');
-
-    Route::put('/chair/curriculum/{id}', [
-
-        ChairController::class,
-
-        'updateCurriculum'
-
-    ])->name('chair.curriculum.update');
-
-    Route::post('/chair/curriculum/{id}/activate', [
-
-        ChairController::class,
-
-        'activateCurriculum'
-
-    ])->name('chair.curriculum.activate');
-
-    Route::post('/chair/curriculum/{id}/deactivate', [
-
-        ChairController::class,
-
-        'deactivateCurriculum'
-
-    ])->name('chair.curriculum.deactivate');
-
-    Route::delete('/chair/curriculum/{id}', [
-
-        ChairController::class,
-
-        'deleteCurriculum'
-
-    ])->name('chair.curriculum.delete');
-
-    Route::post('/chair/curriculum/{curriculum}/courses', [
-
-        ChairController::class,
-
-        'storeCurriculumCourse'
-
-    ])->name('chair.curriculum.course.store');
-
-    Route::put('/chair/curriculum-courses/{id}', [
-
-        ChairController::class,
-
-        'updateCurriculumCourse'
-
-    ])->name('chair.curriculum.course.update');
-
-    Route::delete('/chair/curriculum-courses/{id}', [
-
-        ChairController::class,
-
-        'deleteCurriculumCourse'
-
-    ])->name('chair.curriculum.course.delete');
-
-    Route::post('/chair/curriculum/{curriculum}/grid', [
-
-        ChairController::class,
-
-        'saveCurriculumGrid'
-
-    ])->name('chair.curriculum.grid.save');
-
-    // Delete an uploaded curriculum document without deleting its courses.
-
-    Route::delete('/chair/curriculum/{curriculum}/documents/{document}', [
-
-        ChairController::class,
-
-        'deleteCurriculumDocument'
-
-    ])->name('chair.curriculum.document.delete');
 
 });
 

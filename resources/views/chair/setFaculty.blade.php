@@ -1,4 +1,14 @@
 @include('footerheader.header')
+@php
+    $facultyMembers = collect($department->users ?? [])->where('role', 'faculty');
+    $facultyMemberCount = $facultyMembers->count();
+    $assignedSubjectCount = $facultyMembers->sum(function ($facultyMember) {
+        return $facultyMember->facultySubjects->count();
+    }) + collect($importedFaculty ?? [])->sum(function ($facultyMember) {
+        return $facultyMember->departmentSubjects->count();
+    });
+    $importedFacultyCount = collect($importedFaculty ?? [])->count();
+@endphp
 <div class="wrapper">
 
     
@@ -7,7 +17,7 @@
 
         @include('chair.sidebar')
 
-        <main class="content">
+        <main class="content chair-workspace-redesign chair-faculty-redesign">
 
             <style>
 
@@ -511,23 +521,125 @@
                 .faculty-feedback-dialog button { border:0; border-radius:8px; padding:10px 28px; color:#fff; background:#087443; cursor:pointer; font-weight:600; margin-top:14px; }
                 .faculty-feedback-dialog.error button { background:#dc2626; }
 
+                /* Chair Faculty & Subjects refresh */
+                .faculty-setup-page { max-width: 1320px; margin: 0 auto; }
+                .faculty-setup-hero { position:relative; display:flex; align-items:center; justify-content:space-between; gap:24px; overflow:hidden; margin-bottom:18px; padding:28px 30px; border:1px solid #dfeae2; border-radius:20px; background:linear-gradient(115deg,#fff 0%,#f4faf5 72%,#eaf5ed 100%); box-shadow:0 12px 30px rgba(21,45,32,.045); }
+                .faculty-setup-hero::after { content:""; position:absolute; right:30px; top:-54px; width:190px; height:190px; border:1px solid rgba(23,110,72,.08); border-radius:50%; box-shadow:0 0 0 22px rgba(23,110,72,.025),0 0 0 48px rgba(23,110,72,.02); }
+                .faculty-setup-hero-copy,.faculty-setup-department { position:relative; z-index:1; }
+                .faculty-setup-eyebrow { display:flex; align-items:center; gap:7px; margin-bottom:9px; color:#71857a; font-size:9px; font-weight:800; letter-spacing:.14em; }
+                .faculty-setup-eyebrow i { color:#287b50; }
+                .faculty-setup-hero h1 { margin:0; color:#17251e; font-size:clamp(25px,3vw,34px); font-weight:780; letter-spacing:-.045em; line-height:1.15; }
+                .faculty-setup-hero p { margin:8px 0 0; color:#748178; font-size:12px; line-height:1.6; }
+                .faculty-setup-department { display:flex; align-items:center; gap:11px; min-width:190px; padding:13px 15px; border:1px solid #dce9df; border-radius:14px; background:rgba(255,255,255,.8); }
+                .faculty-setup-department-icon { display:grid; width:37px; height:37px; flex:0 0 37px; place-items:center; border-radius:11px; background:#eaf5ed; color:#287b50; }
+                .faculty-setup-department > div:last-child { display:grid; gap:3px; }
+                .faculty-setup-department small { color:#8b978f; font-size:8px; font-weight:800; letter-spacing:.12em; }
+                .faculty-setup-department strong { color:#365543; font-size:11px; }
+                .faculty-setup-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0 0 18px; }
+                .faculty-setup-metric { display:flex; align-items:center; gap:12px; min-height:78px; padding:14px 16px; border:1px solid #e4ebe6; border-radius:15px; background:#fff; box-shadow:0 7px 20px rgba(21,45,32,.03); }
+                .faculty-setup-metric-icon { display:grid; width:37px; height:37px; flex:0 0 37px; place-items:center; border-radius:11px; background:#edf6ef; color:#287b50; font-size:13px; }
+                .faculty-setup-metric:nth-child(2) .faculty-setup-metric-icon { background:#eef4fb;color:#557eaa; }
+                .faculty-setup-metric:nth-child(3) .faculty-setup-metric-icon { background:#f4f0fb;color:#826aa6; }
+                .faculty-setup-metric-copy { display:grid; gap:3px; }
+                .faculty-setup-metric-copy strong { color:#263c2e; font-size:18px; line-height:1; }
+                .faculty-setup-metric-copy span { color:#829087; font-size:9px; }
+                .faculty-setup-page > .section { margin-bottom:16px !important; padding:20px !important; border:1px solid #e4ebe6 !important; border-radius:16px !important; background:#fff !important; box-shadow:0 9px 24px rgba(21,45,32,.035) !important; }
+                .faculty-setup-page .section-title { display:flex; align-items:center; gap:9px; margin-bottom:14px; color:#24392d; font-size:14px; font-weight:750; }
+                .faculty-setup-page .section-title::before { content:""; width:4px; height:17px; border-radius:4px; background:#258052; }
+                .faculty-setup-page .department-info { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; padding:12px 15px; border:1px solid #e0ece3; border-left:3px solid #258052; border-radius:12px; background:#f5faf6; }
+                .faculty-setup-page .department-info-label { margin:0; color:#829087; font-size:9px; font-weight:750; letter-spacing:.1em; text-transform:uppercase; }
+                .faculty-setup-page .department-info-name { color:#31543e; font-size:12px; font-weight:750; }
+                .faculty-setup-page .faculty-grid { grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:10px; }
+                .faculty-setup-page .faculty-card { min-height:130px; padding:16px 13px; border:1px solid #e5ece7; border-radius:14px; background:#fff; text-align:left; box-shadow:0 5px 15px rgba(21,45,32,.025); }
+                .faculty-setup-page .faculty-card:hover { transform:translateY(-2px); border-color:#c9dfd0; box-shadow:0 10px 20px rgba(21,45,32,.07); }
+                .faculty-setup-page .faculty-card.active { border-color:#a9cfb5; background:#f4faf5; box-shadow:inset 3px 0 #258052; }
+                .faculty-setup-page .faculty-icon { width:40px; height:40px; margin:0 0 12px; border-radius:12px; background:#edf6ef; color:#287b50; font-size:16px; }
+                .faculty-setup-page .faculty-name { color:#294233; font-size:11px; line-height:1.4; }
+                .faculty-setup-page .faculty-count { margin-top:5px; color:#89958d; font-size:9px; }
+                .faculty-total-badge { display:inline-grid; min-width:21px; height:21px; place-items:center; padding:0 6px; border-radius:999px; background:#edf6ef; color:#287b50; font-size:9px; font-weight:800; vertical-align:middle; }
+                .faculty-directory-note { margin:-7px 0 14px; color:#849087; font-size:10px; line-height:1.5; }
+                .faculty-directory-origin { display:inline-flex; align-items:center; gap:5px; width:max-content; max-width:100%; margin:0 0 12px; padding:5px 8px; overflow:hidden; border-radius:999px; background:#edf6ef; color:#34774e; font-size:8px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+                .faculty-directory-origin.imported { background:#eef3fb; color:#5577a0; }
+                .faculty-directory-item.imported { display:flex; min-height:130px; flex-direction:column; overflow:hidden; border:1px solid #e5ece7; border-radius:14px; background:#fff; box-shadow:0 5px 15px rgba(21,45,32,.025); transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease; }
+                .faculty-directory-item.imported { border-color:#d5e2f2; background:#f6f9fe; }
+                .faculty-directory-item.imported:hover { transform:translateY(-2px); border-color:#abc4e1; box-shadow:0 10px 20px rgba(21,45,32,.07); }
+                .faculty-setup-page .faculty-directory-item .faculty-card { display:flex; min-height:0; flex:1; flex-direction:column; border:0; border-radius:0; box-shadow:none; }
+                .faculty-setup-page .faculty-directory-item .faculty-card:hover { transform:none; border:0; box-shadow:none; }
+                .faculty-setup-page .faculty-directory-item .faculty-card.active { background:#edf4fc; box-shadow:inset 3px 0 #648bb8; }
+                .faculty-manage-label { display:inline-flex; align-items:center; gap:6px; margin-top:auto; padding-top:10px; color:#287b50; font-size:9px; font-weight:750; }
+                .faculty-remove-import-form { padding:0 12px 10px; text-align:center; }
+                .faculty-remove-import-form button { width:100%; padding:7px 9px; border:1px solid #ece4e2; border-radius:8px; background:#fff8f7; color:#9a5149; font-size:8px; font-weight:750; cursor:pointer; }
+                .faculty-remove-import-form button:hover { border-color:#e7c9c5; background:#fff0ee; }
+                .faculty-directory-empty { grid-column:1/-1; }
+                .faculty-import-tile { display:flex; min-height:130px; align-items:center; justify-content:center; flex-direction:column; gap:8px; padding:16px 13px; border:1px dashed #aebfb3; border-radius:14px; background:#f8fbf9; color:#53705e; cursor:pointer; transition:all .2s ease; }
+                .faculty-import-tile:hover { transform:translateY(-2px); border-color:#258052; background:#eff7f1; box-shadow:0 10px 20px rgba(21,45,32,.07); }
+                .faculty-import-plus { display:grid; width:40px; height:40px; place-items:center; border-radius:12px; background:#e5f1e8; color:#258052; font-size:17px; }
+                .faculty-import-tile strong { color:#294233; font-size:11px; }
+                .faculty-import-tile span:last-child { color:#89958d; font-size:9px; }
+                .faculty-import-modal { position:fixed; inset:0; z-index:10000; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(14,35,24,.56); backdrop-filter:blur(4px); }
+                .faculty-import-modal.is-open { display:flex; }
+                .faculty-import-dialog { width:min(100%,480px); overflow:hidden; border:1px solid #e1e9e3; border-radius:18px; background:#fff; box-shadow:0 24px 65px rgba(15,35,24,.24); }
+                .faculty-import-dialog-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:22px 23px 15px; }
+                .faculty-import-dialog-head h2 { margin:0; color:#24392d; font-size:17px; font-weight:750; }
+                .faculty-import-dialog-head p { margin:6px 0 0; color:#839087; font-size:11px; line-height:1.55; }
+                .faculty-import-close { display:grid; width:32px; height:32px; flex:0 0 32px; place-items:center; border:0; border-radius:9px; background:#f2f5f3; color:#65746b; cursor:pointer; }
+                .faculty-import-dialog form { padding:0 23px 22px; }
+                .faculty-import-dialog label { display:block; margin:0 0 7px; color:#53635a; font-size:10px; font-weight:700; }
+                .faculty-import-dialog select { width:100%; min-height:43px; padding:0 12px; border:1px solid #dce5de; border-radius:10px; background:#fff; color:#34483a; font-size:12px; }
+                .faculty-import-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:18px; }
+                .faculty-import-actions button { min-height:38px; padding:0 15px; border:1px solid #dce5de; border-radius:9px; background:#fff; color:#53635a; font-size:11px; font-weight:700; cursor:pointer; }
+                .faculty-import-actions button[type="submit"] { border-color:#258052; background:#258052; color:#fff; }
+                .faculty-import-actions button[type="submit"]:disabled { border-color:#d4ddd6; background:#d4ddd6; cursor:not-allowed; }
+                .faculty-setup-page .subject-section { padding:18px; border:1px solid #e4ebe6; border-top:3px solid #258052; border-radius:15px; background:#fff; }
+                .faculty-setup-page .profile { padding:14px; border:1px solid #e9efea; border-radius:13px; background:#f8faf8; }
+                .faculty-setup-page .profile .faculty-icon { margin:0; }
+                .faculty-setup-page .profile-name { color:#24392d; font-size:15px; }
+                .faculty-setup-page .profile-department { color:#849087; font-size:10px; }
+                .faculty-setup-page .subject-table { min-width:760px; border-spacing:0; border-radius:12px; overflow:hidden; }
+                .faculty-setup-page .subject-table th { padding:11px 12px; background:#f3f7f4 !important; color:#65746b !important; font-size:9px !important; }
+                .faculty-setup-page .subject-table td { padding:11px 12px; border-bottom:1px solid #edf1ee; color:#526158; font-size:10px; }
+                .faculty-setup-page .subject-table tbody tr:hover { background:#f8fbf9; }
+                .faculty-setup-page .subject-table tbody tr.faculty-subject-original { opacity:.48; background:#f3f5f6; }
+                .faculty-setup-page .subject-table tbody tr.faculty-subject-original:hover { background:#f3f5f6; }
+                .faculty-original-label { display:inline-flex; align-items:center; gap:5px; margin-top:4px; color:#7d8790; font-size:8px; font-weight:700; }
+                .faculty-setup-page .add-subject-title { margin:23px 0 10px; padding-top:19px; border-top:1px solid #e9efea; color:#294233; font-size:14px; font-weight:750; }
+                .faculty-setup-page .subject-form { gap:12px; }
+                .faculty-setup-page .subject-form label { color:#53635a; font-size:10px; }
+                .faculty-setup-page .schedule-link-wrapper { padding-top:15px; border-top:1px solid #edf1ee; }
+                .faculty-setup-page .modal { background:rgba(14,35,24,.52); backdrop-filter:blur(4px); }
+                .faculty-setup-page .modal-content { border:1px solid #e1e9e3; border-top:4px solid #258052; border-radius:17px; box-shadow:0 24px 65px rgba(15,35,24,.2); }
+                @media(max-width:760px) { .faculty-setup-hero { align-items:flex-start; flex-direction:column; padding:22px; }.faculty-setup-department { width:100%; }.faculty-setup-metrics { gap:8px; }.faculty-setup-metric { padding:12px; } }
+                @media(max-width:520px) { .faculty-setup-metrics { grid-template-columns:1fr; }.faculty-setup-page > .section { padding:15px !important; }.faculty-setup-page .faculty-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.faculty-setup-page .faculty-card { min-height:120px; }.faculty-setup-page .department-info { align-items:flex-start; flex-direction:column; gap:5px; } }
+
             </style>
+            <link rel="stylesheet" href="{{ asset('css/chair-workspace.css') }}">
 
 
-            <div class="page">
+
+            <div class="page faculty-setup-page">
 
 
                 <!-- =================================================
                      TITLE
                 ================================================== -->
 
-                <div class="title">
-                    Faculty Setup
-                </div>
+                <header class="faculty-setup-hero">
+                    <div class="faculty-setup-hero-copy">
+                        <div class="faculty-setup-eyebrow"><i class="fa-solid fa-users-gear" aria-hidden="true"></i> DEPARTMENT WORKSPACE</div>
+                        <h1>Faculty &amp; Subjects</h1>
+                        <p>Organize faculty access and maintain each instructor’s course assignments.</p>
+                    </div>
+                    <div class="faculty-setup-department">
+                        <span class="faculty-setup-department-icon"><i class="fa-solid fa-building-columns" aria-hidden="true"></i></span>
+                        <div><small>YOUR DEPARTMENT</small><strong>{{ $department->code ?? $department->name ?? 'Department' }}</strong></div>
+                    </div>
+                </header>
 
-                <div class="subtitle">
-                    Manage faculty members and their assigned subjects.
-                </div>
+                <section class="faculty-setup-metrics" aria-label="Faculty setup summary">
+                    <div class="faculty-setup-metric"><span class="faculty-setup-metric-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span><div class="faculty-setup-metric-copy"><strong>{{ $facultyMemberCount }}</strong><span>Department faculty</span></div></div>
+                    <div class="faculty-setup-metric"><span class="faculty-setup-metric-icon"><i class="fa-solid fa-book-open" aria-hidden="true"></i></span><div class="faculty-setup-metric-copy"><strong>{{ $assignedSubjectCount }}</strong><span>Assigned subjects</span></div></div>
+                    <div class="faculty-setup-metric"><span class="faculty-setup-metric-icon"><i class="fa-solid fa-user-plus" aria-hidden="true"></i></span><div class="faculty-setup-metric-copy"><strong>{{ $importedFacultyCount }}</strong><span>Imported faculty</span></div></div>
+                </section>
 
 
                 <!-- =================================================
@@ -617,18 +729,12 @@
                 <div class="section">
 
                     <div class="section-title">
-                        Faculty Members
+                        Faculty Members <span class="faculty-total-badge">{{ $facultyMemberCount + $importedFacultyCount }}</span>
                     </div>
 
-
+                    <p class="faculty-directory-note">Department faculty and imported faculty appear together. Each card is labeled by its source.</p>
                     <div class="faculty-grid">
-
-                        @forelse(
-                            $department->users
-                                ->where('role', 'faculty')
-                            as $faculty
-                        )
-
+                        @foreach($department->users->where('role', 'faculty') as $faculty)
                             <a
                                 href="{{ route(
                                     'chair.setFaculty',
@@ -648,170 +754,79 @@
                                 "
                             >
 
-                                <div class="faculty-icon">
-                                    👤
-                                </div>
-
-
+                                <div class="faculty-directory-origin original"><i class="fa-solid fa-building" aria-hidden="true"></i> Department faculty</div>
+                                <div class="faculty-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></div>
                                 <div class="faculty-name">
                                     {{ $faculty->name }}
                                 </div>
-
-
                                 <div class="faculty-count">
-
-                                    {{
-                                        $faculty
-                                            ->facultySubjects
-                                            ->count()
-                                    }}
-
-                                    subject(s)
-
+                                    {{ $faculty->facultySubjects->count() }} assigned subject(s)
                                 </div>
-
                             </a>
+                        @endforeach
 
-                        @empty
+                        @foreach($importedFaculty as $faculty)
+                            <article class="faculty-directory-item imported">
+                                <a
+                                    href="{{ route('chair.setFaculty', ['faculty' => $faculty->id]) }}"
+                                    class="faculty-card {{ $selectedFaculty && $selectedFaculty->id == $faculty->id ? 'active' : '' }}"
+                                >
+                                    <div class="faculty-directory-origin imported"><i class="fa-solid fa-arrow-down-to-bracket" aria-hidden="true"></i> Imported · {{ $faculty->department->code ?? $faculty->department->name ?? 'Other department' }}</div>
+                                    <div class="faculty-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></div>
+                                    <div class="faculty-name">{{ $faculty->name }}</div>
+                                    <div class="faculty-count">{{ $faculty->departmentSubjects->count() }} department subject(s) · {{ $faculty->facultySubjects->count() - $faculty->departmentSubjects->count() }} original</div>
+                                    <span class="faculty-manage-label">Manage subjects <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+                                </a>
+                                <form
+                                    action="{{ route('chair.faculty.import.remove', $faculty->id) }}"
+                                    method="POST"
+                                    class="faculty-remove-import-form"
+                                    onsubmit="return confirm('Remove this faculty member from your imported list? Their account will not be deleted.');"
+                                >
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"><i class="fa-solid fa-link-slash" aria-hidden="true"></i> Remove import</button>
+                                </form>
+                            </article>
+                        @endforeach
 
-                            <div class="empty">
+                        @if($facultyMemberCount === 0 && $importedFacultyCount === 0)
+                            <div class="empty faculty-directory-empty">No faculty members are assigned to {{ $department->name }} or imported yet.</div>
+                        @endif
 
-                                No faculty members are currently
-                                assigned to {{ $department->name }}.
-
-                            </div>
-
-                        @endforelse
+                        <button type="button" class="faculty-import-tile" id="openFacultyImportModal" aria-haspopup="dialog" aria-controls="facultyImportModal">
+                            <span class="faculty-import-plus"><i class="fa-solid fa-plus" aria-hidden="true"></i></span>
+                            <strong>Import faculty</strong>
+                            <span>Add a colleague from another department</span>
+                        </button>
 
                     </div>
 
                 </div>
 
-{{-- Import Faculty from Other Departments --}}
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-    <div class="mb-4">
-        <h2 class="text-lg font-semibold text-gray-800">
-            Import Faculty from Another Department
-        </h2>
-        <p class="text-sm text-gray-500 mt-1">
-            Select a faculty member from another department to make them
-            available for your department's faculty assignments.
-        </p>
-    </div>
-
-    <form action="{{ route('chair.faculty.import') }}" method="POST"
-          class="flex flex-col sm:flex-row gap-3">
-        @csrf
-
-        <div class="flex-1">
-            <label for="faculty_id"
-                   class="block text-sm font-medium text-gray-700 mb-1">
-                Select Faculty Member
-            </label>
-
-            <select name="faculty_id" id="faculty_id" required
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2">
-                <option value="">-- Select Faculty --</option>
-
-                @forelse ($availableFaculty as $faculty)
-                    <option value="{{ $faculty->id }}">
-                        {{ $faculty->name }}
-                        — {{ $faculty->department->name ?? 'No Department' }}
-                    </option>
-                @empty
-                    <option value="" disabled>
-                        No faculty members available to import
-                    </option>
-                @endforelse
-            </select>
-        </div>
-
-        <div class="flex items-end">
-            <button type="submit"
-                    class="bg-green-600 hover:bg-green-700 text-white
-                           font-medium px-5 py-2 rounded-lg transition">
-                Import Faculty
-            </button>
-        </div>
-    </form>
-
-    @if (session('success'))
-        <p class="text-green-600 text-sm mt-3">
-            {{ session('success') }}
-        </p>
-    @endif
-
-    @if (session('error'))
-        <p class="text-red-600 text-sm mt-3">
-            {{ session('error') }}
-        </p>
-    @endif
-</div>
-
-
-{{-- Imported Faculty Members --}}
-<div class="section">
-    <div class="section-title">
-        Imported Faculty Members
-    </div>
-
-    <p class="subtitle">
-        Click a faculty card to manage their assigned subjects.
-    </p>
-
-    <div class="faculty-grid">
-        @forelse ($importedFaculty as $faculty)
+<div class="faculty-import-modal" id="facultyImportModal" role="dialog" aria-modal="true" aria-labelledby="facultyImportTitle" aria-hidden="true">
+    <div class="faculty-import-dialog">
+        <div class="faculty-import-dialog-head">
             <div>
-                <a
-                    href="{{ route('chair.setFaculty', ['faculty' => $faculty->id]) }}"
-                    class="faculty-card {{
-                        $selectedFaculty && $selectedFaculty->id == $faculty->id
-                            ? 'active'
-                            : ''
-                    }}"
-                >
-                    <div class="faculty-icon">👤</div>
-
-                    <div class="faculty-name">
-                        {{ $faculty->name }}
-                    </div>
-
-                    <div class="faculty-count">
-                        {{ $faculty->facultySubjects->count() }}
-                        subject(s)
-                    </div>
-
-                    <div class="faculty-count">
-                        From:
-                        {{ $faculty->department->code ?? $faculty->department->name ?? 'Other Department' }}
-                    </div>
-
-                    <div style="margin-top:12px;">
-                        <span class="btn green">
-                            Manage Subjects
-                        </span>
-                    </div>
-                </a>
-
-                <form
-                    action="{{ route('chair.faculty.import.remove', $faculty->id) }}"
-                    method="POST"
-                    style="text-align:center;margin-top:8px;"
-                    onsubmit="return confirm('Remove this faculty member from your imported list? Their account will not be deleted.');"
-                >
-                    @csrf
-                    @method('DELETE')
-
-                    <button type="submit" class="btn red">
-                        Remove Import
-                    </button>
-                </form>
+                <h2 id="facultyImportTitle">Import faculty member</h2>
+                <p>Choose a colleague from another department. Their existing subject assignments will remain with their home department.</p>
             </div>
-        @empty
-            <div class="empty">
-                No faculty members have been imported yet.
+            <button type="button" class="faculty-import-close" id="closeFacultyImportModal" aria-label="Close dialog"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <form action="{{ route('chair.faculty.import') }}" method="POST">
+            @csrf
+            <label for="faculty_id">Faculty member</label>
+            <select name="faculty_id" id="faculty_id" required {{ $availableFaculty->isEmpty() ? 'disabled' : '' }}>
+                <option value="">{{ $availableFaculty->isEmpty() ? 'No faculty members available to import' : 'Select a faculty member' }}</option>
+                @foreach($availableFaculty as $availableMember)
+                    <option value="{{ $availableMember->id }}">{{ $availableMember->name }} — {{ $availableMember->department->code ?? $availableMember->department->name ?? 'Other department' }}</option>
+                @endforeach
+            </select>
+            <div class="faculty-import-actions">
+                <button type="button" id="cancelFacultyImport">Cancel</button>
+                <button type="submit" {{ $availableFaculty->isEmpty() ? 'disabled' : '' }}>Import faculty</button>
             </div>
-        @endforelse
+        </form>
     </div>
 </div>
 
@@ -819,9 +834,7 @@
                 <!-- =================================================
                      MASTER CURRICULUM LIST
 
-                     Hidden intentionally. Curriculum courses remain
-                     connected to Faculty & Subjects through the selector
-                     below, but the full master table is not displayed here.
+                     The retired curriculum view is no longer part of this flow.
                 ================================================== -->
 
                 <!-- =================================================
@@ -841,9 +854,7 @@
 
                             <div class="profile">
 
-                                <div class="faculty-icon">
-                                    👤
-                                </div>
+                                <div class="faculty-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></div>
 
 
                                 <div>
@@ -950,13 +961,24 @@
                                                     ->facultySubjects
                                                 as $facultySubject
                                             )
-
-                                                <tr>
+                                                @php
+                                                    $subjectProgramDepartmentId = $facultySubject->subjectCatalog?->program?->department_id;
+                                                    $isImportedSelectedFaculty = (int) $selectedFaculty->department_id !== (int) $department->id;
+                                                    $isOriginalDepartmentSubject = $isImportedSelectedFaculty && (
+                                                        $subjectProgramDepartmentId !== null
+                                                            ? (int) $subjectProgramDepartmentId !== (int) $department->id
+                                                            : (!$selectedFaculty->imported_at || !$facultySubject->created_at || $facultySubject->created_at->timestamp < strtotime((string) $selectedFaculty->imported_at))
+                                                    );
+                                                @endphp
+                                                <tr class="{{ $isOriginalDepartmentSubject ? 'faculty-subject-original' : '' }}">
 
                                                   <td>
     <strong>
         {{ $facultySubject->course_code }}
     </strong>
+    @if($isOriginalDepartmentSubject)
+        <span class="faculty-original-label"><i class="fa-solid fa-lock" aria-hidden="true"></i> Original department subject · read only</span>
+    @endif
 </td>
 
 <td>
@@ -976,24 +998,26 @@
 </td>
 
                                                     <td>
+                                                        @if(!$isOriginalDepartmentSubject)
 
                                                         <!-- EDIT -->
 
-                                                        <button
-                                                            type="button"
-                                                            class="btn yellow"
-                                                           onclick="editSubject(
+                                                        @if(!$facultySubject->subject_id)
+                                                            <button
+                                                                type="button"
+                                                                class="btn yellow"
+                                                                onclick="editSubject(
     {{ $facultySubject->id }},
     @js($facultySubject->course_code),
     @js($facultySubject->subject),
     @js($facultySubject->year_level),
     @js($facultySubject->major),
     @js($facultySubject->program),
-    @js($facultySubject->curriculum_course_id),
 )"
-                                                        >
-                                                            Edit
-                                                        </button>
+                                                            >Edit</button>
+                                                        @else
+                                                            <span class="faculty-original-label">Catalog linked · edit in Manage Subjects</span>
+                                                        @endif
 
 
                                                         <!-- REMOVE -->
@@ -1027,6 +1051,9 @@
                                                             </button>
 
                                                         </form>
+                                                        @else
+                                                            <span class="faculty-original-label">View only</span>
+                                                        @endif
 
                                                     </td>
 
@@ -1078,278 +1105,26 @@
                                 >
 
 <div style="grid-column:1 / -1;">
-
-    <label>
-        Curriculum <span style="color:#777;font-weight:normal;">(for new manual course)</span>
-    </label>
-
-    <select
-        name="curriculum_id"
-        id="facultyCurriculumSelect"
-        style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;"
-    >
-        <option value="">Select curriculum</option>
-
-        @foreach(($curricula ?? collect()) as $curriculum)
-
-            <option
-                value="{{ $curriculum->id }}"
-                data-program="{{ $curriculum->program }}"
-                data-major="{{ $curriculum->major ?? '' }}"
-            >
-                {{ $curriculum->curriculum_code }} — {{ $curriculum->program }}{{ $curriculum->department ? ' — ' . $curriculum->department->name : '' }}
-                @if($curriculum->major)
-                    • {{ $curriculum->major }}
-                @endif
-            </option>
-
-        @endforeach
-    </select>
-
-    <small class="manual-help">
-        Choose an active curriculum when adding a new course manually.
-    </small>
-
-</div>
-
-
-<div style="grid-column:1 / -1;">
-
-    <label>
-        Search Course Code
-    </label>
-
-    <input
-        type="text"
-        id="facultyCourseSearch"
-        placeholder="Select curriculum first, then enter IT 111"
-        autocomplete="off"
-        style="width:100%;padding:11px 12px;border:1px solid #cfd8d1;border-radius:8px;outline:none;"
-    >
-
-    <div
-        id="facultyCourseSearchStatus"
-        style="margin-top:6px;font-size:12px;color:#667085;min-height:18px;"
-    >
-        Select a curriculum first. Then type a course code such as IT 111.
+    <label for="facultyCourseCode">Course code</label>
+    <input type="text" name="course_code" id="facultyCourseCode" placeholder="Example: IT 101" autocomplete="off" required>
+    <input type="hidden" name="subject_id" id="facultySubjectId">
+    <div id="facultySubjectChoiceWrap" hidden style="margin-top:14px;">
+        <label for="facultySubjectChoice">Choose the correct subject</label>
+        <select id="facultySubjectChoice" style="width:100%;padding:11px;border:1px solid #bdcddd;border-radius:8px;background:#fff;font-size:15px;">
+            <option value="">Choose a year level</option>
+        </select>
     </div>
-
+    <p id="facultyCourseSearchStatus" role="status" aria-live="polite" style="margin:8px 0;color:#40566c;font-size:14px;min-height:20px;">Enter a course code already added in Manage Subjects.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:14px;">
+        <div><label for="facultySubjectTitleDisplay">Course title</label><input id="facultySubjectTitleDisplay" type="text" readonly aria-readonly="true" placeholder="Filled from Manage Subjects"></div>
+        <div><label for="facultyYearLevelDisplay">Year level</label><input id="facultyYearLevelDisplay" type="text" readonly aria-readonly="true" placeholder="Filled from subject catalog"></div>
+        <div><label for="facultySemesterDisplay">Semester</label><input id="facultySemesterDisplay" type="text" readonly aria-readonly="true" placeholder="Filled from subject catalog"></div>
+        <div><label for="facultyProgramDisplay">Program</label><input id="facultyProgramDisplay" type="text" readonly aria-readonly="true" placeholder="Filled from subject catalog"></div>
+        <div><label for="facultyMajorDisplay">Major</label><input id="facultyMajorDisplay" type="text" readonly aria-readonly="true" placeholder="No major specified"></div>
+        <div><label for="facultySubjectTypeDisplay">Subject type</label><input id="facultySubjectTypeDisplay" type="text" readonly aria-readonly="true" placeholder="Lec or Lab"></div>
+    </div>
+    <button type="submit" class="btn green" id="assignCatalogSubjectButton" disabled style="margin-top:16px;">Assign Subject to Faculty</button>
 </div>
-
-
-<div style="grid-column:1 / -1;">
-
-    <label>
-        Curriculum Course <span style="color:#777;font-weight:normal;">(Auto-selected)</span>
-    </label>
-
-    <select
-        name="curriculum_course_id"
-        id="curriculumCourseSelect"
-        style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;"
-    >
-        <option value="">Manual Entry</option>
-
-        @foreach(($curriculumCourses ?? collect()) as $course)
-
-            <option
-                value="{{ $course->id }}"
-                data-curriculum-id="{{ $course->curriculum_id }}"
-                data-course-code="{{ $course->course_code }}"
-                data-subject="{{ $course->subject }}"
-                data-year-level="{{ $course->year_level }}"
-                data-program="{{ $course->curriculum->program ?? '' }}"
-                data-major="{{ $course->curriculum->major ?? '' }}"
-                data-units="{{ $course->units }}"
-                data-semester="{{ $course->semester }}"
-                data-subject-type="{{ $course->subject_type ?? '' }}"
-                data-prerequisite="{{ $course->prerequisite ?? '' }}"
-            >
-                {{ $course->course_code }} — {{ $course->subject }} ({{ $course->year_level }}, {{ $course->semester }})
-            </option>
-
-        @endforeach
-
-    </select>
-
-    <small style="display:block;margin-top:6px;color:#667085;font-size:11px;">
-        Select an existing curriculum course to assign it to this faculty member.
-        Manual Entry creates a new course in the selected active curriculum and links it automatically.
-    </small>
-
-</div>
-
-
-<div>
-
-    <label>
-        Course Code
-    </label>
-
-    <input
-        type="text"
-        name="course_code"
-        id="facultyCourseCode"
-        placeholder="IT 111"
-        value="{{ old('course_code') }}"
-        required
-    >
-
-    <small
-        id="courseTypeHint"
-        style="
-            display:block;
-            margin-top:6px;
-            color:#777;
-            font-size:12px;
-        "
-    >
-    </small>
-
-</div>
-
-
-                                <div>
-
-                                    <label>
-                                        Course Description
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        name="subject"
-                                        placeholder="Database"
-                                        value="{{ old('subject') }}"
-                                        required
-                                    >
-
-                                </div>
-
-
-                                <div>
-
-                                    <label>
-                                        Year Level
-                                    </label>
-
-                                    <select
-                                        name="year_level"
-                                        required
-                                    >
-
-                                        <option value="">
-                                            Select
-                                        </option>
-
-                                        <option
-                                            value="1st Year"
-                                            {{ old('year_level') == '1st Year' ? 'selected' : '' }}
-                                        >
-                                            1st Year
-                                        </option>
-
-                                        <option
-                                            value="2nd Year"
-                                            {{ old('year_level') == '2nd Year' ? 'selected' : '' }}
-                                        >
-                                            2nd Year
-                                        </option>
-
-                                        <option
-                                            value="3rd Year"
-                                            {{ old('year_level') == '3rd Year' ? 'selected' : '' }}
-                                        >
-                                            3rd Year
-                                        </option>
-
-                                        <option
-                                            value="4th Year"
-                                            {{ old('year_level') == '4th Year' ? 'selected' : '' }}
-                                        >
-                                            4th Year
-                                        </option>
-
-                                    </select>
-
-                                </div>
-
-<div>
-
-    <label>
-        Units
-    </label>
-
-    <input
-        type="number"
-        name="units"
-        id="facultyUnits"
-        step="0.5"
-        min="0"
-        value="{{ old('units', 3) }}"
-        required
-    >
-
-</div>
-
-
-<div>
-
-    <label>
-        Semester
-    </label>
-
-    <select
-        name="semester"
-        id="facultySemester"
-        required
-    >
-        <option value="1st Semester" {{ old('semester', '1st Semester') == '1st Semester' ? 'selected' : '' }}>
-            1st Semester
-        </option>
-        <option value="2nd Semester" {{ old('semester') == '2nd Semester' ? 'selected' : '' }}>
-            2nd Semester
-        </option>
-    </select>
-
-</div>
-
-
-<div>
-
-    <label>
-    Major <span style="color:#777;font-weight:normal;">(Optional)</span>
-</label>
-
-<input
-    type="text"
-    name="major"
-    placeholder="Enter major if applicable"
-    value="{{ old('major') }}"
->
-
-</div>
-
-<div>
-
-    <label>
-        Program
-    </label>
-
-    <input
-        type="text"
-        name="program"
-        placeholder="BSIT"
-        value="{{ old('program') }}"
-        required
-    >
-
-</div>
-                                <button
-                                    type="submit"
-                                    class="btn green"
-                                >
-                                    Save Subject
-                                </button>
 
                             </form>
 
@@ -1399,32 +1174,6 @@
                             id="editSubjectForm"
                             method="POST"
                         >
-
-                            <label>Curriculum Course (Optional)</label>
-
-                            <select
-                                id="editCurriculumCourse"
-                                name="curriculum_course_id"
-                                style="width:100%;padding:10px;border:1px solid #ccc;border-radius:6px;"
-                            >
-                                <option value="">Manual Entry</option>
-                                @foreach(($curriculumCourses ?? collect()) as $course)
-                                    <option
-                                        value="{{ $course->id }}"
-                                        data-course-code="{{ $course->course_code }}"
-                                        data-subject="{{ $course->subject }}"
-                                        data-year-level="{{ $course->year_level }}"
-                                        data-program="{{ $course->curriculum->program ?? '' }}"
-                                        data-major="{{ $course->curriculum->major ?? '' }}"
-                                        data-units="{{ $course->units }}"
-                                        data-semester="{{ $course->semester }}"
-                                    >
-                                        {{ $course->course_code }} — {{ $course->subject }}
-                                    </option>
-                                @endforeach
-                            </select>
-
-                            <br><br>
 
                             @csrf
 
@@ -1496,33 +1245,9 @@
                             <br><br>
 
 
-                            <label>
-                                Year Level
-                            </label>
-
-                            <select
-                                id="editSubjectYear"
-                                name="year_level"
-                                required
-                            >
-
-                                <option value="1st Year">
-                                    1st Year
-                                </option>
-
-                                <option value="2nd Year">
-                                    2nd Year
-                                </option>
-
-                                <option value="3rd Year">
-                                    3rd Year
-                                </option>
-
-                                <option value="4th Year">
-                                    4th Year
-                                </option>
-
-                            </select>
+                            <label>Year Level</label>
+                            <input type="text" id="editSubjectYearDisplay" placeholder="Choose a subject" readonly>
+                            <input type="hidden" id="editSubjectYear" name="year_level" required>
 
 <br><br>
 
@@ -1590,148 +1315,13 @@
 
             <script>
 
-function fillFacultyCourse(option) {
-    if (!option || !option.value) return;
-
-    const code = option.dataset.courseCode || '';
-    const subject = option.dataset.subject || '';
-    const year = option.dataset.yearLevel || '';
-    const program = option.dataset.program || '';
-    const major = option.dataset.major || '';
-    const curriculumId = option.dataset.curriculumId || '';
-    const units = option.dataset.units || '';
-    const semester = option.dataset.semester || '';
-
-    const codeInput = document.getElementById('facultyCourseCode');
-    const subjectInput = document.querySelector('input[name="subject"]');
-    const yearInput = document.querySelector('select[name="year_level"]');
-    const programInput = document.querySelector('input[name="program"]');
-    const majorInput = document.querySelector('input[name="major"]');
-    const curriculumInput = document.getElementById('facultyCurriculumSelect');
-    const unitsInput = document.getElementById('facultyUnits');
-    const semesterInput = document.getElementById('facultySemester');
-    const searchInput = document.getElementById('facultyCourseSearch');
-    const status = document.getElementById('facultyCourseSearchStatus');
-
-    if (codeInput) codeInput.value = code;
-    if (subjectInput) subjectInput.value = subject;
-    if (yearInput) yearInput.value = year;
-    if (programInput) programInput.value = program;
-    if (majorInput) majorInput.value = major;
-    if (curriculumInput && curriculumId) curriculumInput.value = curriculumId;
-    if (unitsInput && units !== '') unitsInput.value = units;
-    if (semesterInput && semester !== '') semesterInput.value = semester;
-    if (searchInput) searchInput.value = code;
-
-    if (status) {
-        status.textContent = 'Course found: ' + code + ' — ' + subject;
-        status.style.color = '#2e7d32';
-    }
-
-    updateCourseTypeHint();
-}
-
-function updateCourseTypeHint() {
-    const input = document.getElementById('facultyCourseCode');
-    const hint = document.getElementById('courseTypeHint');
-    if (!input || !hint) return;
-
-    const code = input.value.trim().toUpperCase();
-    if (!code) {
-        hint.textContent = 'Enter course code';
-        hint.style.color = '#777';
-        return;
-    }
-
-    hint.textContent = code.includes('.') ? 'Subject Type: LAB' : 'Subject Type: LEC';
-    hint.style.color = code.includes('.') ? '#c62828' : '#2e7d32';
-}
-
-function findCourseByCode() {
-    const curriculumSelect = document.getElementById('facultyCurriculumSelect');
-    const courseSelect = document.getElementById('curriculumCourseSelect');
-    const searchInput = document.getElementById('facultyCourseSearch');
-    const status = document.getElementById('facultyCourseSearchStatus');
-
-    if (!curriculumSelect || !courseSelect || !searchInput) return;
-
-    const curriculumId = curriculumSelect.value;
-    const typedCode = searchInput.value.trim().toUpperCase();
-
-    if (!curriculumId) {
-        if (status) {
-            status.textContent = 'Select a curriculum first.';
-            status.style.color = '#c62828';
-        }
-        return;
-    }
-
-    if (!typedCode) {
-        courseSelect.value = '';
-        if (status) {
-            status.textContent = 'Type a course code such as IT 111.';
-            status.style.color = '#667085';
-        }
-        return;
-    }
-
-    let exact = null;
-
-    Array.from(courseSelect.options).forEach(option => {
-        if (!option.value) return;
-        const optionCurriculum = option.dataset.curriculumId || '';
-        const optionCode = (option.dataset.courseCode || '').trim().toUpperCase();
-
-        if (optionCurriculum === curriculumId && optionCode === typedCode) {
-            exact = option;
-        }
-    });
-
-    if (exact) {
-        courseSelect.value = exact.value;
-        fillFacultyCourse(exact);
-        return;
-    }
-
-    courseSelect.value = '';
-    const codeInput = document.getElementById('facultyCourseCode');
-    const subjectInput = document.querySelector('input[name="subject"]');
-    const yearInput = document.querySelector('select[name="year_level"]');
-    const unitsInput = document.getElementById('facultyUnits');
-    const semesterInput = document.getElementById('facultySemester');
-
-    if (codeInput) codeInput.value = typedCode;
-    if (subjectInput) subjectInput.value = '';
-    if (yearInput) yearInput.value = '';
-    if (unitsInput) unitsInput.value = '';
-    if (semesterInput) semesterInput.value = '';
-
-    if (status) {
-        status.textContent = 'No course with code ' + typedCode + ' was found in the selected curriculum.';
-        status.style.color = '#c62828';
-    }
-
-    updateCourseTypeHint();
-}
-
-function editSubject(id, courseCode, subject, yearLevel, major, program, curriculumCourseId) {
+function editSubject(id, courseCode, subject, yearLevel, major, program) {
     document.getElementById('editSubjectCode').value = courseCode || '';
     document.getElementById('editSubjectName').value = subject || '';
     document.getElementById('editSubjectYear').value = yearLevel || '';
+    document.getElementById('editSubjectYearDisplay').value = yearLevel || '';
     document.getElementById('editSubjectProgram').value = program || '';
     document.getElementById('editSubjectMajor').value = major || '';
-
-    const courseSelect = document.getElementById('editCurriculumCourse');
-    if (courseSelect) {
-        courseSelect.value = curriculumCourseId || '';
-        if (courseSelect.value) {
-            const option = courseSelect.options[courseSelect.selectedIndex];
-            const unitsInput = document.getElementById('editSubjectUnits');
-            const semesterInput = document.getElementById('editSubjectSemester');
-            if (unitsInput) unitsInput.value = option.dataset.units || 3;
-            if (semesterInput) semesterInput.value = option.dataset.semester || '1st Semester';
-        }
-    }
 
     document.getElementById('editSubjectForm').action = "{{ url('/chair/faculty/subjects') }}/" + id;
     document.getElementById('editSubjectModal').style.display = 'block';
@@ -1742,77 +1332,29 @@ function closeEditSubject() {
     if (modal) modal.style.display = 'none';
 }
 
+function setFacultyImportModal(open) {
+    const modal = document.getElementById('facultyImportModal');
+    if (!modal) return;
+    modal.classList.toggle('is-open', open);
+    modal.setAttribute('aria-hidden', open ? 'false' : 'true');
+    document.body.style.overflow = open ? 'hidden' : '';
+    if (open) document.getElementById('faculty_id')?.focus();
+}
+
+document.getElementById('openFacultyImportModal')?.addEventListener('click', () => setFacultyImportModal(true));
+document.getElementById('closeFacultyImportModal')?.addEventListener('click', () => setFacultyImportModal(false));
+document.getElementById('cancelFacultyImport')?.addEventListener('click', () => setFacultyImportModal(false));
+document.getElementById('facultyImportModal')?.addEventListener('click', event => {
+    if (event.target.id === 'facultyImportModal') setFacultyImportModal(false);
+});
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') setFacultyImportModal(false);
+});
+
 window.addEventListener('click', function(event) {
     const modal = document.getElementById('editSubjectModal');
     if (modal && event.target === modal) closeEditSubject();
 });
-
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('facultyCourseSearch');
-    const curriculumSelect = document.getElementById('facultyCurriculumSelect');
-    const courseSelect = document.getElementById('curriculumCourseSelect');
-    const codeInput = document.getElementById('facultyCourseCode');
-
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            findCourseByCode();
-        });
-
-        searchInput.addEventListener('blur', function() {
-            findCourseByCode();
-        });
-    }
-
-    if (curriculumSelect) {
-        curriculumSelect.addEventListener('change', function() {
-            const option = this.options[this.selectedIndex];
-            const programInput = document.querySelector('input[name="program"]');
-            const majorInput = document.querySelector('input[name="major"]');
-            const status = document.getElementById('facultyCourseSearchStatus');
-
-            if (programInput) programInput.value = option?.dataset.program || '';
-            if (majorInput) majorInput.value = option?.dataset.major || '';
-
-            if (searchInput) searchInput.value = '';
-            if (courseSelect) courseSelect.value = '';
-
-            if (status) {
-                status.textContent = this.value
-                    ? 'Curriculum selected. Enter a course code such as IT 111.'
-                    : 'Select a curriculum first.';
-                status.style.color = '#667085';
-            }
-        });
-    }
-
-    if (courseSelect) {
-        courseSelect.addEventListener('change', function() {
-            const option = this.options[this.selectedIndex];
-            if (option && option.value) fillFacultyCourse(option);
-        });
-    }
-
-    if (codeInput) {
-        codeInput.addEventListener('input', updateCourseTypeHint);
-    }
-
-    const editCurriculumCourse = document.getElementById('editCurriculumCourse');
-    if (editCurriculumCourse) {
-        editCurriculumCourse.addEventListener('change', function() {
-            const option = this.options[this.selectedIndex];
-            if (!option || !option.value) return;
-
-            document.getElementById('editSubjectCode').value = option.dataset.courseCode || '';
-            document.getElementById('editSubjectName').value = option.dataset.subject || '';
-            document.getElementById('editSubjectYear').value = option.dataset.yearLevel || '';
-            document.getElementById('editSubjectProgram').value = option.dataset.program || '';
-            document.getElementById('editSubjectMajor').value = option.dataset.major || '';
-            document.getElementById('editSubjectUnits').value = option.dataset.units || 3;
-            document.getElementById('editSubjectSemester').value = option.dataset.semester || '1st Semester';
-        });
-    }
-});
-
 
 // Display success/error/validation feedback as a centered modal instead of inline boxes.
 document.addEventListener('DOMContentLoaded', function () {
@@ -1840,6 +1382,103 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const codeInput = document.getElementById('facultyCourseCode');
+    const subjectId = document.getElementById('facultySubjectId');
+    const choiceWrap = document.getElementById('facultySubjectChoiceWrap');
+    const choice = document.getElementById('facultySubjectChoice');
+    const status = document.getElementById('facultyCourseSearchStatus');
+    const assignButton = document.getElementById('assignCatalogSubjectButton');
+    const fields = {
+        title: document.getElementById('facultySubjectTitleDisplay'),
+        year: document.getElementById('facultyYearLevelDisplay'),
+        semester: document.getElementById('facultySemesterDisplay'),
+        program: document.getElementById('facultyProgramDisplay'),
+        major: document.getElementById('facultyMajorDisplay'),
+        type: document.getElementById('facultySubjectTypeDisplay'),
+    };
+    if (!codeInput || !subjectId || !status) return;
+
+    let timer = null;
+    let matches = [];
+    const clearSelection = () => {
+        subjectId.value = '';
+        if (assignButton) assignButton.disabled = true;
+        Object.values(fields).forEach(field => { if (field) field.value = ''; });
+    };
+    const selectSubject = item => {
+        if (!item) return clearSelection();
+        subjectId.value = item.id;
+        fields.title.value = item.course_title || '';
+        fields.year.value = item.year_level || '';
+        fields.semester.value = item.semester || '';
+        fields.program.value = item.program || '';
+        fields.major.value = item.major || '—';
+        fields.type.value = item.subject_type || 'Lec';
+        assignButton.disabled = false;
+        status.textContent = 'Subject found. Confirm the details, then assign it to this faculty member.';
+        status.style.color = '#216b36';
+    };
+    const resetChoice = () => {
+        choiceWrap.hidden = true;
+        choice.replaceChildren(new Option('Choose a year level', ''));
+        matches = [];
+    };
+
+    codeInput.addEventListener('input', () => {
+        window.clearTimeout(timer);
+        clearSelection();
+        resetChoice();
+        const code = codeInput.value.trim();
+        if (!code) {
+            status.textContent = 'Enter a course code already added in Manage Subjects.';
+            status.style.color = '#40566c';
+            return;
+        }
+        status.textContent = 'Looking up this course code…';
+        status.style.color = '#40566c';
+        timer = window.setTimeout(async () => {
+            try {
+                const url = new URL(@json(route('chair.subjects.lookup')), window.location.origin);
+                url.searchParams.set('course_code', code);
+                const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                if (!response.ok) throw new Error('lookup failed');
+                const data = await response.json();
+                matches = data.subjects || [];
+                if (!matches.length) {
+                    status.textContent = 'No matching subject was found. Add it in Manage Subjects first.';
+                    status.style.color = '#9b2c2c';
+                    return;
+                }
+                if (matches.length === 1) {
+                    selectSubject(matches[0]);
+                    return;
+                }
+                const yearLevels = [...new Set(matches.map(item => item.year_level))];
+                const semesters = [...new Set(matches.map(item => item.semester).filter(Boolean))];
+                status.textContent = yearLevels.length > 1 || semesters.length > 1
+                    ? 'This course code appears in more than one year level or semester. Choose the correct year, semester, and program below.'
+                    : 'More than one program or major uses this course code. Choose the correct entry below.';
+                status.style.color = '#8a5a13';
+                choice.replaceChildren(new Option('Choose the correct subject', ''));
+                matches.forEach(item => {
+                    const details = [item.year_level, item.semester, item.program, item.major ? `Major: ${item.major}` : 'No major'];
+                    choice.add(new Option(details.join(' · '), String(item.id)));
+                });
+                choiceWrap.hidden = false;
+            } catch (error) {
+                status.textContent = 'Could not check the course code. Please try again.';
+                status.style.color = '#9b2c2c';
+            }
+        }, 250);
+    });
+
+    choice?.addEventListener('change', () => {
+        selectSubject(matches.find(item => String(item.id) === choice.value));
+    });
+});
+</script>
         </main>
 
     </div>

@@ -11,14 +11,11 @@ class ExpireReservations extends Command
     protected $signature = 'reservations:expire';
 
     protected $description =
-        'Automatically expire approved room reservations after their end time';
+        'Automatically expire reserved room bookings after their end time';
 
     public function handle()
     {
-        $reservations = Reservation::where(
-            'status',
-            'Approved'
-        )
+        $reservations = Reservation::whereIn('status', ['Reserved', 'Approved'])
         ->whereNotNull('date')
         ->whereNotNull('end_time')
         ->get();
@@ -33,9 +30,11 @@ class ExpireReservations extends Command
             |--------------------------------------------------------------------------
             */
 
-            $date = Carbon::parse(
-                $reservation->date
-            )->format('Y-m-d');
+            try {
+                $date = Carbon::parse($reservation->date)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                continue;
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -60,9 +59,11 @@ class ExpireReservations extends Command
             |--------------------------------------------------------------------------
             */
 
-            $expiration = Carbon::parse(
-                $date . ' ' . $endTime
-            );
+            try {
+                $expiration = Carbon::parse($date . ' ' . $endTime);
+            } catch (\Throwable $e) {
+                continue;
+            }
 
             /*
             |--------------------------------------------------------------------------

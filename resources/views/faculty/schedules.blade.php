@@ -971,6 +971,22 @@
     font-weight: 600;
 }
 
+.schedule-override-notice {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 8px 9px;
+    border: 1px solid #d3a749;
+    border-radius: 8px;
+    background: #fff6df;
+    color: #513b12;
+    font-size: 12px;
+    line-height: 1.4;
+}
+.schedule-override-notice strong { color: #533c11; font-size: 12px; }
+.schedule-override-notice span { font-size: 12px; }
+
 .temporary-reservation-entry {
     width: 100%;
     min-height: 68px;
@@ -1293,6 +1309,24 @@
                     .department-list { grid-template-columns: 1fr; gap: 10px; }
                     .department-button { min-height: 116px; }
                 }
+
+                .shared-reservation-entry { display:flex; flex-direction:column; align-items:flex-start; width:100%; min-height:90px; padding:9px; border:1px solid #ead9ad; border-radius:9px; background:#fff8e8; color:#344054; text-align:left; cursor:pointer; }
+                .shared-reservation-entry:hover { border-color:#d5b66e; background:#fff4d8; box-shadow:0 4px 12px rgba(117,83,12,.09); }
+                .shared-reservation-entry .reservation-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 6px; border-radius:999px; background:#fff0c7; color:#8a5a00; font-size:8px; font-weight:850; }
+                .shared-reservation-entry .reservation-course { margin-top:6px; color:#71500e; font-size:10px; font-weight:850; line-height:1.3; }
+                .shared-reservation-entry .reservation-purpose,.shared-reservation-entry .reservation-requester { margin-top:4px; color:#6c6656; font-size:9px; }
+                .shared-reservation-entry .reservation-expiration { margin-top:auto; padding-top:6px; color:#8a5a00; font-size:8px; font-weight:750; }
+                .room-reservation-details-overlay { position:fixed; inset:0; z-index:100000; display:grid; place-items:center; padding:18px; background:rgba(17,39,27,.5); backdrop-filter:blur(3px); }
+                .room-reservation-details-dialog { width:min(520px,100%); max-height:85vh; overflow:auto; border:1px solid #dce7df; border-radius:17px; background:#fff; box-shadow:0 24px 70px rgba(0,0,0,.22); }
+                .room-reservation-details-dialog header { display:flex; justify-content:space-between; gap:15px; align-items:flex-start; padding:18px 20px; border-bottom:1px solid #e7eee9; background:#f7faf8; }
+                .room-reservation-details-dialog header span { color:#56816a; font-size:9px; font-weight:800; letter-spacing:.12em; }
+                .room-reservation-details-dialog h2 { margin:5px 0 0; color:#193e2d; font-size:17px; }
+                .room-reservation-details-dialog header button { width:32px; height:32px; border:1px solid #e1e9e3; border-radius:9px; background:#fff; color:#66756d; font-size:22px; cursor:pointer; }
+                .room-reservation-details-list { display:grid; gap:9px; padding:16px 20px 20px; }
+                .room-reservation-detail-card { padding:12px; border:1px solid #e4ebe6; border-radius:11px; background:#fbfdfb; }
+                .room-reservation-detail-card > div { display:flex; justify-content:space-between; gap:12px; color:#315b41; font-size:11px; }
+                .room-reservation-detail-card p { margin:8px 0 3px; color:#34483a; font-size:12px; font-weight:750; }
+                .room-reservation-detail-card small { color:#748178; font-size:10px; }
 
             </style>
 
@@ -1691,6 +1725,7 @@
           <script>
 
 let reservationExpiryTimer = null;
+let roomSwapTransitionTimer = null;
 
 
 /* =========================================================
@@ -1794,6 +1829,11 @@ function loadRoomSchedule(
     roomName,
     buildingName
 ) {
+
+    if (roomSwapTransitionTimer) {
+        clearTimeout(roomSwapTransitionTimer);
+        roomSwapTransitionTimer = null;
+    }
 
     document
         .querySelectorAll('.room-card')
@@ -1980,6 +2020,13 @@ function loadRoomSchedule(
                 buildingName
             );
 
+            scheduleRoomSwapTransition(
+                data.schedules || [],
+                roomId,
+                roomName,
+                buildingName
+            );
+
             setTimeout(
                 function()
                 {
@@ -2107,16 +2154,13 @@ function scheduleReservationExpiry(
 
                 }
 
-                const expiration =
-                    new Date();
-
-                expiration.setHours(
-                    Number(endParts[0]),
-                    Number(endParts[1]),
-                    endParts[2]
-                        ? Number(endParts[2])
-                        : 0,
-                    0
+                const reservationDate = String(reservation.date || '');
+                if (!reservationDate) return null;
+                const expiration = new Date(
+                    reservationDate + 'T' +
+                    String(endParts[0]).padStart(2, '0') + ':' +
+                    String(endParts[1]).padStart(2, '0') + ':' +
+                    String(endParts[2] || 0).padStart(2, '0')
                 );
 
                 return expiration;
@@ -2161,8 +2205,36 @@ function scheduleReservationExpiry(
                 );
 
             },
-            millisecondsUntilExpiry + 1000
+            Math.min(millisecondsUntilExpiry + 1000, 2147480000)
         );
+}
+
+function scheduleRoomSwapTransition(schedules, roomId, roomName, buildingName)
+{
+    if (roomSwapTransitionTimer) {
+        clearTimeout(roomSwapTransitionTimer);
+        roomSwapTransitionTimer = null;
+    }
+
+    const now = Date.now();
+    const transitionTimes = (schedules || [])
+        .map(function(schedule) {
+            const swap = schedule.room_swap;
+            if (!swap) return [];
+            return [swap.start_at, swap.end_at]
+                .map(value => value ? new Date(value).getTime() : NaN)
+                .filter(value => Number.isFinite(value) && value > now);
+        })
+        .flat()
+        .sort((a, b) => a - b);
+
+    if (!transitionTimes.length) return;
+
+    const delay = Math.min(transitionTimes[0] - now + 250, 2147480000);
+    roomSwapTransitionTimer = window.setTimeout(function() {
+        const activeRoom = document.querySelector('.room-card.active');
+        loadRoomSchedule(roomId, activeRoom, roomName, buildingName);
+    }, Math.max(delay, 250));
 }
 
 
@@ -2269,8 +2341,7 @@ function buildFacultyScheduleGroup(items)
 
         if (
             currentReservation &&
-            currentReservation.reservation &&
-            !currentSchedule
+            currentReservation.length > 0
         ) {
 
             html +=
@@ -2376,7 +2447,7 @@ function buildFacultyScheduleGroup(items)
 
             if (
                 next.reservation &&
-                next.reservation.reservation
+                next.reservation.length > 0
             ) {
 
                 break;
@@ -2538,23 +2609,15 @@ function renderSchedule(
 
     const defaultTimes = [
 
-        '8:00-9:00',
-
-        '9:00-10:00',
-
+        '08:00-09:00',
+        '09:00-10:00',
         '10:00-11:00',
-
         '11:00-12:00',
-
-    
-
-        '1:00-2:00',
-
-        '2:00-3:00',
-
-        '3:00-4:00',
-
-        '4:00-5:00'
+        '12:00-13:00',
+        '13:00-14:00',
+        '14:00-15:00',
+        '15:00-16:00',
+        '16:00-17:00'
 
     ];
 
@@ -2592,17 +2655,12 @@ function renderSchedule(
 
             SAT: null,
 
-            MON_RESERVATION: null,
-
-            WED_RESERVATION: null,
-
-            FRI_RESERVATION: null,
-
-            TUE_RESERVATION: null,
-
-            THU_RESERVATION: null,
-
-            SAT_RESERVATION: null
+            MON_RESERVATION: [],
+            WED_RESERVATION: [],
+            FRI_RESERVATION: [],
+            TUE_RESERVATION: [],
+            THU_RESERVATION: [],
+            SAT_RESERVATION: []
 
         };
 
@@ -2868,16 +2926,6 @@ function renderSchedule(
 
             }
 
-            const reservationTarget = {
-
-                reservation:
-                    reservation,
-
-                start:
-                    reservationStart
-
-            };
-
             const dayKeyMap = {
 
                 MON:
@@ -2900,8 +2948,8 @@ function renderSchedule(
 
             };
 
-            const reservationKey =
-                dayKeyMap[day];
+            const normalizedDay = day.slice(0, 3);
+            const reservationKey = dayKeyMap[normalizedDay];
 
             if (!reservationKey) {
 
@@ -2909,32 +2957,21 @@ function renderSchedule(
 
             }
 
-            let reservationPosition =
-                -1;
+            // Match by the actual reservation time first. Room-specific slot
+            // rows may use a default row_position of 0, which would otherwise
+            // place every booking in the first row.
+            let reservationPosition = defaultTimes.findIndex(function(slot) {
+                return normalizeScheduleStartTime(slot) === reservationStart;
+            });
 
-            for (
-                let position = 0;
-                position < defaultTimes.length;
-                position++
-            ) {
-
-                const defaultStart =
-                    normalizeScheduleStartTime(
-                        defaultTimes[position]
-                    );
-
-                if (
-                    defaultStart ===
-                    reservationStart
-                ) {
-
-                    reservationPosition =
-                        position;
-
-                    break;
-
+            if (reservationPosition < 0) {
+                const suppliedPosition = reservation.row_position;
+                const parsedPosition = suppliedPosition === null || suppliedPosition === ''
+                    ? NaN
+                    : Number(suppliedPosition);
+                if (Number.isInteger(parsedPosition) && parsedPosition >= 0 && parsedPosition < defaultTimes.length) {
+                    reservationPosition = parsedPosition;
                 }
-
             }
 
             if (
@@ -2945,12 +2982,7 @@ function renderSchedule(
 
             }
 
-            rows[
-                reservationPosition
-            ][
-                reservationKey
-            ] =
-                reservationTarget;
+            rows[reservationPosition][reservationKey].push(reservation);
 
             rows[
                 reservationPosition
@@ -3031,7 +3063,7 @@ function renderSchedule(
         */
 
         if (
-            position === 4
+            position === 5
         ) {
 
             html += `
@@ -3222,88 +3254,82 @@ function normalizeScheduleStartTime(value)
    BUILD RESERVATION CELL
 ========================================================= */
 
-function buildReservationCell(
-    reservation
-)
+function buildReservationCell(reservations)
 {
-    const badge =
-        'Temporary Reservation';
-
-    const requester =
-        reservation.user_name ||
-        reservation.requested_by ||
-        'Faculty';
-
-    const purpose =
-        reservation.purpose ||
-        'Room Reservation';
-
-    const time =
-        reservation.time ||
-        (
-            (reservation.start_time || '') +
-            ' - ' +
-            (reservation.end_time || '')
-        );
+    const faculty = Array.from(new Set(reservations.map(item => item.user_id || item.user_name || 'Faculty')));
+    // Keep JSON safe inside the generated HTML attribute. Text escaping does
+    // not escape quotes for an attribute, while URI encoding does.
+    const encoded = encodeURIComponent(JSON.stringify(reservations));
+    const countLabel = faculty.length === 1 ? '1 faculty member' : faculty.length + ' faculty members';
+    const dateLabel = reservations.length === 1 && reservations[0].date
+        ? new Date(reservations[0].date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
+        : reservations.length + ' reserved dates';
 
     return `
-
-        <td>
-
-            <div class="temporary-reservation-entry">
-
-                <div class="reservation-badge">
-
-                    <i class="fa-solid fa-calendar-check"></i>
-
-                    ${escapeHtml(
-                        badge
-                    )}
-
-                </div>
-
-                <div class="reservation-course">
-
-                    ${escapeHtml(
-                        purpose
-                    )}
-
-                </div>
-
-                <div class="reservation-purpose">
-
-                    Reserved:
-                    ${escapeHtml(
-                        requester
-                    )}
-
-                </div>
-
-                <div class="reservation-requester">
-
-                    ${escapeHtml(
-                        time
-                    )}
-
-                </div>
-
-                <div class="reservation-expiration">
-
-                    <i class="fa-solid fa-hourglass-half"></i>
-
-                    Temporary until
-                    ${escapeHtml(
-                        reservation.end_time || ''
-                    )}
-
-                </div>
-
-            </div>
-
+        <td class="shared-reservation-cell">
+            <button type="button" class="temporary-reservation-entry shared-reservation-entry"
+                data-reservations="${encoded}"
+                aria-label="View ${reservations.length} room reservation${reservations.length === 1 ? '' : 's'}">
+                <span class="reservation-badge"><i class="fa-solid fa-calendar-check"></i> Room Reserved</span>
+                <span class="reservation-course">Reserved by ${countLabel}</span>
+                <span class="reservation-purpose">${escapeHtml(dateLabel || 'View reserved dates')}</span>
+                <span class="reservation-requester">${escapeHtml(reservations[0].start_time || '')} - ${escapeHtml(reservations[0].end_time || '')}</span>
+                <span class="reservation-expiration"><i class="fa-solid fa-arrow-up-right-from-square"></i> View details</span>
+            </button>
         </td>
-
     `;
 }
+
+window.openRoomReservationDetails = function(button)
+{
+    let reservations = [];
+    try {
+        reservations = JSON.parse(decodeURIComponent(button.dataset.reservations || ''));
+    } catch (error) {
+        console.error('Could not read the room reservation details.', error);
+        return;
+    }
+    const items = reservations.map(item => {
+        const date = item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'}) : 'Date unavailable';
+        const purpose = item.course_code ? item.course_code + (item.subject ? ' — ' + item.subject : '') : (item.purpose || 'Room reservation');
+        return `<article class="room-reservation-detail-card"><div><strong>${escapeHtml(date)}</strong><span>${escapeHtml(item.start_time || '')} – ${escapeHtml(item.end_time || '')}</span></div><p>${escapeHtml(item.user_name || 'Faculty')}</p><small>${escapeHtml(purpose)}</small></article>`;
+    }).join('');
+
+    let modal = document.getElementById('roomReservationDetailsModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'roomReservationDetailsModal';
+        modal.className = 'room-reservation-details-overlay';
+        modal.innerHTML = `<section class="room-reservation-details-dialog" role="dialog" aria-modal="true" aria-labelledby="roomReservationDetailsTitle"><header><div><span>ROOM RESERVATIONS</span><h2 id="roomReservationDetailsTitle">Reserved dates and faculty</h2></div><button type="button" data-close-room-reservation-details aria-label="Close">×</button></header><div class="room-reservation-details-list"></div></section>`;
+        document.body.appendChild(modal);
+    }
+    modal.querySelector('.room-reservation-details-list').innerHTML = items || '<p>No active reservations.</p>';
+}
+
+// Reservation cells are created dynamically after the room schedule loads.
+// Delegate clicks from the document so the details action remains active on
+// dynamically inserted cells and their child elements.
+document.addEventListener('click', function(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+
+    const closeButton = target.closest('[data-close-room-reservation-details]');
+    if (closeButton) {
+        document.getElementById('roomReservationDetailsModal')?.remove();
+        return;
+    }
+
+    const overlay = target.closest('#roomReservationDetailsModal');
+    if (overlay && target === overlay) {
+        overlay.remove();
+        return;
+    }
+
+    const reservationButton = target.closest('.shared-reservation-entry');
+    if (reservationButton) {
+        window.openRoomReservationDetails(reservationButton);
+    }
+});
 
 
 /* =========================================================
@@ -3344,14 +3370,12 @@ function buildScheduleCell(
     |--------------------------------------------------------------------------
     */
 
-    if (
-        reservation &&
-        reservation.reservation &&
-        !scheduleOccupied
-    ) {
+    // A dated room reservation takes precedence for the selected timeslot.
+    // The weekly schedule reappears after the reservation expires.
+    if (Array.isArray(reservation) && reservation.length > 0) {
 
         return buildReservationCell(
-            reservation.reservation
+            reservation
         );
 
     }
@@ -3542,11 +3566,38 @@ function buildScheduleCell(
     |--------------------------------------------------------------------------
     */
 
+    let scheduleOverrideHtml = '';
+
+    if (Array.isArray(schedule.schedule_overrides) && schedule.schedule_overrides.length) {
+        if (!window.scheduleOverrideRefreshTimer) {
+            const now = new Date();
+            const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 2);
+            window.scheduleOverrideRefreshTimer = window.setTimeout(function () {
+                window.location.reload();
+            }, Math.min(nextMidnight.getTime() - now.getTime(), 2147480000));
+        }
+        scheduleOverrideHtml = schedule.schedule_overrides.map(function (override) {
+            const date = override.date
+                ? new Date(override.date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'})
+                : 'Scheduled date';
+            const title = override.state === 'today' ? 'Occupied today' : 'Schedule override';
+            return `
+                <div class="schedule-override-notice" role="status">
+                    <strong><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> ${escapeHtml(title)}</strong>
+                    <span>Date: ${escapeHtml(date)}</span>
+                    <span>Occupant: ${escapeHtml(override.occupied_by || 'Administrator')}</span>
+                    ${override.reason ? `<span>Reason: ${escapeHtml(override.reason)}</span>` : ''}
+                    <span>Your regular schedule returns after this day.</span>
+                </div>
+            `;
+        }).join('');
+    }
+
     let roomSwapHtml = '';
 
     if (
         schedule.room_swap &&
-        schedule.room_swap.active
+        (schedule.room_swap.active || schedule.room_swap.scheduled)
     ) {
 
         const originalRoom =
@@ -3561,13 +3612,19 @@ function buildScheduleCell(
             schedule.room_swap.end_time ||
             '';
 
+        const swapDate = schedule.room_swap.swap_date
+            ? new Date(schedule.room_swap.swap_date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
+            : 'Scheduled date';
+
+        const swapState = schedule.room_swap.active ? 'Room Swap Active' : 'Room Swap Scheduled';
+
         roomSwapHtml = `
 
             <div class="room-swap-badge">
 
                 <i class="fa-solid fa-right-left"></i>
 
-                Room Swap Active
+                ${escapeHtml(swapState)}
 
             </div>
 
@@ -3583,6 +3640,13 @@ function buildScheduleCell(
                       `
                     : ''
             }
+
+            <div class="room-swap-details">
+
+                Date:
+                ${escapeHtml(swapDate)}
+
+            </div>
 
             <div class="room-swap-details">
 
@@ -3661,6 +3725,8 @@ function buildScheduleCell(
                 ${programHtml}
 
                 ${majorHtml}
+
+                ${scheduleOverrideHtml}
 
                 ${roomSwapHtml}
 

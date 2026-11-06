@@ -22,33 +22,189 @@
 
 
 <style>
-.schedule-cell.reserved-cell{background:#fff7ed!important;border:2px solid #f59e0b!important;cursor:not-allowed!important;position:relative}
-.reservation-cell-label{display:inline-block;margin-top:6px;padding:3px 7px;border-radius:999px;background:#f59e0b;color:#fff;font-size:9px;font-weight:800;letter-spacing:.3px}
-.reservation-cell-user{margin-top:4px;color:#92400e;font-size:10px;font-weight:800}
-.reservation-cell-time{margin-top:2px;color:#92400e;font-size:9px;font-weight:700}
-.reservation-cell-note{margin-top:4px;color:#92400e;font-size:9px;line-height:1.25}
-.schedule-cell.merged-schedule-cell{vertical-align:middle;text-align:center;}
-.schedule-cell.merged-schedule-cell .cell-course{font-size:13px;font-weight:800;}
-.add-time-before-break-row td{
-        padding:8px 10px;
-        background:#f8fafc;
-        border-top:1px dashed #cbd5e1;
-        border-bottom:1px dashed #cbd5e1;
-        text-align:center !important;
-        vertical-align:middle;
-    }
-
-    .add-time-before-break-row .btn{
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        margin:0 auto;
-    }
+/* Claymorphism: soft pastel surfaces, rounded edges and raised depth. */
+:root {
+    --clay-ink:#1d2b40;
+    --clay-text:#344963;
+    --clay-muted:#526780;
+    --clay-blue:#426aa6;
+    --clay-blue-deep:#34588f;
+    --clay-border:#d5deeb;
+    --clay-base:#eaf0f8;
+    --clay-raised:7px 7px 15px #cbd4e1,-7px -7px 15px #ffffff,inset 1px 1px 0 rgba(255,255,255,.92);
+    --clay-inset:inset 4px 4px 9px #d7dfeb,inset -4px -4px 9px #ffffff;
+}
+.chair-excel-clay {
+    min-height:100vh;
+    background:#e9eef6 !important;
+    color:var(--clay-ink) !important;
+    font-size:16px;
+    line-height:1.55;
+}
+.chair-excel-clay * { box-sizing:border-box; }
+.chair-excel-clay .page { width:min(100%,1680px); max-width:1680px; padding:22px clamp(14px,2vw,30px) 42px; }
+.chair-excel-clay .top-bar { margin:0 0 18px; }
+.chair-excel-clay .back-link {
+    display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:10px 17px;
+    border:1px solid #d5deeb; border-radius:15px; background:linear-gradient(145deg,#f3f6fc,#e6ecf5);
+    color:#34516f; font-size:15px; font-weight:750; text-decoration:none;
+    box-shadow:var(--clay-raised); transition:transform .18s ease,box-shadow .18s ease,color .18s ease;
+}
+.chair-excel-clay .back-link:hover { transform:translateY(-2px); color:#244c80; box-shadow:9px 9px 18px #cbd4e1,-8px -8px 17px #fff; }
+.chair-excel-clay .program-header,
+.chair-excel-clay .editor-panel,
+.chair-excel-clay .merge-section {
+    color:var(--clay-ink) !important;
+    border:1px solid var(--clay-border) !important;
+    border-radius:24px !important;
+    background:linear-gradient(145deg,#f1f5fc,#e5ebf5) !important;
+    box-shadow:10px 10px 22px #cbd4e1,-9px -9px 22px #fff,inset 1px 1px 0 rgba(255,255,255,.95) !important;
+}
+.chair-excel-clay .program-header { grid-template-columns:minmax(230px,1fr) auto; gap:20px 26px; padding:clamp(22px,3vw,34px); margin:0 0 23px; }
+.chair-excel-clay .program-title { color:#1d2b40 !important; font-size:clamp(32px,3vw,42px) !important; font-weight:900; line-height:1.15; letter-spacing:-.035em; }
+.chair-excel-clay .program-header > div:first-child > div[style] {
+    display:inline-flex; align-items:center; margin-top:12px !important; padding:8px 13px; border:1px solid #cbd8ea; border-radius:12px;
+    background:#e4ebf6; color:#345986 !important; font-size:15px !important; font-weight:800 !important; box-shadow:var(--clay-inset);
+}
+.chair-excel-clay .schedule-information { display:flex; gap:12px; padding:12px; border:1px solid #d6dfec; border-radius:18px; background:#e8edf6; box-shadow:var(--clay-inset); }
+.chair-excel-clay .schedule-info-field { min-width:155px; }
+.chair-excel-clay .schedule-info-field label,
+.chair-excel-clay .form-group label,
+.chair-excel-clay .program-popup-card label { display:block; margin:0 0 7px; color:#344963 !important; font-size:15px !important; font-weight:750 !important; line-height:1.4; letter-spacing:0; text-transform:none; }
+.chair-excel-clay .schedule-info-field input,
+.chair-excel-clay .schedule-info-field select { width:100%; min-height:46px; padding:9px 12px; border:1px solid #cfdae9; border-radius:12px; background:#edf2f9; color:#293f59; font-size:15px; box-shadow:var(--clay-inset); }
+.chair-excel-clay .draft-mode { grid-column:1/-1; width:max-content; max-width:100%; padding:9px 14px; border:1px solid #e2cda1; border-radius:12px; background:#f7edd7; color:#684e1d; font-size:14px; font-weight:850; box-shadow:5px 5px 12px #d4d9df,-5px -5px 12px #fff; }
+.chair-excel-clay .program-meta { grid-column:1/-1; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0; padding:0; background:transparent; border:0; box-shadow:none; }
+.chair-excel-clay .meta-item { min-width:0; min-height:76px; padding:14px 16px; border:1px solid #d6dfec; border-radius:17px; background:linear-gradient(145deg,#eef3fb,#e5ebf5); color:#2e435d; font-size:15px; line-height:1.5; overflow-wrap:anywhere; box-shadow:6px 6px 13px #d0d8e4,-6px -6px 13px #fff,inset 1px 1px 0 #fff; }
+.chair-excel-clay .meta-item strong { display:block; margin-bottom:4px; color:#506987; font-size:13px; font-weight:850; letter-spacing:.03em; text-transform:uppercase; }
+.chair-excel-clay .meta-item:hover { background:#f3f6fc; }
+.chair-excel-clay .editor-panel,.chair-excel-clay .merge-section { padding:clamp(18px,2.2vw,27px); }
+.chair-excel-clay .editor-title,.chair-excel-clay .merge-title { color:#1d2b40 !important; font-size:23px !important; font-weight:850; line-height:1.35; }
+.chair-excel-clay .editor-title::before { width:7px; height:28px; border-radius:999px; background:linear-gradient(180deg,#6b91ca,#8c7ec0); }
+.chair-excel-clay .editor-subtitle,.chair-excel-clay .merge-description { margin-top:9px; color:#526780 !important; font-size:16px !important; line-height:1.65; }
+.chair-excel-clay .form-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; align-items:end; }
+.chair-excel-clay .form-group { min-width:0; }
+.chair-excel-clay input:not([type="color"]),
+.chair-excel-clay select,
+.chair-excel-clay textarea,
+.chair-excel-clay .search-box,
+.chair-excel-clay .program-popup-card select {
+    width:100%; min-height:48px; padding:10px 13px; border:1px solid #cdd8e8 !important; border-radius:13px !important;
+    background:#eaf0f8 !important; color:#243952 !important; font-size:16px !important;
+    box-shadow:inset 4px 4px 8px #d7dfeb,inset -4px -4px 8px #fff !important;
+}
+.chair-excel-clay input::placeholder,.chair-excel-clay textarea::placeholder { color:#667991 !important; opacity:1; }
+.chair-excel-clay input:focus,.chair-excel-clay select:focus,.chair-excel-clay textarea:focus,
+.chair-excel-clay .program-popup-card select:focus { outline:3px solid rgba(66,106,166,.22); outline-offset:1px; border-color:#7895bd !important; }
+.chair-excel-clay select option { background:#fff; color:#243952; }
+.chair-excel-clay input[readonly] { color:#465d79 !important; }
+.chair-excel-clay .lookup-status,.chair-excel-clay .instruction { margin-top:16px; padding:15px 17px; border:1px solid #d5deeb; border-radius:16px; background:#e9eff8; color:#3c526c; font-size:15px; line-height:1.65; box-shadow:var(--clay-inset); }
+.chair-excel-clay .instruction strong { color:#243952; }
+.chair-excel-clay .lookup-success { background:#e6f2e9; color:#25593c; border-color:#c2ddca; }
+.chair-excel-clay .lookup-error { background:#f9e9e8; color:#842f34; border-color:#e8c4c1; }
+.chair-excel-clay .lookup-warning { background:#f8f0dc; color:#6e531c; border-color:#e8d8aa; }
+.chair-excel-clay .cell-controls { display:flex; align-items:end; gap:12px; flex-wrap:wrap; margin-top:18px; padding:17px; border:1px solid #d5deeb; border-radius:19px; background:#e6ecf5; box-shadow:var(--clay-inset); }
+.chair-excel-clay .color-group { color:#344963; font-size:15px; font-weight:750; }
+.chair-excel-clay input[type="color"] { width:54px; height:46px; padding:4px; border:1px solid #cdd8e8; border-radius:13px; background:#eaf0f8; box-shadow:5px 5px 10px #cbd4e1,-5px -5px 10px #fff; cursor:pointer; }
+.chair-excel-clay .btn,
+.chair-excel-clay .merge-class-toggle-btn,
+.chair-excel-clay .editor-actions .btn {
+    min-height:46px; padding:10px 16px; border-radius:14px; font-size:15px !important; font-weight:800;
+    box-shadow:6px 6px 12px #cbd4e1,-6px -6px 12px #fff,inset 1px 1px 0 rgba(255,255,255,.45) !important;
+    transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+}
+.chair-excel-clay .btn:hover,.chair-excel-clay .merge-class-toggle-btn:hover { transform:translateY(-2px); filter:brightness(1.025); box-shadow:8px 8px 15px #c6cfdd,-7px -7px 14px #fff !important; }
+.chair-excel-clay .btn:active,.chair-excel-clay .merge-class-toggle-btn:active { transform:translateY(0); box-shadow:var(--clay-inset) !important; }
+.chair-excel-clay .btn:focus-visible,.chair-excel-clay button:focus-visible,.chair-excel-clay a:focus-visible { outline:3px solid rgba(66,106,166,.32); outline-offset:3px; }
+.chair-excel-clay .btn-green { border:1px solid #3c629c !important; background:#426aa6 !important; color:#fff !important; }
+.chair-excel-clay .btn-green:hover { background:#34588f !important; color:#fff !important; }
+.chair-excel-clay .btn-yellow { border:1px solid #dfc98f !important; background:#f2e5c5 !important; color:#624b1d !important; }
+.chair-excel-clay .btn-red { border:1px solid #e2bfc1 !important; background:#f2dfe2 !important; color:#78383e !important; }
+.chair-excel-clay .btn-gray { border:1px solid #d1dbe8 !important; background:#e8edf5 !important; color:#354d68 !important; }
+.chair-excel-clay .merge-class-toggle-btn { border:1px solid #cbd8eb !important; background:#e5ebf6 !important; color:#345986 !important; cursor:pointer; }
+.chair-excel-clay .merge-section { margin-top:21px; }
+.chair-excel-clay .merge-title { font-size:22px !important; }
+.chair-excel-clay .merge-search-row { gap:12px; }
+.chair-excel-clay .table-wrapper { position:relative; margin-top:20px; overflow:auto; border:1px solid #d0d9e7; border-radius:22px; background:#e7edf6; box-shadow:10px 10px 21px #cbd4e1,-9px -9px 20px #fff,inset 1px 1px 0 rgba(255,255,255,.9); scrollbar-color:#aebbd0 #e7edf6; }
+.chair-excel-clay .table-wrapper::-webkit-scrollbar-track { background:#e5ebf4; }
+.chair-excel-clay .table-wrapper::-webkit-scrollbar-thumb { background:#aebbd0; border:2px solid #e5ebf4; border-radius:99px; }
+.chair-excel-clay #scheduleTable { width:100%; min-width:1300px; border-collapse:separate; border-spacing:4px 5px; table-layout:fixed; color:#243952; }
+.chair-excel-clay #scheduleTable th,.chair-excel-clay #scheduleTable td { border:0 !important; }
+.chair-excel-clay #scheduleTable thead th { position:sticky; top:0; z-index:5; height:54px; padding:10px 8px; border:1px solid #d2dced !important; border-radius:14px; background:linear-gradient(145deg,#e4ebf7,#dce5f3) !important; color:#2d4c73 !important; text-align:center; font-size:14px !important; font-weight:850; letter-spacing:.045em; box-shadow:5px 5px 10px #cbd4e1,-5px -5px 10px #fff,inset 1px 1px 0 #fff; }
+.chair-excel-clay #scheduleTable thead th:first-child,.chair-excel-clay #scheduleTable thead th.time-header { width:120px; }
+.chair-excel-clay #scheduleTable tbody td { border-radius:13px; }
+.chair-excel-clay .time-cell { min-height:82px; height:82px; padding:9px 7px; border:1px solid #d5deeb !important; background:#e8edf5 !important; color:#344963 !important; text-align:center; vertical-align:middle; font-size:14px !important; font-weight:800; line-height:1.45; box-shadow:inset 3px 3px 7px #d9e0eb,inset -3px -3px 7px #fff; }
+.chair-excel-clay .time-cell:hover,.chair-excel-clay .time-cell:focus { background:#eef3fa !important; color:#223d5c !important; }
+.chair-excel-clay .schedule-cell { position:relative; height:112px; padding:9px 8px; border:1px solid rgba(187,199,217,.78) !important; color:#1d2b40 !important; text-align:center; vertical-align:middle; overflow:hidden; box-shadow:5px 5px 10px rgba(176,188,205,.58),-4px -4px 10px rgba(255,255,255,.92),inset 1px 1px 0 rgba(255,255,255,.65); transition:box-shadow .16s ease,transform .16s ease; }
+.chair-excel-clay .schedule-cell[data-color="#ffffff" i],.chair-excel-clay .schedule-cell[data-color="#fff" i] { background:#f0f3f9 !important; }
+.chair-excel-clay .schedule-cell[data-color="#ffffff" i][data-course]:not([data-course=""]),.chair-excel-clay .schedule-cell[data-color="#fff" i][data-course]:not([data-course=""]) { background:#f7f8fc !important; }
+.chair-excel-clay .schedule-cell:not(.locked-cell):not(.reserved-cell):hover { box-shadow:inset 0 0 0 3px rgba(66,106,166,.48),5px 5px 10px rgba(176,188,205,.58),-4px -4px 10px #fff; }
+.chair-excel-clay .schedule-cell.selected-cell,.chair-excel-clay .schedule-cell.selected { outline:3px solid #426aa6 !important; outline-offset:-3px; box-shadow:inset 0 0 0 3px rgba(66,106,166,.17),5px 5px 10px rgba(176,188,205,.58),-4px -4px 10px #fff !important; }
+.chair-excel-clay .cell-course { color:#1c304a !important; font-size:15px !important; font-weight:850; line-height:1.3; overflow-wrap:anywhere; }
+.chair-excel-clay .cell-subject { margin-top:4px; color:#2f455f !important; font-size:14px !important; font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
+.chair-excel-clay .cell-instructor,.chair-excel-clay .cell-year,.chair-excel-clay .cell-major,.chair-excel-clay .cell-program { margin-top:4px; color:#405773 !important; font-size:13px !important; font-weight:600; line-height:1.35; overflow-wrap:anywhere; }
+.chair-excel-clay .cell-subject-type { display:inline-block; margin-top:5px; padding:4px 7px; border:1px solid #cdd9ea; border-radius:999px; background:#e5ecf7 !important; color:#345986 !important; font-size:12px !important; font-weight:800; line-height:1.3; }
+.chair-excel-clay .empty-cell { display:inline-block; padding:5px 10px; border:1px dashed #bbc8dc; border-radius:999px; background:#e8edf5; color:#536984 !important; font-size:13px !important; font-style:normal; font-weight:700; }
+.chair-excel-clay .locked-cell { background:repeating-linear-gradient(135deg,#e5e9f0,#e5e9f0 8px,#dce2ec 8px,#dce2ec 16px) !important; color:#485b73 !important; cursor:not-allowed !important; opacity:1 !important; }
+.chair-excel-clay .locked-label { display:inline-block; margin-top:5px; padding:4px 7px; border-radius:999px; background:#dce4ef; color:#40536c; font-size:11px; font-weight:850; }
+.chair-excel-clay .schedule-cell.reserved-cell { background:#f5e9ca !important; border:2px solid #c7a966 !important; color:#594618 !important; cursor:not-allowed !important; box-shadow:5px 5px 10px rgba(176,188,205,.58),-4px -4px 10px #fff,inset 1px 1px 0 rgba(255,255,255,.75) !important; }
+.chair-excel-clay .reserved-cell .cell-course,.chair-excel-clay .reserved-cell .cell-subject,.chair-excel-clay .reserved-cell .cell-instructor,.chair-excel-clay .reserved-cell .reservation-cell-user,.chair-excel-clay .reserved-cell .reservation-cell-time,.chair-excel-clay .reserved-cell .reservation-cell-note { color:#594618 !important; }
+.chair-excel-clay .reservation-cell-label { display:inline-block; margin-top:6px; padding:4px 8px; border-radius:999px; background:#957336; color:#fff; font-size:11px; font-weight:850; }
+.chair-excel-clay .reservation-cell-user { margin-top:4px; color:#594618 !important; font-size:13px; font-weight:800; }
+.chair-excel-clay .reservation-cell-time { margin-top:3px; color:#594618 !important; font-size:12px; font-weight:750; }
+.chair-excel-clay .reservation-cell-note { margin-top:4px; color:#594618 !important; font-size:12px; line-height:1.35; }
+.chair-excel-clay .break-row td,.chair-excel-clay .add-time-before-break-row td { padding:9px; border:1px dashed #c1cbda !important; border-radius:10px; background:#e5ebf4 !important; color:#405773 !important; text-align:center; font-size:13px; font-weight:750; }
+.chair-excel-clay .add-time-before-break-row .btn { display:inline-flex; align-items:center; justify-content:center; margin:0 auto; }
+.chair-excel-clay .table-footer { padding-top:15px; }
+.chair-excel-clay .editor-actions { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-top:20px; padding:15px; border:1px solid #d5deeb; border-radius:18px; background:#e8edf6; box-shadow:var(--clay-inset); }
+.chair-excel-clay .editor-actions .btn { min-height:48px; padding:11px 18px; }
+.chair-excel-clay .action-group { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.chair-excel-clay .message { margin:0 0 16px; padding:14px 17px; border:1px solid #d4deea; border-radius:15px; font-size:15px; line-height:1.55; box-shadow:var(--clay-raised); }
+.chair-excel-clay .message-success { background:#e5f2e9 !important; color:#24583c !important; border-color:#c4decc !important; }
+.chair-excel-clay .message-error { background:#f8e9e8 !important; color:#843235 !important; border-color:#e5c5c3 !important; }
+.chair-excel-clay .program-popup-overlay,.chair-excel-clay .schedule-conflict-overlay { background:rgba(38,53,76,.48) !important; backdrop-filter:blur(5px); }
+.chair-excel-clay .program-popup-card,.chair-excel-clay .schedule-conflict-modal { border:1px solid #d3ddec !important; border-radius:24px !important; background:linear-gradient(145deg,#f1f5fc,#e5ebf5) !important; color:#243952 !important; box-shadow:12px 12px 24px rgba(34,48,69,.2),-6px -6px 18px rgba(255,255,255,.65),inset 1px 1px 0 #fff !important; }
+.chair-excel-clay .program-popup-card h3,.chair-excel-clay .schedule-conflict-modal h2 { color:#1d2b40 !important; font-size:24px !important; line-height:1.3; }
+.chair-excel-clay .program-popup-card p,.chair-excel-clay .schedule-conflict-message,.chair-excel-clay .schedule-conflict-warning { color:#465d79 !important; font-size:16px !important; line-height:1.65; }
+.chair-excel-clay .program-popup-close { width:40px; height:40px; border:1px solid #d4deeb; border-radius:13px; background:#e8eef7; color:#34516f !important; box-shadow:4px 4px 9px #cbd4e1,-4px -4px 9px #fff; }
+.chair-excel-clay .program-popup-close:hover { background:#edf2f9; color:#213f65 !important; }
+.chair-excel-clay .program-popup-actions { gap:11px; }
+.chair-excel-clay .program-popup-actions button { min-width:100px; min-height:46px; height:auto; padding:10px 16px; border-radius:13px; font-size:15px; font-weight:800; box-shadow:5px 5px 11px #cbd4e1,-5px -5px 11px #fff; }
+.chair-excel-clay .program-popup-cancel { border:1px solid #d0dbe9 !important; background:#e9eef6 !important; color:#354d68 !important; }
+.chair-excel-clay .program-popup-confirm { border:1px solid #3c629c !important; background:#426aa6 !important; color:#fff !important; }
+.chair-excel-clay .schedule-conflict-icon { color:#906f2f; }
+@media(max-width:1100px) {
+    .chair-excel-clay .program-header { grid-template-columns:1fr; }
+    .chair-excel-clay .program-meta { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .chair-excel-clay .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:700px) {
+    .chair-excel-clay .page { padding:13px 12px 28px; }
+    .chair-excel-clay .program-header { gap:17px; padding:21px 17px; }
+    .chair-excel-clay .schedule-information { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
+    .chair-excel-clay .schedule-info-field { min-width:0; }
+    .chair-excel-clay .program-meta,.chair-excel-clay .form-grid { grid-template-columns:1fr; }
+    .chair-excel-clay .meta-item { min-height:unset; }
+    .chair-excel-clay .editor-panel,.chair-excel-clay .merge-section { padding:18px 14px; }
+    .chair-excel-clay .cell-controls { align-items:stretch; }
+    .chair-excel-clay .editor-actions { align-items:stretch; flex-direction:column; }
+    .chair-excel-clay .editor-actions .btn { width:100%; }
+    .chair-excel-clay .action-group { width:100%; }
+}
+@media(max-width:420px) {
+    .chair-excel-clay .schedule-information { grid-template-columns:1fr; }
+    .chair-excel-clay .program-title { font-size:30px !important; }
+    .chair-excel-clay .program-popup-actions { align-items:stretch; flex-direction:column-reverse; }
+    .chair-excel-clay .program-popup-actions button { width:100%; }
+}
+@media(prefers-reduced-motion:reduce) {
+    .chair-excel-clay *, .chair-excel-clay *::before, .chair-excel-clay *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; }
+}
 </style>
 </head>
 
 
-<body>
+<body class="chair-excel-clay">
 
 
 <div class="page">
@@ -249,6 +405,7 @@
     'year_level' => $item->year_level,
     'major' => $item->major,
     'program' => $item->program,
+    'subject_type' => $item->subject_type ?: (preg_match('/\.1\s*$/', trim($item->course_code)) ? 'Lab' : 'Lec'),
 
     'faculty_id' => $item->faculty
         ? $item->faculty->id
@@ -341,6 +498,10 @@
                         @endforeach
 
                     </datalist>
+
+                    <select id="subjectMatchSelector" hidden style="width:100%;margin-top:10px;padding:11px;border:1px solid #b7c8d9;border-radius:8px;background:#fff;color:#20364b;">
+                        <option value="">Choose the matching year level and faculty</option>
+                    </select>
 
                 </div>
 
@@ -1050,6 +1211,7 @@ $rightTimes = $rightTimes
                 data-instructor="{{ $schedule ? $schedule->instructor : '' }}"
 
                 data-faculty-id="{{ $schedule ? ($schedule->faculty_id ?? '') : '' }}"
+                data-faculty-subject-id="{{ $schedule ? ($schedule->faculty_subject_id ?? '') : '' }}"
 
                 data-department-id="{{ $schedule ? ($schedule->department_id ?? '') : '' }}"
 
@@ -1294,6 +1456,7 @@ $rightTimes = $rightTimes
                 data-instructor="{{ $schedule ? $schedule->instructor : '' }}"
 
                 data-faculty-id="{{ $schedule ? ($schedule->faculty_id ?? '') : '' }}"
+                data-faculty-subject-id="{{ $schedule ? ($schedule->faculty_subject_id ?? '') : '' }}"
 
                 data-department-id="{{ $schedule ? ($schedule->department_id ?? '') : '' }}"
 
@@ -1673,6 +1836,7 @@ $rightTimes = $rightTimes
     document.getElementById(
         'subject_type'
     );
+    const subjectMatchSelector = document.getElementById('subjectMatchSelector');
 
     /*
     |--------------------------------------------------------------------------
@@ -1837,6 +2001,11 @@ $rightTimes = $rightTimes
             subjectTypeInput.value = 
                 '';
 
+            if (subjectMatchSelector) {
+                subjectMatchSelector.hidden = true;
+                subjectMatchSelector.replaceChildren(new Option('Choose the matching year level and faculty', ''));
+            }
+
             clearStatus();
 
 
@@ -1866,30 +2035,32 @@ $rightTimes = $rightTimes
             }
 
 
-            if (
-                matches.length > 1
-            ) {
-
-                showWarning(
-                    'This course code is assigned to multiple faculty members. Please make the course code unique.'
-                );
-
+            if (matches.length > 1) {
+                const yearLevels = [...new Set(matches.map(item => item.year_level))];
+                showWarning(yearLevels.length > 1
+                    ? 'This course code is used in multiple year levels. Choose the correct year level and faculty below.'
+                    : 'This course code is assigned to more than one faculty member. Choose the correct assignment below.');
+                subjectMatchSelector.replaceChildren(new Option('Choose the matching year level and faculty', ''));
+                matches.forEach(item => {
+                    const details = [item.year_level, item.program, item.instructor, item.major ? `Major: ${item.major}` : ''].filter(Boolean);
+                    subjectMatchSelector.add(new Option(details.join(' · '), String(item.id)));
+                });
+                subjectMatchSelector.hidden = false;
                 return;
-
             }
 
+            if (subjectMatchSelector) subjectMatchSelector.hidden = true;
+            applyFacultySubject(matches[0]);
 
-            const match =
-                matches[0];
+        }
+    );
 
-// AUTOMATIC SUBJECT TYPE
-// Course code with "." = Lab
-// Course code without "." = Lec
+    function applyFacultySubject(match) {
+            if (!match) return;
 
+// Use the subject type confirmed when the faculty assignment was created.
 const automaticSubjectType =
-    code.includes('.')
-        ? 'Lab'
-        : 'Lec';
+    match.subject_type || (/\.1\s*$/.test(match.course_code || '') ? 'Lab' : 'Lec');
 
 subjectTypeInput.value =
     automaticSubjectType;
@@ -1921,9 +2092,12 @@ subjectTypeInput.value =
                 match.year_level
 
             );
+    }
 
-        }
-    );
+    subjectMatchSelector?.addEventListener('change', function () {
+        const selected = facultySubjects.find(item => String(item.id) === this.value);
+        applyFacultySubject(selected);
+    });
 
 
     /*
@@ -2315,6 +2489,7 @@ subjectTypeInput.value =
             clone.dataset.program = '';
             clone.dataset.instructor = '';
             clone.dataset.facultyId = '';
+            clone.dataset.facultySubjectId = '';
             clone.dataset.departmentId = chairDepartmentId;
             clone.dataset.color = '#ffffff';
             clone.dataset.subjectType = '';
@@ -2339,6 +2514,7 @@ subjectTypeInput.value =
         cell.dataset.program = '';
         cell.dataset.instructor = '';
         cell.dataset.facultyId = '';
+        cell.dataset.facultySubjectId = '';
         cell.dataset.departmentId = chairDepartmentId;
         cell.dataset.color = '#ffffff';
         cell.dataset.subjectType = '';
@@ -2444,20 +2620,15 @@ function saveCell()
     }
 
 
-    if (
-        matches.length > 1
-    ) {
+    const match = matches.length === 1
+        ? matches[0]
+        : matches.find(item => String(item.id) === String(subjectMatchSelector?.value || ''));
 
-        alert(
-            'This course code is assigned to multiple faculty members.'
-        );
-
+    if (!match) {
+        alert('Choose the correct year level and faculty assignment for this course code first.');
+        subjectMatchSelector?.focus();
         return;
     }
-
-
-    const match =
-        matches[0];
 
 
     /*
@@ -2466,10 +2637,7 @@ function saveCell()
     |--------------------------------------------------------------------------
     */
 
-    const subjectType =
-        course.includes('.')
-            ? 'Lab'
-            : 'Lec';
+    const subjectType = match.subject_type || (/\.1\s*$/.test(course) ? 'Lab' : 'Lec');
 
 
     /*
@@ -2550,6 +2718,9 @@ function saveCell()
 
             cell.dataset.facultyId =
                 match.faculty_id || '';
+
+            cell.dataset.facultySubjectId =
+                match.id || '';
 
             cell.dataset.departmentId =
                 chairDepartmentId;
@@ -2778,6 +2949,9 @@ function clearCell()
             cell.dataset.facultyId =
                 '';
 
+            cell.dataset.facultySubjectId =
+                '';
+
             cell.dataset.departmentId =
                 '';
 
@@ -2938,6 +3112,7 @@ function clearCell()
         cell.dataset.program = '';
         cell.dataset.instructor = '';
         cell.dataset.facultyId = '';
+        cell.dataset.facultySubjectId = '';
         cell.dataset.departmentId = chairDepartmentId;
         cell.dataset.color = '#ffffff';
         cell.dataset.subjectType = '';
@@ -3263,14 +3438,11 @@ let roomTimeSlotCounter = 0;
                 return;
             }
 
-            const matches =
-                findCourse(course);
-
-            if (matches.length !== 1) {
-                return;
-            }
-
-            const match = matches[0];
+            const matches = findCourse(course);
+            const match = matches.length === 1
+                ? matches[0]
+                : matches.find(item => String(item.id) === String(cell.dataset.facultySubjectId || ''));
+            if (!match) return;
 
             const subjectType =
                 String(cell.dataset.subjectType || '').trim();
@@ -3335,6 +3507,9 @@ let roomTimeSlotCounter = 0;
 
                     course_code:
                         match.course_code,
+
+                    faculty_subject_id:
+                        match.id,
 
                     subject:
                         match.subject,

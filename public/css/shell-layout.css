@@ -1,0 +1,587 @@
+/* Shared shell layout: inset header, floating sidebar, responsive content area.
+   The active theme remains responsible for all colors. */
+:root {
+    --shell-gap: 16px;
+    --shell-header-height: 66px;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
+body:not(:has(.page-shell)) {
+    --shell-sidebar-width: var(--sidebar-current, 264px);
+}
+
+body:not(:has(.page-shell)) .top-header {
+    position: absolute !important;
+    inset: var(--shell-gap) var(--shell-gap) auto calc(var(--shell-sidebar-width) + (var(--shell-gap) * 2)) !important;
+    z-index: 1200 !important;
+    box-sizing: border-box !important;
+    width: auto !important;
+    height: var(--shell-header-height) !important;
+    min-height: var(--shell-header-height) !important;
+    padding-inline: clamp(14px, 2vw, 28px) !important;
+    border: 1px solid var(--wr-line, rgba(100, 120, 110, .18)) !important;
+    border-radius: 18px !important;
+    transition: left .24s ease, border-radius .2s ease !important;
+}
+
+body:not(:has(.page-shell)) .wrapper {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body:not(:has(.page-shell)) .main-layout {
+    display: flex !important;
+    min-height: 100vh !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    align-items: stretch !important;
+}
+
+body:not(:has(.page-shell)) .main-layout > .sidebar,
+body:not(:has(.page-shell)) .wrapper > .sidebar {
+    position: fixed !important;
+    inset: var(--shell-gap) auto var(--shell-gap) var(--shell-gap) !important;
+    z-index: 1250 !important;
+    box-sizing: border-box !important;
+    width: var(--shell-sidebar-width) !important;
+    min-width: var(--shell-sidebar-width) !important;
+    max-width: var(--shell-sidebar-width) !important;
+    height: auto !important;
+    max-height: none !important;
+    align-self: auto !important;
+    overflow-x: visible !important;
+    overflow-y: auto !important;
+    border-radius: 20px !important;
+}
+
+body:not(:has(.page-shell)) .main-layout > .content,
+body:not(:has(.page-shell)) .wrapper > .content {
+    position: relative !important;
+    box-sizing: border-box !important;
+    flex: 1 1 0% !important;
+    width: auto !important;
+    min-width: 0 !important;
+    min-height: 100vh !important;
+    margin: 0 0 0 calc(var(--shell-sidebar-width) + (var(--shell-gap) * 2)) !important;
+    padding: calc(var(--shell-header-height) + 34px) clamp(18px, 2.4vw, 34px) 28px !important;
+    overflow-x: auto !important;
+    transition: margin-left .24s ease, padding .24s ease !important;
+}
+
+body:not(:has(.page-shell)) .sidebar-toggle {
+    flex-shrink: 0 !important;
+}
+
+@media (max-width: 760px) {
+    :root {
+        --shell-gap: 9px;
+        --shell-header-height: 58px;
+    }
+
+    body:not(:has(.page-shell)) .top-header {
+        left: calc(var(--sidebar-rail, 62px) + (var(--shell-gap) * 2)) !important;
+        right: var(--shell-gap) !important;
+        padding-inline: 10px !important;
+        border-radius: 15px !important;
+    }
+
+    body:not(:has(.page-shell)) .main-layout > .sidebar,
+    body:not(:has(.page-shell)) .wrapper > .sidebar {
+        top: calc(var(--shell-header-height) + (var(--shell-gap) * 2)) !important;
+        z-index: 1300 !important;
+    }
+
+    /* On narrow screens the expanded sidebar overlays the page; the rail state
+       still leaves the full reading width available beside it. */
+    body:not(:has(.page-shell)) .main-layout > .content,
+    body:not(:has(.page-shell)) .wrapper > .content {
+        margin-left: calc(var(--sidebar-rail, 62px) + (var(--shell-gap) * 2)) !important;
+        padding-top: calc(var(--shell-header-height) + 26px) !important;
+        padding-right: 10px !important;
+        padding-left: 12px !important;
+    }
+
+    body.sidebar-collapsed:not(:has(.page-shell)) .main-layout > .sidebar,
+    body.sidebar-collapsed:not(:has(.page-shell)) .wrapper > .sidebar {
+        z-index: 1250 !important;
+    }
+}
+
+@media (max-width: 520px) {
+    :root { --shell-gap: 7px; --shell-header-height: 54px; }
+    body:not(:has(.page-shell)) .main-layout > .content,
+    body:not(:has(.page-shell)) .wrapper > .content {
+        padding-top: calc(var(--shell-header-height) + 20px) !important;
+    }
+}
+
+/* Ledger green sidebar: pairs with the green header and light workspace. */
+body:not(:has(.page-shell)) .main-layout > .sidebar.faculty-sidebar,
+body:not(:has(.page-shell)) .wrapper > .sidebar.faculty-sidebar {
+    color: #f8fbf8 !important;
+    background: linear-gradient(180deg, #174a35 0%, #164630 55%, #123d2b 100%) !important;
+    border: 1px solid rgba(196, 220, 200, .1) !important;
+    box-shadow: 0 16px 36px rgba(20, 63, 43, .2) !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-brand,
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-workspace {
+    border-color: rgba(218, 237, 224, .1) !important;
+    background: rgba(239, 248, 241, .035) !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-brand img {
+    border-color: rgba(23, 74, 53, .22) !important;
+    background: #fff !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-brand-copy strong,
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-workspace strong,
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-brand strong {
+    color: #f8fbf8 !important;
+    font-size: 15px !important;
+    font-weight: 750 !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-brand-copy span,
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-workspace-label,
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-section,
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-brand span {
+    color: #c8ddce !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-workspace-label,
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-section {
+    font-size: 11px !important;
+    font-weight: 750 !important;
+    letter-spacing: .09em !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-workspace-mark {
+    color: #fff !important;
+    background: #4c8b67 !important;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,.2), 0 5px 12px rgba(5,25,15,.2) !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-nav-icon {
+    color: #dcebe0 !important;
+    background: #285840 !important;
+    border: 1px solid rgba(221, 239, 226, .07) !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-menu a {
+    min-height: 46px !important;
+    color: #f0f6f1 !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-color: transparent !important;
+    background: transparent !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-menu a:hover {
+    color: #fff !important;
+    background: rgba(87, 137, 101, .16) !important;
+    border-color: transparent !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-menu a:hover .faculty-nav-icon {
+    color: #fff !important;
+    background: #4c8b67 !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-menu li.active a {
+    color: #f5faf6 !important;
+    background: linear-gradient(100deg, #2b6849 0%, #245a40 100%) !important;
+    border-color: transparent !important;
+    box-shadow: inset 3px 0 #8fbd99, 0 3px 9px rgba(4, 25, 14, .12) !important;
+    font-weight: 750 !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-menu li.active .faculty-nav-icon {
+    color: #f5faf6 !important;
+    background: #3a7652 !important;
+    border-color: rgba(210, 232, 214, .12) !important;
+    box-shadow: none !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-footer {
+    border-color: rgba(218, 237, 224, .1) !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-footer strong {
+    color: #eaf3ec !important;
+    font-size: 12px !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-sidebar-footer span:last-child {
+    color: #c8ddce !important;
+    font-size: 11px !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .faculty-footer-indicator {
+    background: #9bc9a7 !important;
+    box-shadow: 0 0 0 4px rgba(155, 201, 167, .18) !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-toggle {
+    color: #f4f9f5 !important;
+    background: #285840 !important;
+    border-color: rgba(185, 216, 191, .16) !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-toggle:hover {
+    background: #34704e !important;
+    border-color: rgba(185, 216, 191, .28) !important;
+}
+
+body.sidebar-collapsed:not(:has(.page-shell)) .faculty-sidebar .sidebar-menu a[data-tooltip]:hover::after,
+body.sidebar-collapsed:not(:has(.page-shell)) .faculty-sidebar .sidebar-menu a[data-tooltip]:focus-visible::after {
+    left: calc(var(--sidebar-rail, 76px) + var(--shell-gap) + 10px) !important;
+    border-color: rgba(185, 216, 191, .2) !important;
+    background: #174a35 !important;
+    color: #fff !important;
+    box-shadow: 0 8px 24px rgba(10, 34, 21, .25) !important;
+}
+
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-menu a:focus-visible,
+body:not(:has(.page-shell)) .faculty-sidebar .sidebar-toggle:focus-visible {
+    outline: 2px solid rgba(168, 209, 174, .58) !important;
+    outline-offset: 2px !important;
+}
+
+/* Ledger green header: institutional forest green with soft sage details. */
+body:not(:has(.page-shell)) .top-header {
+    color: #fff !important;
+    background: linear-gradient(112deg, #174a35 0%, #1d5c42 58%, #24684b 100%) !important;
+    border-color: #347355 !important;
+    box-shadow: 0 12px 28px rgba(21, 75, 51, .2), inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-left {
+    gap: 12px !important;
+    min-width: 0 !important;
+}
+
+body:not(:has(.page-shell)) .top-header .logo {
+    flex: 0 0 auto !important;
+    border: 1px solid #ccded2 !important;
+    border-radius: 13px !important;
+    background: #f4f8f5 !important;
+    box-shadow: 0 3px 9px rgba(7, 31, 20, .18) !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-title small {
+    color: #d4e6da !important;
+    font-size: 11px !important;
+    font-weight: 650 !important;
+    letter-spacing: .08em !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-title h3 {
+    color: #fff !important;
+    font-size: 17px !important;
+    font-weight: 800 !important;
+    letter-spacing: -.02em !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-right {
+    gap: 9px !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-right .header-action {
+    min-width: 42px !important;
+    min-height: 42px !important;
+    border: 1px solid rgba(237, 248, 241, .25) !important;
+    border-radius: 12px !important;
+    background: rgba(245, 251, 247, .12) !important;
+    color: #fff !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.1) !important;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-right .header-action:hover {
+    border-color: rgba(255,255,255,.48) !important;
+    background: rgba(245, 251, 247, .22) !important;
+    color: #fff !important;
+    transform: translateY(-1px) !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-right .header-action.profile {
+    max-width: min(250px, 34vw) !important;
+    padding: 4px 13px 4px 5px !important;
+    border-color: #d9e7dd !important;
+    border-radius: 999px !important;
+    background: #f3f7f4 !important;
+    color: #194a35 !important;
+    box-shadow: 0 3px 10px rgba(7, 31, 20, .14) !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-right .header-action.profile:hover {
+    background: #fff !important;
+    color: #123d2b !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-profile-photo {
+    border: 2px solid #c8ddcf !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-profile-name {
+    color: #194a35 !important;
+    font-size: 13px !important;
+    font-weight: 750 !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-notification-count {
+    border-color: #1c573e !important;
+}
+
+body:not(:has(.page-shell)) .top-header .header-right .header-action:focus-visible {
+    outline: 3px solid #c4e6ce !important;
+    outline-offset: 3px !important;
+}
+
+@media (max-width: 520px) {
+    body:not(:has(.page-shell)) .top-header .header-title small { display: none !important; }
+    body:not(:has(.page-shell)) .top-header .header-title h3 { font-size: 14px !important; }
+    body:not(:has(.page-shell)) .top-header .header-right { gap: 5px !important; }
+}
+
+/* Final sidebar surface overrides: neutralize the pale neumorphic highlights
+   from professional.css while retaining restrained green depth and focus. */
+.faculty-sidebar {
+    border-color: rgba(196, 220, 200, .1) !important;
+    box-shadow: 0 14px 30px rgba(10, 35, 22, .2) !important;
+}
+
+.faculty-sidebar .faculty-sidebar-brand,
+.faculty-sidebar .faculty-sidebar-workspace,
+.faculty-sidebar .faculty-sidebar-footer {
+    border-color: rgba(218, 237, 224, .1) !important;
+    box-shadow: none !important;
+}
+
+.faculty-sidebar .faculty-sidebar-workspace {
+    background: rgba(239, 248, 241, .035) !important;
+}
+
+.faculty-sidebar .faculty-sidebar-brand img {
+    border-color: rgba(23, 74, 53, .22) !important;
+    box-shadow: none !important;
+}
+
+.faculty-sidebar .faculty-workspace-mark,
+.faculty-sidebar .faculty-nav-icon,
+.faculty-sidebar .sidebar-menu a,
+.faculty-sidebar .sidebar-toggle {
+    box-shadow: none !important;
+}
+
+.faculty-sidebar .faculty-nav-icon {
+    border-color: transparent !important;
+}
+
+.faculty-sidebar .sidebar-menu a:hover {
+    border-color: transparent !important;
+    background: rgba(143, 189, 153, .12) !important;
+}
+
+.faculty-sidebar .sidebar-menu li.active a {
+    border-color: transparent !important;
+    background: #285d42 !important;
+    box-shadow: inset 3px 0 #8fbd99 !important;
+}
+
+.faculty-sidebar .sidebar-menu li.active .faculty-nav-icon {
+    border-color: transparent !important;
+    background: #34704e !important;
+}
+
+.faculty-sidebar .faculty-footer-indicator {
+    box-shadow: none !important;
+}
+
+.faculty-sidebar .sidebar-toggle {
+    border-color: rgba(185, 216, 191, .14) !important;
+}
+
+.faculty-sidebar .sidebar-menu a:focus-visible,
+.faculty-sidebar .sidebar-toggle:focus-visible {
+    outline: 1px solid rgba(168, 209, 174, .48) !important;
+    outline-offset: 2px !important;
+}
+
+/* Minimal flat sidebar finish. */
+.faculty-sidebar {
+    background: #173f2d !important;
+    border: 0 !important;
+    box-shadow: 0 10px 26px rgba(10, 35, 22, .16) !important;
+}
+
+.faculty-sidebar .faculty-sidebar-brand {
+    border: 0 !important;
+    border-bottom: 1px solid rgba(218, 237, 224, .1) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+.faculty-sidebar .faculty-sidebar-workspace {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+}
+
+.faculty-sidebar .faculty-sidebar-brand img {
+    border: 0 !important;
+    border-radius: 11px !important;
+}
+
+.faculty-sidebar .faculty-workspace-mark {
+    background: #285d42 !important;
+    box-shadow: none !important;
+}
+
+.faculty-sidebar .faculty-nav-icon {
+    color: #c5d9ca !important;
+    background: transparent !important;
+    border: 0 !important;
+}
+
+.faculty-sidebar .sidebar-menu a {
+    min-height: 44px !important;
+    border: 0 !important;
+    border-radius: 8px !important;
+    color: #e8f0ea !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: color .16s ease, background .16s ease !important;
+}
+
+.faculty-sidebar .sidebar-menu a:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, .065) !important;
+    transform: none !important;
+}
+
+.faculty-sidebar .sidebar-menu a:hover .faculty-nav-icon {
+    color: #d8ebdc !important;
+    background: transparent !important;
+}
+
+.faculty-sidebar .sidebar-menu li.active a {
+    color: #fff !important;
+    background: rgba(143, 189, 153, .15) !important;
+    box-shadow: inset 3px 0 #9bc9a7 !important;
+    font-weight: 750 !important;
+}
+
+.faculty-sidebar .sidebar-menu li.active .faculty-nav-icon {
+    color: #b7dbbd !important;
+    background: transparent !important;
+}
+
+.faculty-sidebar .faculty-sidebar-footer {
+    border-top: 1px solid rgba(218, 237, 224, .1) !important;
+}
+
+.faculty-sidebar .sidebar-toggle {
+    color: #e8f0ea !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.faculty-sidebar .sidebar-toggle:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, .065) !important;
+    border: 0 !important;
+}
+
+/* Clearer icon and type system for the complete sidebar. */
+.faculty-sidebar .faculty-sidebar-brand-copy strong,
+.faculty-sidebar .faculty-sidebar-workspace strong,
+.faculty-sidebar .sidebar-brand strong {
+    color: #f7faf7 !important;
+    font-size: 16px !important;
+    font-weight: 750 !important;
+    line-height: 1.3 !important;
+    letter-spacing: 0 !important;
+}
+
+.faculty-sidebar .faculty-sidebar-brand-copy span,
+.faculty-sidebar .faculty-workspace-label,
+.faculty-sidebar .sidebar-brand span {
+    color: #c5d9ca !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+}
+
+.faculty-sidebar .faculty-sidebar-section {
+    padding: 0 10px !important;
+    color: #b6cdbb !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: .07em !important;
+    line-height: 1.4 !important;
+}
+
+.faculty-sidebar .faculty-sidebar-nav {
+    gap: 10px !important;
+}
+
+.faculty-sidebar .sidebar-menu {
+    gap: 5px !important;
+    margin-bottom: 13px !important;
+}
+
+.faculty-sidebar .sidebar-menu a {
+    min-height: 48px !important;
+    gap: 12px !important;
+    padding: 0 12px !important;
+    color: #f0f5f1 !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    line-height: 1.35 !important;
+}
+
+.faculty-sidebar .faculty-nav-icon {
+    width: 26px !important;
+    height: 28px !important;
+    flex: 0 0 26px !important;
+    color: #bdd9c3 !important;
+    font-size: 17px !important;
+}
+
+.faculty-sidebar .sidebar-menu li.active a {
+    color: #fff !important;
+    font-weight: 750 !important;
+}
+
+.faculty-sidebar .sidebar-menu li.active .faculty-nav-icon {
+    color: #d5ecd9 !important;
+}
+
+.faculty-sidebar .faculty-sidebar-footer strong {
+    color: #f0f5f1 !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1.35 !important;
+}
+
+.faculty-sidebar .faculty-sidebar-footer span:last-child {
+    color: #c5d9ca !important;
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+}
+
+.faculty-sidebar .faculty-workspace-mark {
+    color: #bdd9c3 !important;
+    background: transparent !important;
+    font-size: 20px !important;
+}

@@ -40,16 +40,18 @@
                     <span class="sidebar-text">Vacant Rooms</span>
                 </a>
             </li>
-        </ul>
-
-        <span class="faculty-sidebar-section">RESERVATIONS</span>
-        <ul class="sidebar-menu">
-            <li class="{{ request()->routeIs('faculty.room-swap') ? 'active' : '' }}">
+        
+         <li class="{{ request()->routeIs('faculty.room-swap') ? 'active' : '' }}">
                 <a href="{{ route('faculty.room-swap') }}" @if(request()->routeIs('faculty.room-swap')) aria-current="page" @endif>
                     <span class="faculty-nav-icon"><i class="fa-solid fa-right-left" aria-hidden="true"></i></span>
                     <span class="sidebar-text">Room Swap</span>
                 </a>
             </li>
+            </ul>
+
+        <span class="faculty-sidebar-section">RESERVATIONS</span>
+        <ul class="sidebar-menu">
+           
             <li class="{{ request()->routeIs('faculty.bookings') ? 'active' : '' }}">
                 <a href="{{ route('faculty.bookings') }}" @if(request()->routeIs('faculty.bookings')) aria-current="page" @endif>
                     <span class="faculty-nav-icon"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></span>

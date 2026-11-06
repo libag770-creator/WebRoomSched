@@ -1,0 +1,13 @@
+@auth
+    @switch(auth()->user()->role)
+        @case('admin')
+            @include('admin.sidebar')
+            @break
+        @case('faculty')
+            @include('faculty.sidebar')
+            @break
+        @case('chair')
+            @include('chair.sidebar')
+            @break
+    @endswitch
+@endauth

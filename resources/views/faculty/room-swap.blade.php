@@ -11,7 +11,7 @@
             <style>
 /* WebRoomSched — Room Swap Request | complete visual refresh */
 /* Step 2 confirmation and Step 3 modal workflow */
-.swap-modal-overlay { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(15,32,22,.58); backdrop-filter:blur(3px); overflow-y:auto; }
+.swap-modal-overlay { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(20,38,65,.52); backdrop-filter:blur(3px); overflow-y:auto; }
 .swap-modal-card { width:min(100%,680px); max-height:min(90vh,900px); overflow-y:auto; margin:auto; border:1px solid #dce7df; border-radius:20px; background:#fff; box-shadow:0 24px 80px rgba(0,0,0,.24); animation:swapModalIn .18s ease-out; }
 .swap-confirm-card { width:min(100%,520px); padding:26px; border:1px solid #dce7df; border-radius:20px; background:#fff; box-shadow:0 24px 80px rgba(0,0,0,.24); animation:swapModalIn .18s ease-out; }
 .swap-modal-icon { display:grid; place-items:center; width:48px; height:48px; margin-bottom:15px; border-radius:15px; background:#edf7f0; color:#176b3a; font-size:21px; }
@@ -300,6 +300,146 @@
     .swap-subtitle { margin-left:0; }
     #swapForm > .step { padding:18px 15px; }
 }
+
+/* White and blue neumorphic restyle for the faculty room-swap workflow. */
+.faculty-room-swap-view { background:#f3f6fb !important; }
+.swap-container { --swap-green:#315f9b; --swap-green-dark:#244b80; --swap-green-soft:#eaf1fb; --swap-ink:#1d2c42; --swap-muted:#52647b; --swap-line:#dbe3ee; color:#1d2c42; }
+.swap-hero { border-color:#dbe4ef; background:linear-gradient(120deg,#fff 0%,#edf3fb 100%); box-shadow:9px 9px 22px #dce3ec,-8px -8px 22px #fff; }
+.swap-hero::after { border-color:rgba(49,95,155,.12); box-shadow:0 0 0 24px rgba(49,95,155,.04),0 0 0 48px rgba(49,95,155,.025); }
+.swap-eyebrow { color:#315f9b; font-size:12px; letter-spacing:.11em; }
+.swap-title,.swap-title::before { color:#1d2c42; }
+.swap-title { font-size:clamp(28px,2.5vw,36px); }
+.swap-title::before { background:#e8eef7; color:#315f9b; box-shadow:inset 3px 3px 7px #d5deea,inset -3px -3px 7px #fff; }
+.swap-subtitle { color:#52647b; font-size:16px; }
+.active-academic-term-banner { border-color:#d8e2ef; background:#f4f7fc; box-shadow:inset 4px 4px 10px #e1e7ef,inset -4px -4px 10px #fff; }
+.active-academic-term-icon { background:#315f9b; }
+.active-academic-term-label { color:#52647b; font-size:12px; }
+.active-academic-term-copy strong { color:#1d2c42; font-size:15px; }
+.active-academic-term-status { border-color:#d1deee; color:#24558f; font-size:12px; }
+#swapForm { gap:20px; }
+#swapForm > .step,.swap-modal-card,.swap-confirm-card { border-color:#dbe3ee; background:#f8faff; box-shadow:9px 9px 22px #dce3ec,-8px -8px 22px #fff; }
+.step-title { color:#203650; font-size:20px; }
+.step-title::before { background:#315f9b; box-shadow:inset 2px 2px 5px rgba(255,255,255,.2),3px 3px 8px rgba(38,78,132,.18); }
+.step-description,.swap-search-help { color:#52647b; font-size:15px; }
+.swap-search-box { border-color:#dbe3ee; background:#f2f6fc; box-shadow:inset 4px 4px 9px #e1e7ef,inset -4px -4px 9px #fff; }
+.swap-search-label,.swap-navigation-title { color:#203650; font-size:15px; }
+.swap-search-label i,.swap-navigation-title i { color:#315f9b; }
+.swap-search-input,.swap-input,.swap-date-field input,.reason-options textarea,#otherReason { border-color:#cbd7e6 !important; background:#fff !important; color:#1d2c42 !important; font-size:15px !important; box-shadow:inset 2px 2px 5px #edf1f6,inset -2px -2px 5px #fff; }
+.swap-search-input::placeholder,#otherReason::placeholder { color:#687b94; opacity:1; }
+.swap-search-input:focus,.swap-date-field input:focus { border-color:#5686c0; box-shadow:0 0 0 4px rgba(49,95,155,.13); }
+.swap-navigation-card,.swap-room-card,.my-room-schedule-card,.swap-room-search-result,.booking-card { border-color:#dbe3ee; background:#f8faff; box-shadow:5px 5px 13px #e0e6ef,-5px -5px 13px #fff; }
+.swap-navigation-card:hover,.swap-navigation-card:focus-visible,.swap-room-card:hover,.my-room-schedule-card:hover { border-color:#a9bfdc; box-shadow:7px 7px 16px #dbe2eb,-6px -6px 16px #fff; }
+.swap-navigation-icon,.swap-room-icon,.swap-search-room-icon { background:#e8eef7; color:#315f9b; }
+.swap-navigation-name,.swap-room-name,.my-room-schedule-course,.my-room-schedule-subject { color:#203650; }
+.swap-room-card,.my-room-schedule-card,.swap-navigation-card { color:#203650; }
+.swap-breadcrumb button { border-color:#cbd7e6; color:#315f9b; }
+.swap-breadcrumb button:hover,.swap-room-card .swap-view-room-button { border-color:#cbd7e6; background:#edf3fb; color:#244f88; }
+.auto-matching-department-filter { color:#315f9b; }
+.auto-matching-department-filter.active,.auto-matching-department-filter:hover,.btn-send,.swap-modal-actions .swap-modal-primary { border-color:#315f9b; background:#315f9b; color:#fff; }
+.btn-send:hover,.swap-modal-actions .swap-modal-primary:hover { background:#244b80; }
+.btn-reset,.swap-modal-actions button { border-color:#cbd7e6; background:#edf2f8; color:#29415f; }
+.swap-status-badge,.swap-room-information,.selected-requester-grid { color:#263d5a; }
+.swap-modal-heading { color:#1d2c42; font-size:23px; }
+.swap-modal-copy,.swap-modal-summary-row span { color:#52647b; font-size:15px; }
+.swap-modal-summary { border-color:#dbe3ee; background:#f2f6fc; }
+.swap-modal-summary-row strong { color:#1d2c42; font-size:15px; }
+.swap-date-field { border-color:#dbe3ee !important; background:#f2f6fc !important; box-shadow:inset 3px 3px 7px #e1e7ef,inset -3px -3px 7px #fff; }
+.swap-date-field label { color:#203650 !important; font-size:15px !important; }
+.swap-date-field small { color:#52647b !important; font-size:13px !important; line-height:1.5; }
+.alert-success,.alert-error { padding:15px 17px; font-size:15px; }
+.alert-success { color:#205b3c; background:#edf8f1; border-color:#b9d9c5; }
+.alert-error { color:#922c2c; background:#fff3f2; border-color:#ebc5c3; }
+.swap-navigation-description,.swap-room-building,.swap-room-info-label,.swap-room-info-value,.swap-search-room-details small { font-size:14px; }
+.swap-navigation-name,.swap-room-name,.swap-search-room-details strong { font-size:16px; }
+.swap-room-card .swap-room-info-item,.selected-requester-item { border-color:#dbe3ee; background:#f4f7fc; box-shadow:inset 2px 2px 5px #e4e9f1,inset -2px -2px 5px #fff; }
+.swap-room-info-value.available,.selected-requester-eyebrow { color:#315f9b; }
+.swap-search-clear { color:#52647b; }
+.swap-selected-room-note,.my-room-selected-note,.selected-swap-box,.selected-target-schedule { border-color:#cbd9eb; background:#eaf1fb; color:#244b80; font-size:14px; }
+.selected-requester-detail { border-color:#d7e2ef; background:linear-gradient(135deg,#edf3fb 0%,#fff 75%); box-shadow:inset 3px 3px 8px #e0e7f0,inset -3px -3px 8px #fff; }
+.selected-requester-header h3 { color:#203650; font-size:25px; }
+.selected-requester-header p,.selected-requester-item span { color:#52647b; font-size:14px; }
+.selected-requester-item strong { color:#203650; font-size:15px; }
+.selected-requester-back { border-color:#cbd7e6; background:#edf2f8; color:#29415f; font-size:14px; }
+.my-room-schedule-card::after { border-color:#cbd7e6; background:#edf3fb; color:#315f9b; font-size:13px; }
+.my-room-schedule-card.selected { border-color:#7c9dc7; background:#edf3fb; box-shadow:inset 3px 3px 8px #dfe6ef,inset -3px -3px 8px #fff; }
+.my-room-schedule-card .my-room-schedule-course { background:#e8eef7; color:#244f88; font-size:13px; }
+.my-room-schedule-card .my-room-schedule-day { background:#edf2f8; color:#29415f; font-size:13px; }
+.my-room-schedule-card .my-room-schedule-details { color:#52647b; font-size:14px; }
+.my-room-schedule-card .my-room-schedule-details i { color:#315f9b; }
+.swap-schedule-filter { border-color:#cbd9eb; background:#eaf1fb; color:#244b80; font-size:14px; }
+.swap-excel-wrapper { border-color:#cbd7e6; box-shadow:5px 5px 12px #e0e6ef,-5px -5px 12px #fff; }
+.swap-excel-table { color:#203650; font-size:14px; }
+.swap-excel-table th { border-color:#d5dfec; background:#e7edf6; color:#203650; font-size:13px; }
+.swap-excel-table td { border-color:#dbe3ee; background:#fff; }
+.swap-excel-table tr:nth-child(even) td { background:#f5f8fc; }
+.swap-excel-time { color:#29415f; }
+.swap-excel-course { color:#244f88; }
+.swap-excel-subject { color:#263d5a; }
+.swap-excel-instructor { color:#52647b; font-size:13px; }
+.swap-excel-program,.swap-merge-program { background:#e8eef7; color:#244f88; font-size:12px; }
+.swap-merge-badge { background:#fff2df; color:#754d15; font-size:12px; }
+.swap-excel-occupied { border-color:#b9cce3; background:#edf3fb; color:#244b80; font-size:14px; }
+.swap-excel-occupied:hover { border-color:#6d91bf; background:#e2ebf7; }
+.swap-excel-occupied.disabled-swap { border-color:#d8e0e9; background:#eef1f5; color:#66758a; }
+.swap-excel-empty { color:#61728a; }
+.swap-noon-break { background:#edf1f6 !important; color:#52647b; font-size:13px; }
+.swap-schedule-instruction { border-color:#cbd9eb; background:#edf3fb; color:#294b75; font-size:14px; }
+.empty-swap-message { border-color:#cbd7e6; background:#f6f8fc; color:#52647b; }
+.empty-swap-message i { color:#315f9b; }
+.empty-swap-message strong { color:#203650; font-size:16px; }
+.empty-swap-message span { font-size:14px; }
+.auto-swap-match-day,.auto-swap-match-time { border-color:#dbe3ee; background:#f2f6fc; }
+.auto-swap-match-day > i,.auto-swap-match-time > i { color:#315f9b; }
+.auto-swap-match-day span,.auto-swap-match-time span { color:#52647b; font-size:11px; }
+.auto-swap-match-day strong,.auto-swap-match-time strong { color:#203650; font-size:14px; }
+.auto-swap-match-card { border-color:#d3deed; background:#f4f7fc; box-shadow:inset 3px 3px 7px #e1e7ef,inset -3px -3px 7px #fff; }
+.auto-swap-match-card strong { color:#203650; font-size:15px; }
+.auto-swap-match-card .auto-swap-match-meta { color:#52647b; font-size:14px; }
+.auto-swap-match-card .auto-swap-match-time { background:#e8eef7; color:#244f88; font-size:13px; }
+.auto-swap-match-card button { border-color:#315f9b; background:#315f9b; font-size:14px; }
+.auto-swap-match-card button:hover { background:#244b80; }
+.auto-matching-department-filter { border-color:#cbd7e6; background:#edf2f8; color:#29415f; font-size:14px; }
+.auto-matching-department-filter.active,.auto-matching-department-filter:hover { border-color:#315f9b; background:#315f9b; }
+.swap-room-card .swap-view-room-button,.swap-view-room-button { border-color:#cbd7e6; background:#edf3fb; color:#244f88; font-size:14px; }
+.swap-search-room-button { border-color:#dbe3ee; background:#f8faff; box-shadow:4px 4px 10px #e1e7ef,-4px -4px 10px #fff; }
+.swap-status-badge { font-size:13px; }
+.swap-search-help { margin-top:10px; }
+.buttons { border-color:#dbe3ee; }
+.btn-reset { border-color:#cbd7e6; background:#edf2f8; color:#29415f; }
+.btn-reset:hover { background:#e3eaf3; }
+.btn:focus-visible { outline-color:rgba(49,95,155,.3); }
+.reason-option::before { border-color:#8a9bb1; }
+.reason-option:hover { border-color:#9fb5d3; background:#f1f5fb; }
+.reason-option.selected::before,.reason-option.active::before { border-color:#315f9b; }
+.reason-option.selected,.reason-option.active { border-color:#315f9b; background:#eaf1fb; color:#244b80; }
+.reason-option.selected,.reason-option.active { box-shadow:0 0 0 1px #315f9b inset; }
+.reason-option { border-color:#d1dceb; background:#f8faff; color:#29415f; font-size:15px; box-shadow:4px 4px 10px #e1e7ef,-4px -4px 10px #fff; }
+.reason-option.selected { border-color:#315f9b; background:#eaf1fb; color:#244b80; }
+.buttons .btn { min-height:48px; font-size:15px; }
+.swap-override-panel { margin:0 0 20px; padding:20px; border:1px solid #d6e0ed; border-radius:16px; background:#f4f7fc; box-shadow:inset 4px 4px 10px #e1e7ef,inset -4px -4px 10px #fff; }
+.swap-override-head { display:flex; align-items:center; gap:12px; margin-bottom:13px; }
+.swap-override-head-icon { display:grid; place-items:center; flex:0 0 42px; width:42px; height:42px; border-radius:13px; background:#e4edf9; color:#315f9b; font-size:18px; }
+.swap-override-heading { margin:0; color:#203650; font-size:19px; font-weight:850; }
+.swap-override-intro { margin:3px 0 0; color:#52647b; font-size:14px; line-height:1.5; }
+.swap-override-list { display:grid; gap:10px; }
+.swap-override-item { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:center; padding:14px; border:1px solid #dbe3ee; border-radius:12px; background:#fff; box-shadow:4px 4px 10px #e2e8f0,-4px -4px 10px #fff; }
+.swap-override-item small { display:block; margin-bottom:3px; color:#52647b; font-size:12px; font-weight:750; }
+.swap-override-item strong { display:block; color:#203650; font-size:14px; line-height:1.45; overflow-wrap:anywhere; }
+.swap-override-empty { padding:14px; border:1px dashed #bdcadb; border-radius:11px; background:#fff; color:#52647b; font-size:14px; }
+.swap-override-warning { display:none; margin-top:11px; padding:12px 13px; border:1px solid #e7c3a2; border-radius:10px; background:#fff6ed; color:#75431d; font-size:14px; font-weight:750; line-height:1.5; }
+.swap-override-warning.visible { display:block; }
+.swap-override-warning i { margin-right:6px; }
+.admin-override-lock-note { display:flex; align-items:flex-start; gap:8px; margin:0 0 11px; padding:10px 11px; border:1px solid #e5c99f; border-radius:9px; background:#fff5e7; color:#69451a; font-size:13px; font-weight:800; line-height:1.45; }
+.admin-override-lock-note i { flex:0 0 16px; margin-top:2px; color:#9a631d; }
+.my-room-schedule-card.admin-overridden { border-color:#dfc294; background:#fffaf2; cursor:not-allowed; box-shadow:inset 3px 3px 8px #f2e8d7,inset -3px -3px 8px #fff; }
+.my-room-schedule-card.admin-overridden:hover,.my-room-schedule-card.admin-overridden:focus-visible { transform:none; border-color:#d0ad75; box-shadow:inset 3px 3px 8px #f2e8d7,inset -3px -3px 8px #fff; }
+.my-room-schedule-card.admin-overridden::after { content:"Admin is occupying this schedule"; border-color:#e5c99f; background:#fff1dc; color:#69451a; }
+.auto-swap-match-card.admin-overridden { border-color:#dfc294; background:#fffaf2; box-shadow:inset 3px 3px 8px #f2e8d7,inset -3px -3px 8px #fff; }
+.auto-swap-match-card.admin-overridden button:disabled { border-color:#d7bd96; background:#f0e5d3; color:#654a28; opacity:1; cursor:not-allowed; }
+.swap-excel-occupied.admin-overridden { border-color:#dfc294; background:#fff5e7; color:#69451a; cursor:not-allowed; }
+.admin-override-grid-note { margin-top:7px; color:#69451a; font-size:12px; font-weight:800; line-height:1.45; }
+.admin-override-grid-note i { margin-right:4px; color:#9a631d; }
+@media(max-width:760px) { .swap-override-item { grid-template-columns:1fr; gap:9px; } .swap-override-panel { padding:15px; } }
 </style>
 
 
@@ -346,6 +486,39 @@
                     </span>
                     <span class="active-academic-term-status"><i class="fa-solid fa-circle"></i> Active</span>
                 </div>
+
+                <section class="swap-override-panel" aria-labelledby="swapOverrideTitle">
+                    <div class="swap-override-head">
+                        <span class="swap-override-head-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></span>
+                        <div>
+                            <h2 class="swap-override-heading" id="swapOverrideTitle">Admin room overrides</h2>
+                            <p class="swap-override-intro">These rooms are reserved for the dates and class times shown. A room swap cannot use them during an override.</p>
+                        </div>
+                    </div>
+                    <div class="swap-override-list">
+                        @forelse($scheduleOverrides as $override)
+                            <article class="swap-override-item">
+                                <div>
+                                    <small>Reserved room and class</small>
+                                    <strong>{{ $override->schedule?->room?->room_name ?: 'Room' }}{{ ($override->schedule?->room?->buildingRelation?->name ?: $override->schedule?->room?->building) ? ' · '.($override->schedule->room->buildingRelation?->name ?: $override->schedule->room->building) : '' }}</strong>
+                                    <strong>{{ $override->schedule?->course_code ?: ($override->schedule?->subject ?: 'Class schedule') }} · {{ $override->schedule?->day }} · {{ $override->schedule?->time }}</strong>
+                                </div>
+                                <div>
+                                    <small>Override date and admin occupant</small>
+                                    <strong>{{ $override->override_date?->format('F j, Y') }}</strong>
+                                    <strong>{{ $override->occupied_by }}</strong>
+                                </div>
+                                <div>
+                                    <small>Reason and affected faculty</small>
+                                    <strong>{{ $override->reason }}</strong>
+                                    <strong>{{ $override->faculty?->name ?: 'Faculty member' }}</strong>
+                                </div>
+                            </article>
+                        @empty
+                            <div class="swap-override-empty">There are no current or upcoming admin room overrides.</div>
+                        @endforelse
+                    </div>
+                </section>
 
 
                 {{-- SUCCESS --}}
@@ -590,7 +763,14 @@
                         </div>
 
                         <div class="step-description">
-                            Select a reason for your room swap request.
+                            Choose a date for the temporary swap, then select a reason.
+                        </div>
+
+                        <div class="swap-date-field" style="margin:14px 0 18px;padding:13px;border:1px solid #dce9df;border-radius:12px;background:#f7fbf8;">
+                            <label for="swap_date" style="display:block;margin-bottom:6px;color:#345342;font-size:12px;font-weight:800;">Room swap date</label>
+                            <input type="date" name="swap_date" id="swap_date" min="{{ now()->toDateString() }}" required style="width:100%;min-height:42px;padding:9px 11px;border:1px solid #cfded2;border-radius:9px;background:#fff;color:#253b2e;">
+                            <small style="display:block;margin-top:6px;color:#748178;font-size:10px;">The date must fall on the selected schedules’ weekday. The room swap ends automatically at the selected end time.</small>
+                            <div class="swap-override-warning" id="swapOverrideWarning" role="alert" aria-live="polite"></div>
                         </div>
 
 
@@ -696,12 +876,6 @@
 
                         <input
                             type="hidden"
-                            name="swap_date"
-                            id="swap_date"
-                        >
-
-                        <input
-                            type="hidden"
                             name="start_time"
                             id="start_time"
                         >
@@ -735,6 +909,7 @@
                             <button
                                 type="submit"
                                 class="btn btn-send"
+                                id="sendRoomSwapRequest"
                             >
                                 <i class="fa-solid fa-paper-plane"></i>
 
@@ -765,6 +940,9 @@
 
 const swapTargetScheduleData =
     @json($targetSchedules);
+
+const swapScheduleOverrideData =
+    @json($scheduleOverrideData);
 
                 /*
                 |--------------------------------------------------------------------------
@@ -890,6 +1068,94 @@ const swapTargetScheduleData =
                     null;
 
                 let pendingTargetScheduleId = null;
+
+                function defaultRoomSwapDate(dayValue) {
+                    const dayCodes = { SUN:0, MON:1, TUE:2, WED:3, THU:4, FRI:5, SAT:6 };
+                    const dayCode = String(dayValue || '').trim().toUpperCase().slice(0, 3);
+                    if (!(dayCode in dayCodes)) return '';
+                    const date = new Date();
+                    date.setHours(12, 0, 0, 0);
+                    let daysAhead = (dayCodes[dayCode] - date.getDay() + 7) % 7;
+                    if (daysAhead === 0) daysAhead = 7;
+                    date.setDate(date.getDate() + daysAhead);
+                    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+                }
+
+                function getRoomOverrides(roomIds, dateValue, timeValue) {
+                    const ids = (roomIds || []).map(Number).filter(Boolean);
+                    if (!dateValue || !ids.length) return [];
+                    return (swapScheduleOverrideData || []).filter(function(override) {
+                        return String(override.date || '') === String(dateValue)
+                            && ids.includes(Number(override.room_id))
+                            && (!timeValue || normalizeSwapTime(override.time) === normalizeSwapTime(timeValue));
+                    });
+                }
+
+                function getScheduleAdminOverride(scheduleOrId) {
+                    const scheduleId = typeof scheduleOrId === 'object'
+                        ? scheduleOrId?.id
+                        : scheduleOrId;
+                    return (swapScheduleOverrideData || []).find(function(override) {
+                        return Number(override.schedule_id) === Number(scheduleId);
+                    }) || null;
+                }
+
+                function formatAdminOverrideDate(override) {
+                    if (!override?.date) return '';
+                    const date = new Date(override.date + 'T12:00:00');
+                    return Number.isNaN(date.getTime())
+                        ? override.date
+                        : date.toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' });
+                }
+
+                function adminOverrideNotice(override) {
+                    if (!override) return '';
+                    return `You can't select this schedule. An admin is occupying it${override.date ? ' on ' + formatAdminOverrideDate(override) : ''}${override.time ? ' at ' + override.time : ''}${override.occupied_by ? ' (' + override.occupied_by + ')' : ''}.`;
+                }
+
+                function adminOverrideBadge(schedule) {
+                    const override = getScheduleAdminOverride(schedule);
+                    if (!override) return '';
+                    return `<div class="admin-override-lock-note"><i class="fa-solid fa-lock" aria-hidden="true"></i><span>${escapeSwapHtml(adminOverrideNotice(override))}</span></div>`;
+                }
+
+                function nextAvailableRoomSwapDate(dayValue, roomIds, timeValue) {
+                    const first = defaultRoomSwapDate(dayValue);
+                    if (!first) return '';
+                    const date = new Date(first + 'T12:00:00');
+                    for (let attempt = 0; attempt < 52; attempt += 1) {
+                        const value = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+                        if (!getRoomOverrides(roomIds, value, timeValue).length) return value;
+                        date.setDate(date.getDate() + 7);
+                    }
+                    return first;
+                }
+
+                function updateRoomSwapOverrideWarning() {
+                    const dateField = document.getElementById('swap_date');
+                    const warning = document.getElementById('swapOverrideWarning');
+                    const submitButton = document.getElementById('sendRoomSwapRequest');
+                    if (!dateField || !warning) return false;
+
+                    const roomIds = [selectedRequesterSchedule?.room_id, selectedTargetSchedule?.room_id];
+                    const overrides = selectedRequesterSchedule && selectedTargetSchedule
+                        ? getRoomOverrides(roomIds, dateField.value, selectedTargetSchedule.time || selectedRequesterSchedule.time)
+                        : [];
+
+                    if (overrides.length) {
+                        const override = overrides[0];
+                        const room = override.room || 'The selected room';
+                        warning.innerHTML = `<i class="fa-solid fa-lock" aria-hidden="true"></i>${escapeSwapHtml(room)} is reserved for ${escapeSwapHtml(override.occupied_by || 'an admin')} on this date (${escapeSwapHtml(override.time || 'scheduled class time')}). Choose another date.`;
+                        warning.classList.add('visible');
+                        if (submitButton) submitButton.disabled = true;
+                        return true;
+                    }
+
+                    warning.textContent = '';
+                    warning.classList.remove('visible');
+                    if (submitButton) submitButton.disabled = false;
+                    return false;
+                }
 
 
                 /*
@@ -1355,13 +1621,16 @@ const swapTargetScheduleData =
                                 const card =
                                     document.createElement('div');
 
-                                card.className = 'my-room-schedule-card' + (schedule.swap_status === 'pending' ? ' swap-pending swap-locked' : (schedule.swap_status === 'approved' ? ' swap-approved swap-locked' : ''));
+                                const adminOverride = getScheduleAdminOverride(schedule);
+
+                                card.className = 'my-room-schedule-card' + (schedule.swap_status === 'pending' ? ' swap-pending swap-locked' : (schedule.swap_status === 'approved' ? ' swap-approved swap-locked' : '')) + (adminOverride ? ' admin-overridden' : '');
 
                                 card.dataset.scheduleId =
                                     schedule.id;
                                 card.setAttribute('role', 'button');
                                 card.setAttribute('tabindex', '0');
-                                card.setAttribute('aria-label', 'Select schedule ' + (schedule.course_code || schedule.course || 'class') + ' for ' + (schedule.day || 'scheduled day'));
+                                card.setAttribute('aria-label', adminOverride ? adminOverrideNotice(adminOverride) : 'Select schedule ' + (schedule.course_code || schedule.course || 'class') + ' for ' + (schedule.day || 'scheduled day'));
+                                if (adminOverride) card.setAttribute('aria-disabled', 'true');
 
                                 card.onkeydown = function(event) {
                                     if (event.key === 'Enter' || event.key === ' ') {
@@ -1404,6 +1673,7 @@ const swapTargetScheduleData =
                                     );
 
                                 card.innerHTML = `
+                                    ${adminOverrideBadge(schedule)}
                                     ${swapStatusBadge(schedule)}
                                     <div class="my-room-schedule-top">
                                         <div class="my-room-schedule-course">
@@ -1485,6 +1755,11 @@ const swapTargetScheduleData =
                     const scheduleStatusRecord = (mySwapScheduleData || []).find(function(item) {
                         return Number(item.id) === Number(scheduleId);
                     });
+                    const adminOverride = getScheduleAdminOverride(scheduleStatusRecord || scheduleId);
+                    if (adminOverride) {
+                        alert(adminOverrideNotice(adminOverride));
+                        return;
+                    }
                     if (scheduleHasActiveSwap(scheduleStatusRecord)) {
                         alert(scheduleStatusRecord.swap_status === 'approved'
                             ? 'This schedule has already been swapped and cannot be selected for another room swap.'
@@ -1555,9 +1830,9 @@ const swapTargetScheduleData =
                     document.getElementById(
                         'swap_date'
                     ).value =
-                        new Date()
-                            .toISOString()
-                            .split('T')[0];
+                        nextAvailableRoomSwapDate(schedule.day, [schedule.room_id], schedule.time);
+
+                    updateRoomSwapOverrideWarning();
 
                     const timeParts =
                         String(schedule.time || '').split('-');
@@ -1629,6 +1904,7 @@ if (selectedBox) {
 }
 
 selectedTargetSchedule = null;
+updateRoomSwapOverrideWarning();
 
 const requesterScheduleIdField =
     document.getElementById('requester_schedule_id');
@@ -1788,11 +2064,13 @@ if (selectedTargetBox) {
                                     });
 
                                     const card = document.createElement('div');
-                                    card.className = 'my-room-schedule-card' + (schedule.swap_status === 'pending' ? ' swap-pending swap-locked' : (schedule.swap_status === 'approved' ? ' swap-approved swap-locked' : ''));
+                                    const adminOverride = getScheduleAdminOverride(schedule);
+                                    card.className = 'my-room-schedule-card' + (schedule.swap_status === 'pending' ? ' swap-pending swap-locked' : (schedule.swap_status === 'approved' ? ' swap-approved swap-locked' : '')) + (adminOverride ? ' admin-overridden' : '');
                                     card.dataset.scheduleId = schedule.id;
                                     card.setAttribute('role', 'button');
                                     card.setAttribute('tabindex', '0');
-                                    card.setAttribute('aria-label', 'Select schedule ' + (schedule.course_code || schedule.subject || 'class'));
+                                    card.setAttribute('aria-label', adminOverride ? adminOverrideNotice(adminOverride) : 'Select schedule ' + (schedule.course_code || schedule.subject || 'class'));
+                                    if (adminOverride) card.setAttribute('aria-disabled', 'true');
 
                                     const selectThisSchedule = function() {
                                         const room = {
@@ -1828,6 +2106,7 @@ if (selectedTargetBox) {
                                     });
 
                                     card.innerHTML = `
+                                        ${adminOverrideBadge(schedule)}
                                         ${swapStatusBadge(schedule)}
                                         <div class="my-room-schedule-top">
                                             <div class="my-room-schedule-course">${escapeSwapHtml(schedule.course_code || '-')}</div>
@@ -2415,6 +2694,13 @@ if (selectedTargetBox) {
                 'unknown'
             );
 
+        const hasActiveSwap =
+            typeof scheduleHasActiveSwap === 'function' &&
+            scheduleHasActiveSwap(schedule);
+
+        const adminOverride = getScheduleAdminOverride(schedule);
+        const hasAdminOverride = Boolean(adminOverride);
+
         card.className =
             'auto-swap-match-card' +
             (
@@ -2426,14 +2712,10 @@ if (selectedTargetBox) {
                             : ' swap-pending'
                     )
                     : ''
-            );
+            ) + (hasAdminOverride ? ' admin-overridden' : '');
 
         card.dataset.departmentKey =
             departmentKey;
-
-        const hasActiveSwap =
-            typeof scheduleHasActiveSwap === 'function' &&
-            scheduleHasActiveSwap(schedule);
 
         const statusBadge =
             typeof swapStatusBadge === 'function'
@@ -2457,6 +2739,7 @@ if (selectedTargetBox) {
             '-';
 
         card.innerHTML = `
+            ${adminOverrideBadge(schedule)}
             ${statusBadge}
 
             <span class="auto-swap-match-time">
@@ -2510,12 +2793,15 @@ if (selectedTargetBox) {
 
             <button
                 type="button"
-                ${hasActiveSwap ? 'disabled' : ''}
+                ${hasActiveSwap || hasAdminOverride ? 'disabled' : ''}
+                ${hasAdminOverride ? `title="${escapeSwapHtml(adminOverrideNotice(adminOverride))}" aria-label="${escapeSwapHtml(adminOverrideNotice(adminOverride))}"` : ''}
             >
                 <i class="fa-solid fa-right-left"></i>
 
                 ${
-                    hasActiveSwap
+                    hasAdminOverride
+                        ? 'Admin is occupying this schedule'
+                        : hasActiveSwap
                         ? (
                             schedule.swap_status === 'approved'
                                 ? 'Room Already Swapped'
@@ -2529,7 +2815,7 @@ if (selectedTargetBox) {
         const button =
             card.querySelector('button');
 
-        if (button && !hasActiveSwap) {
+        if (button && !hasActiveSwap && !hasAdminOverride) {
 
             button.addEventListener(
                 'click',
@@ -3949,6 +4235,17 @@ function normalizeSwapTime(time)
 
                     }
 
+                    const adminOverride = getScheduleAdminOverride(schedule);
+                    if (adminOverride) {
+                        return `
+                            <td class="swap-excel-occupied disabled-swap admin-overridden" title="${escapeSwapHtml(adminOverrideNotice(adminOverride))}" aria-label="${escapeSwapHtml(adminOverrideNotice(adminOverride))}">
+                                <div class="swap-excel-course">${escapeSwapHtml(schedule.course_code || '')}</div>
+                                <div class="swap-excel-subject">${escapeSwapHtml(schedule.subject || '')}</div>
+                                <div class="admin-override-grid-note"><i class="fa-solid fa-lock" aria-hidden="true"></i> ${escapeSwapHtml(adminOverrideNotice(adminOverride))}</div>
+                            </td>
+                        `;
+                    }
+
 
                     const allowed =
                         canSelectTargetSchedule(
@@ -4190,6 +4487,12 @@ function normalizeSwapTime(time)
         return;
     }
 
+    const adminOverride = getScheduleAdminOverride(schedule);
+    if (adminOverride) {
+        alert(adminOverrideNotice(adminOverride));
+        return;
+    }
+
     /*
      * Do not allow selecting your own schedule.
      */
@@ -4395,6 +4698,12 @@ function applyTargetSwapSchedule(scheduleId)
         return;
     }
 
+    const adminOverride = getScheduleAdminOverride(schedule);
+    if (adminOverride) {
+        alert(adminOverrideNotice(adminOverride));
+        return;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | PREVENT INVALID SWAP
@@ -4483,8 +4792,11 @@ function applyTargetSwapSchedule(scheduleId)
         document.getElementById('swap_date');
 
     if (swapDateField) {
-        swapDateField.value =
-            new Date().toISOString().slice(0, 10);
+        swapDateField.value = nextAvailableRoomSwapDate(
+            selectedRequesterSchedule?.day || schedule.day,
+            [selectedRequesterSchedule?.room_id, schedule.room_id],
+            selectedRequesterSchedule?.time || schedule.time
+        );
     }
 
     const timeParts =
@@ -4513,6 +4825,8 @@ function applyTargetSwapSchedule(scheduleId)
     if (endTimeField) {
         endTimeField.value = endTime;
     }
+
+    updateRoomSwapOverrideWarning();
 
     /*
     |--------------------------------------------------------------------------
@@ -4869,6 +5183,7 @@ function applyTargetSwapSchedule(scheduleId)
 
                     selectedTargetSchedule =
                         null;
+                    updateRoomSwapOverrideWarning();
                     pendingTargetScheduleId = null;
                     const confirmModal = document.getElementById('targetScheduleConfirmModal');
                     const step3Modal = document.getElementById('step3Modal');
@@ -4975,6 +5290,12 @@ function applyTargetSwapSchedule(scheduleId)
                         'submit',
                         function(event)
                         {
+
+                            if (updateRoomSwapOverrideWarning()) {
+                                event.preventDefault();
+                                alert('An admin override reserves one of these rooms on the selected date. Choose another date before sending the request.');
+                                return;
+                            }
 
                             /*
                             | Make sure requester schedule exists
@@ -5158,6 +5479,9 @@ function applyTargetSwapSchedule(scheduleId)
 
                         }
                     );
+
+                document.getElementById('swap_date')?.addEventListener('change', updateRoomSwapOverrideWarning);
+                document.getElementById('swap_date')?.addEventListener('input', updateRoomSwapOverrideWarning);
 
             </script>
 

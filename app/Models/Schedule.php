@@ -35,6 +35,7 @@ class Schedule extends Model
         'room_id',
 
         'faculty_id',
+        'faculty_subject_id',
 
         'department_id',
 
@@ -134,6 +135,11 @@ class Schedule extends Model
             User::class,
             'faculty_id'
         );
+    }
+
+    public function facultySubject()
+    {
+        return $this->belongsTo(FacultySubject::class, 'faculty_subject_id');
     }
 
     /*

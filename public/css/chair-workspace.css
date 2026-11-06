@@ -1,0 +1,118 @@
+/* Chair workspace refresh: readable white surfaces, clear borders, and consistent controls. */
+.wrapper:has(.chair-workspace-redesign) { background:#f4f7f5 !important; }
+.chair-workspace-redesign {
+    --chair-ui-ink:#1f3328;
+    --chair-ui-text:#34483b;
+    --chair-ui-muted:#53675a;
+    --chair-ui-green:#2f6b4b;
+    --chair-ui-green-dark:#24583d;
+    --chair-ui-border:#d5e0d8;
+    min-width:0;
+    color:var(--chair-ui-text) !important;
+    background:#f4f7f5 !important;
+    font-family:Inter,"Segoe UI",Arial,sans-serif !important;
+    font-size:16px !important;
+    line-height:1.6 !important;
+}
+.chair-workspace-redesign * { box-sizing:border-box; }
+.chair-workspace-redesign :is(h1,h2,h3,h4) { color:var(--chair-ui-ink) !important; line-height:1.3 !important; }
+.chair-workspace-redesign :is(p,label,small,.subtitle,.description,[class*="muted"],[class*="subtitle"],[class*="description"]) { color:var(--chair-ui-muted) !important; }
+.chair-workspace-redesign :is(label,strong) { font-weight:700 !important; }
+.chair-workspace-redesign :is(.page,.academic-library-page,.draft-page,.subjects-page) { max-width:1580px !important; padding-left:clamp(16px,2.4vw,34px) !important; padding-right:clamp(16px,2.4vw,34px) !important; }
+.chair-workspace-redesign :is(.page-header,.modify-hero,.academic-library-header,.subjects-hero) {
+    color:var(--chair-ui-ink) !important;
+    background:#fff !important;
+    border:1px solid var(--chair-ui-border) !important;
+    border-radius:18px !important;
+    box-shadow:0 3px 12px rgba(29,55,39,.06) !important;
+}
+.chair-workspace-redesign :is(.section,.navigation-section,.schedule-section,.rooms-section,.room-card,.department-card,.department-info,.department-display,.building,.rooms-container,.faculty-card,.subject-section,.subjects-card,.program-card,.year-card,.semester-card,.editor-panel,.library-sidebar,.reuse-panel,.preview-panel,.empty-preview,.term-panel,.term-item,.draft-card) {
+    color:var(--chair-ui-text) !important;
+    background:#fff !important;
+    border:1px solid var(--chair-ui-border) !important;
+    border-radius:15px !important;
+    box-shadow:0 3px 11px rgba(29,55,39,.055) !important;
+}
+.chair-workspace-redesign :is(.room-card,.department-card,.faculty-card,.program-card,.year-card,.semester-card) { transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease; }
+.chair-workspace-redesign :is(.room-card,.department-card,.faculty-card,.program-card,.year-card,.semester-card):hover { border-color:#b8cdbd !important; box-shadow:0 5px 15px rgba(29,55,39,.09) !important; }
+.chair-workspace-redesign :is(.room-card,.department-card,.faculty-card,.program-card,.year-card,.semester-card) :is(h2,h3,h4,strong) { color:var(--chair-ui-ink) !important; }
+.chair-workspace-redesign :is(.btn,.library-btn,.subjects-btn,.btn-edit,.back-button,.action-button,[class*="-btn"],input[type="submit"],button[type="submit"]) {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:44px;
+    padding:10px 16px;
+    border:1px solid var(--chair-ui-green) !important;
+    border-radius:9px !important;
+    background:var(--chair-ui-green) !important;
+    color:#fff !important;
+    -webkit-text-fill-color:#fff !important;
+    font-family:inherit !important;
+    font-size:15px !important;
+    font-weight:750 !important;
+    line-height:1.35 !important;
+    text-align:center;
+    text-decoration:none !important;
+    opacity:1 !important;
+    text-shadow:none !important;
+    box-shadow:0 2px 5px rgba(31,74,49,.12) !important;
+    transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease !important;
+}
+.chair-workspace-redesign :is(.btn,.library-btn,.subjects-btn,.btn-edit,.back-button,.action-button,[class*="-btn"],input[type="submit"],button[type="submit"]):hover {
+    background:var(--chair-ui-green-dark) !important;
+    border-color:var(--chair-ui-green-dark) !important;
+    color:#fff !important;
+    -webkit-text-fill-color:#fff !important;
+    box-shadow:0 4px 9px rgba(31,74,49,.16) !important;
+    transform:translateY(-1px);
+}
+.chair-workspace-redesign :is(.gray,.secondary,.btn-gray,.btn-secondary,.back-button,.btn-back,.library-btn-gray,.subjects-btn.secondary,.btn-yellow,.yellow) {
+    background:#edf3ee !important;
+    border-color:#cbd9ce !important;
+    color:#254835 !important;
+    -webkit-text-fill-color:#254835 !important;
+}
+.chair-workspace-redesign :is(.gray,.secondary,.btn-gray,.btn-secondary,.back-button,.btn-back,.library-btn-gray,.subjects-btn.secondary,.btn-yellow,.yellow):hover {
+    background:#e1ebe3 !important;
+    border-color:#b9cdbd !important;
+    color:#1e3f2c !important;
+    -webkit-text-fill-color:#1e3f2c !important;
+}
+.chair-workspace-redesign :is(.red,.danger,.btn-red,.btn-danger,.library-btn-danger,.delete-btn) {
+    background:#a83b35 !important;
+    border-color:#a83b35 !important;
+    color:#fff !important;
+    -webkit-text-fill-color:#fff !important;
+}
+.chair-workspace-redesign :is(.red,.danger,.btn-red,.btn-danger,.library-btn-danger,.delete-btn):hover { background:#8e302b !important; border-color:#8e302b !important; color:#fff !important; -webkit-text-fill-color:#fff !important; }
+.chair-workspace-redesign :is(a.btn,a.library-btn,a.subjects-btn,a[class*="-btn"]):link,
+.chair-workspace-redesign :is(a.btn,a.library-btn,a.subjects-btn,a[class*="-btn"]):visited { color:#fff !important; -webkit-text-fill-color:#fff !important; }
+.chair-workspace-redesign :is(a.btn.secondary,a.btn.gray,a.library-btn.secondary,a.library-btn-gray,a.subjects-btn.secondary,a[class*="-btn"].gray):is(:link,:visited) { color:#254835 !important; -webkit-text-fill-color:#254835 !important; }
+.chair-workspace-redesign :is(button,input[type="submit"],a[class*="btn"]):disabled,
+.chair-workspace-redesign :is(button,input[type="submit"])[disabled] { opacity:.65 !important; cursor:not-allowed !important; transform:none !important; }
+.chair-workspace-redesign :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+    min-height:44px;
+    border:1px solid #c8d6cb !important;
+    border-radius:9px !important;
+    background:#fff !important;
+    color:#24392b !important;
+    font-family:inherit !important;
+    font-size:16px !important;
+    box-shadow:inset 0 1px 2px rgba(24,52,34,.04) !important;
+}
+.chair-workspace-redesign :is(input,textarea)::placeholder { color:#687a6d !important; opacity:1 !important; }
+.chair-workspace-redesign :is(input,select,textarea,button,a,[tabindex]):focus-visible { outline:3px solid rgba(47,107,75,.25) !important; outline-offset:2px !important; }
+.chair-workspace-redesign :is(table,.schedule-table,.subject-table) { color:#2d4434 !important; border-color:#d8e2da !important; }
+.chair-workspace-redesign :is(th,thead th) { background:#edf4ee !important; color:#244934 !important; font-size:14px !important; font-weight:750 !important; }
+.chair-workspace-redesign :is(td,th) { border-color:#dce5de !important; font-size:15px !important; line-height:1.5 !important; }
+.chair-workspace-redesign :is(tbody tr:hover) { background:#f5f9f6 !important; }
+.chair-workspace-redesign :is(.library-btn,.subjects-btn,.btn) i { color:inherit !important; -webkit-text-fill-color:currentColor !important; }
+.chair-workspace-redesign :is(.alert,.message,.library-message) { font-size:15px !important; line-height:1.55 !important; }
+.chair-workspace-redesign :is(.empty-state,.empty-title,.empty-preview-title) { color:#52675a !important; }
+@media(max-width:760px) {
+    .chair-workspace-redesign :is(.page,.academic-library-page,.draft-page,.subjects-page) { padding-top:16px !important; padding-bottom:28px !important; }
+    .chair-workspace-redesign :is(.page-header,.modify-hero,.academic-library-header,.subjects-hero) { padding:20px !important; }
+    .chair-workspace-redesign :is(.page-header,.academic-library-header) { align-items:flex-start !important; flex-direction:column !important; }
+    .chair-workspace-redesign :is(.section,.navigation-section,.schedule-section,.rooms-section,.room-card,.department-card,.department-info,.department-display,.building,.rooms-container,.faculty-card,.subject-section,.subjects-card,.program-card,.year-card,.semester-card,.editor-panel) { border-radius:12px !important; }
+}

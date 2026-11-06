@@ -1,0 +1,217 @@
+/* WebRoomSched shared interface — one accessible visual system for every role. */
+:root {
+    color-scheme: light;
+    --portal-forest: #173d2b;
+    --portal-forest-hover: #24543a;
+    --portal-green: #276747;
+    --portal-green-hover: #1e5639;
+    --portal-green-soft: #eaf2ec;
+    --portal-canvas: #f4f7f5;
+    --portal-paper: #ffffff;
+    --portal-ink: #20352a;
+    --portal-text: #34483b;
+    --portal-muted: #56685c;
+    --portal-line: #d8e2da;
+    --portal-danger: #a53432;
+    --portal-shadow: 0 3px 14px rgba(25, 55, 37, .065);
+}
+html { min-height:100%; scroll-behavior:smooth; }
+body {
+    min-height:100vh;
+    color:var(--portal-text) !important;
+    background:var(--portal-canvas) !important;
+    font-family:Inter,"Segoe UI",Arial,sans-serif !important;
+    font-size:16px !important;
+    line-height:1.6 !important;
+    -webkit-font-smoothing:antialiased;
+}
+body,button,input,select,textarea { font-family:Inter,"Segoe UI",Arial,sans-serif !important; }
+.wrapper,.main-layout { min-width:0 !important; background:var(--portal-canvas) !important; }
+.content { min-width:0 !important; color:var(--portal-text) !important; background:var(--portal-canvas) !important; }
+/* Header: quiet, inset, and never sticky while the page scrolls. */
+body:not(:has(.page-shell)) .top-header,.top-header {
+    color:var(--portal-ink) !important;
+    background:#fff !important;
+    border:1px solid var(--portal-line) !important;
+    border-radius:16px !important;
+    box-shadow:0 3px 12px rgba(27,50,36,.06) !important;
+    backdrop-filter:none !important;
+}
+.top-header .header-title small { color:#52685a !important; font-size:12px !important; font-weight:650 !important; letter-spacing:.04em !important; }
+.top-header .header-title h3 { color:var(--portal-forest) !important; font-size:18px !important; font-weight:800 !important; }
+.top-header .header-action,.top-header .header-right button {
+    min-height:42px !important; color:#345642 !important; background:#f2f6f3 !important;
+    border:1px solid #dce6de !important; border-radius:11px !important; box-shadow:none !important;
+}
+.top-header .header-action:hover,.top-header .header-right button:hover { color:#174b31 !important; background:#e7f0e9 !important; border-color:#c8d8cc !important; }
+.top-header .header-profile-name { color:#284333 !important; font-size:14px !important; }
+.header-notification-heading,.header-notification-item strong { font-size:15px !important; }
+.header-notification-heading small,.header-notification-item span,.header-notification-item time,.header-notification-empty { color:#52685a !important; font-size:14px !important; line-height:1.5 !important; }
+/* Sidebar: deep ledger green, calm hover state, high contrast labels. */
+.main-layout > .sidebar,.wrapper > .sidebar,.sidebar.faculty-sidebar {
+    color:#edf5ef !important;
+    background:linear-gradient(180deg,#173d2b 0%,#143624 100%) !important;
+    border:0 !important;
+    box-shadow:4px 0 18px rgba(14,42,27,.14) !important;
+}
+.sidebar .faculty-sidebar-brand,.sidebar .faculty-sidebar-workspace,.sidebar .sidebar-brand {
+    color:#f3f7f4 !important; background:rgba(255,255,255,.055) !important;
+    border:1px solid rgba(226,240,229,.12) !important; border-radius:14px !important; box-shadow:none !important;
+}
+.sidebar .faculty-sidebar-brand-copy strong,.sidebar .faculty-sidebar-workspace strong,.sidebar .sidebar-brand strong { color:#fff !important; }
+.sidebar .faculty-sidebar-brand-copy span,.sidebar .faculty-workspace-label,.sidebar .faculty-sidebar-section,.sidebar .sidebar-brand span { color:#b8cbbb !important; }
+.sidebar .faculty-sidebar-workspace .faculty-workspace-mark { color:#fff !important; background:#2a6645 !important; box-shadow:none !important; }
+.sidebar .faculty-sidebar-footer { color:#d6e5da !important; border-top:1px solid rgba(232,244,235,.12) !important; }
+.sidebar .faculty-sidebar-footer strong { color:#f0f6f1 !important; }
+.sidebar .faculty-sidebar-footer span:not(.faculty-footer-indicator) { color:#b8cbbb !important; }
+.sidebar .faculty-footer-indicator { background:#8ec79c !important; box-shadow:none !important; }
+.sidebar .sidebar-menu a,.sidebar li a,.sidebar .sidebar-menu li a {
+    color:#e2ede5 !important; background:transparent !important; border:1px solid transparent !important;
+    border-radius:10px !important; box-shadow:none !important; font-size:15px !important; font-weight:600 !important;
+    transition:background .16s ease,color .16s ease,border-color .16s ease !important;
+}
+.sidebar .faculty-nav-icon,.sidebar li a i,.sidebar .sidebar-icon { color:#c6d8cb !important; background:transparent !important; }
+.sidebar .sidebar-menu a:hover,.sidebar li a:hover,.sidebar .sidebar-menu li a:hover {
+    color:#fff !important; background:#24533a !important; border-color:transparent !important; box-shadow:none !important; transform:none !important;
+}
+.sidebar .sidebar-menu a:hover i,.sidebar li a:hover i { color:#fff !important; }
+.sidebar .sidebar-menu li.active a,.sidebar li.active a {
+    color:#163e2b !important; background:#dcebe0 !important; border-color:#dcebe0 !important;
+    box-shadow:inset 3px 0 #62a478 !important; font-weight:800 !important;
+}
+.sidebar .sidebar-menu li.active a i,.sidebar li.active a i,.sidebar li.active a .faculty-nav-icon { color:#205d3b !important; }
+.sidebar .sidebar-toggle {
+    color:#e7f1e9 !important; background:#214c35 !important; border:1px solid rgba(223,241,228,.18) !important;
+    border-radius:9px !important; box-shadow:none !important;
+}
+.sidebar .sidebar-toggle:hover { color:#fff !important; background:#2a6041 !important; }
+.sidebar a:focus-visible,.sidebar button:focus-visible { outline:3px solid #a6d1ae !important; outline-offset:2px !important; }
+/* Page titles and introductory panels share a clear hierarchy. */
+.content :is(h1,.page-title,.schedule-title,.swap-title,.vacant-title,.modify-title,.academic-library-title,.subjects-hero h1) {
+    color:var(--portal-ink) !important; font-size:clamp(29px,3vw,36px) !important; font-weight:800 !important;
+    line-height:1.2 !important; letter-spacing:-.025em !important;
+}
+.content :is(h2,h3,h4) { color:var(--portal-ink) !important; line-height:1.35 !important; }
+.content :is(p,.subtitle,.page-subtitle,.description,.section-subtitle,.section-help,.muted,.help-text) {
+    color:var(--portal-muted) !important; font-size:16px !important; line-height:1.6 !important;
+}
+.content :is(label,.field-label,th) { color:#2c4736 !important; font-size:15px !important; font-weight:750 !important; }
+.content :is(.status-badge,.badge,.status,.chair-status,.mu-status,.reservation-status-badge,.swap-status-badge,.room-status,.term-status) { font-size:14px !important; line-height:1.4 !important; font-weight:750 !important; }
+.content :is(.page-header,.dashboard-header,.schedule-header,.modify-hero,.academic-library-hero,.subjects-hero,.department-hero,.buildings-hero,.faculty-setup-hero,.swap-hero,.so-hero) {
+    color:var(--portal-ink) !important; background:#fff !important; border:1px solid var(--portal-line) !important;
+    border-radius:18px !important; box-shadow:var(--portal-shadow) !important;
+}
+/* Uniform, clearly separated content cards. */
+.content :is(.card,.dashboard-panel,.overview-panel,.chair-panel,.chair-tools-panel,.chair-requests-panel,.chair-department-panel,.chair-request-card,.chair-metric-card,.ah-panel,.ah-stat,.campus-snapshot-panel,.content-panel,.department-panel,.department-section,.department-card,.building-card,.faculty-card,.faculty-info-card,.faculty-stat-card,.room-card,.room-section,.room-swap-dashboard-card,.reservation-card,.reservation-summary-card,.reservation-view-panel,.reservation-section,.incoming-swap-card,.outgoing-swap-card,.swap-request-card-item,.swap-history-card,.swap-confirm-card,.swap-override-panel,.navigation-section,.schedule-section,.section,.subject-section,.subjects-card,.program-card,.year-card,.semester-card,.editor-panel,.merge-section,.editor-panel,.reuse-panel,.term-item,.preview-panel,.summary-card,.form-card,.table-card,.modal-box,.mu-panel,.mu-modal-card,.so-panel,.master-course-card,.checklist-editor-card,.department-info,.selected-building-box,.selected-swap-box,.selected-requester-header,.schedule-panel,.method-card) {
+    color:var(--portal-text) !important; background:#fff !important; border:1px solid var(--portal-line) !important;
+    border-radius:14px !important; box-shadow:var(--portal-shadow) !important;
+}
+.content :is(.card,.dashboard-panel,.overview-panel,.chair-panel,.department-card,.building-card,.faculty-card,.faculty-info-card,.faculty-stat-card,.room-card,.reservation-card,.navigation-section,.schedule-section,.section,.subject-section,.subjects-card,.program-card,.year-card,.semester-card,.editor-panel,.merge-section,.term-item,.summary-card,.form-card,.table-card,.mu-panel,.so-panel,.master-course-card,.checklist-editor-card,.schedule-panel):hover {
+    border-color:#bfd2c4 !important; box-shadow:0 5px 17px rgba(25,55,37,.085) !important;
+}
+.content :is(.page-header,.dashboard-header,.schedule-header,.modify-hero,.academic-library-hero,.subjects-hero,.department-hero,.buildings-hero,.faculty-setup-hero,.swap-hero,.so-hero) :is(h1,h2,h3,strong) { color:var(--portal-ink) !important; }
+.content :is(.page-header,.dashboard-header,.schedule-header,.modify-hero,.academic-library-hero,.subjects-hero,.department-hero,.buildings-hero,.faculty-setup-hero,.swap-hero,.so-hero) :is(p,small,.subtitle,.description) { color:var(--portal-muted) !important; }
+/* High contrast buttons and accessible states; preserve danger/status meaning. */
+.content :is(.btn,.button,.add-btn,.add-button,.btn-green,.btn-primary,.btn-success,.btn-save,.btn-update,.btn-schedule,.btn-send,.btn-approve,.primary-btn,.button-primary,.library-btn-green,.subjects-btn,.btn-edit,.action-button,input[type="submit"],button[type="submit"]) {
+    display:inline-flex !important; align-items:center !important; justify-content:center !important; gap:8px !important;
+    min-height:44px !important; padding:10px 16px !important; border:1px solid var(--portal-green) !important;
+    border-radius:9px !important; background:var(--portal-green) !important; color:#fff !important;
+    -webkit-text-fill-color:#fff !important; font-size:15px !important; font-weight:750 !important; line-height:1.35 !important;
+    text-decoration:none !important; text-shadow:none !important; opacity:1 !important; box-shadow:0 2px 5px rgba(23,61,43,.13) !important;
+    transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease !important;
+}
+.content :is(.btn,.button,.add-btn,.add-button,.btn-green,.btn-primary,.btn-success,.btn-save,.btn-update,.btn-schedule,.btn-send,.btn-approve,.primary-btn,.button-primary,.library-btn-green,.subjects-btn,.btn-edit,.action-button,input[type="submit"],button[type="submit"]):hover {
+    background:var(--portal-green-hover) !important; border-color:var(--portal-green-hover) !important; color:#fff !important;
+    -webkit-text-fill-color:#fff !important; box-shadow:0 4px 9px rgba(23,61,43,.18) !important; transform:translateY(-1px) !important;
+}
+.content :is(.btn-gray,.btn-secondary,.btn-default,.btn-back,.back-button,.btn-back,.btn-cancel,.gray,.secondary,.subjects-btn.secondary,.library-btn-gray,.btn-yellow,.yellow,.btn-light) {
+    background:#edf3ee !important; border-color:#cedbd1 !important; color:#254634 !important; -webkit-text-fill-color:#254634 !important;
+}
+.content :is(.btn-gray,.btn-secondary,.btn-default,.btn-back,.back-button,.btn-cancel,.gray,.secondary,.subjects-btn.secondary,.library-btn-gray,.btn-yellow,.yellow,.btn-light):hover {
+    background:#e0ebe2 !important; border-color:#bbcfbf !important; color:#173e2a !important; -webkit-text-fill-color:#173e2a !important;
+}
+.content :is(.btn-red,.btn-danger,.btn-delete,.red,.danger,.delete-btn,.library-btn-danger,.btn-decline,.btn-no) {
+    background:#a63b36 !important; border-color:#a63b36 !important; color:#fff !important; -webkit-text-fill-color:#fff !important;
+}
+.content :is(.btn-red,.btn-danger,.btn-delete,.red,.danger,.delete-btn,.library-btn-danger,.btn-decline,.btn-no):hover { background:#872f2b !important; border-color:#872f2b !important; }
+.content :is(a.btn,a.button,a.add-btn,a.btn-green,a.btn-primary,a.btn-success,a.btn-save,a.btn-update,a.library-btn,a.subjects-btn,a[class*="action"]):link,
+.content :is(a.btn,a.button,a.add-btn,a.btn-green,a.btn-primary,a.btn-success,a.btn-save,a.btn-update,a.library-btn,a.subjects-btn,a[class*="action"]):visited { color:#fff !important; -webkit-text-fill-color:#fff !important; }
+.content :is(a.btn-gray,a.btn-secondary,a.btn-default,a.btn-back,a.back-button,a.gray,a.secondary,a.subjects-btn.secondary):is(:link,:visited) { color:#254634 !important; -webkit-text-fill-color:#254634 !important; }
+.content :is(button,a,input[type="submit"]):disabled,.content :is(button,a,input[type="submit"])[disabled] { opacity:.62 !important; cursor:not-allowed !important; transform:none !important; }
+.content button:not([class]):not([type="submit"]),.content button[class=""] { min-height:42px; }
+.content button.building-toggle,.content button.accordion-button,.content button.tab-button,.content button.nav-tab,.content button.sidebar-toggle {
+    background:transparent !important; color:var(--portal-text) !important; border-color:transparent !important; box-shadow:none !important;
+}
+/* Forms: visible edges, larger labels, clean white controls. */
+.content :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+    min-height:44px !important; border:1px solid #c7d5ca !important; border-radius:9px !important;
+    background:#fff !important; color:#24392b !important; font-size:16px !important; box-shadow:inset 0 1px 2px rgba(20,50,30,.045) !important;
+}
+.content :is(input,textarea)::placeholder { color:#6b7a6e !important; opacity:1 !important; }
+.content :is(input,select,textarea,button,a,[tabindex]):focus-visible { outline:3px solid rgba(39,103,71,.25) !important; outline-offset:2px !important; }
+/* Tables stay white and readable, including dense scheduling pages. */
+.content :is(.table-wrapper,.table-container,.table-card,.table-wrap,.mu-table-wrap,.schedule-table-wrapper,.timetable-wrapper,.merge-room-schedule-table-wrapper) {
+    overflow:auto !important; background:#fff !important; border:1px solid var(--portal-line) !important; border-radius:12px !important; box-shadow:none !important;
+}
+.content table { color:var(--portal-text) !important; border-color:var(--portal-line) !important; background:#fff !important; }
+.content table :is(th,thead th) { background:#edf3ee !important; color:#244633 !important; font-size:14px !important; font-weight:800 !important; }
+.content table :is(td,th) { border-color:#dce5de !important; font-size:15px !important; line-height:1.5 !important; }
+.content table tbody tr:nth-child(even) { background:#fafcfb !important; }
+.content table tbody tr:hover { background:#f0f6f1 !important; }
+/* Alerts, dialog surfaces, and status labels use restrained color. */
+:is(.profile-photo-dialog,.global-message-dialog,.modal-box,.program-popup-card,.swap-modal-card,.mu-modal-card,.modal-content,.dialog-card) {
+    color:var(--portal-text) !important; background:#fff !important; border:1px solid var(--portal-line) !important; box-shadow:0 18px 48px rgba(20,45,30,.2) !important;
+}
+:is(.profile-photo-dialog,.global-message-dialog,.modal-box,.program-popup-card,.swap-modal-card,.mu-modal-card,.modal-content,.dialog-card) :is(h1,h2,h3,strong,label) { color:var(--portal-ink) !important; }
+:is(.profile-photo-dialog,.global-message-dialog,.modal-box,.program-popup-card,.swap-modal-card,.mu-modal-card,.modal-content,.dialog-card) :is(p,small) { color:var(--portal-muted) !important; }
+:is(.success-box,.success-message,.alert-success,.message.success,.library-message.success) { color:#245d37 !important; background:#edf7ef !important; border-color:#c8e1ce !important; }
+:is(.error-box,.error-message,.alert-danger,.alert-error,.message.error,.library-message.error) { color:#8b302c !important; background:#fff1ef !important; border-color:#e9c8c3 !important; }
+/* Keep the full-bleed student timetable and spreadsheet cells legible. */
+.student-schedule-page,.page-container { color:var(--portal-text) !important; background:var(--portal-canvas) !important; }
+.content :is(.schedule-title,.page-title) { color:var(--portal-ink) !important; }
+@media(max-width:760px) {
+    .content { padding-inline:14px !important; }
+    .top-header .header-title small { display:none; }
+    .top-header .header-title h3 { font-size:16px !important; }
+    .content :is(.page-header,.dashboard-header,.schedule-header,.modify-hero,.academic-library-hero,.subjects-hero,.department-hero,.buildings-hero,.faculty-setup-hero,.swap-hero,.so-hero) { padding:20px !important; }
+    .content :is(.card,.dashboard-panel,.overview-panel,.chair-panel,.department-card,.building-card,.faculty-card,.room-card,.navigation-section,.schedule-section,.section,.subject-section,.subjects-card,.program-card,.year-card,.semester-card,.editor-panel,.merge-section,.mu-panel,.so-panel) { border-radius:12px !important; }
+}
+@media(prefers-reduced-motion:reduce) {
+    html { scroll-behavior:auto; }
+    *,*::before,*::after { transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+}
+/* Standalone schedule views use the same canvas, typography, cards, and actions. */
+.page-container { max-width:1580px !important; padding:clamp(18px,2.5vw,36px) !important; }
+.page-container :is(.page-header,.schedule-header,.dashboard-header) { color:var(--portal-ink) !important; background:#fff !important; border:1px solid var(--portal-line) !important; border-radius:18px !important; box-shadow:var(--portal-shadow) !important; }
+.page-container :is(h1,h2,h3,h4) { color:var(--portal-ink) !important; }
+.page-container :is(p,small,.subtitle,.description) { color:var(--portal-muted) !important; }
+.page-container :is(.card,.panel,.schedule-panel,.schedule-card,.summary-card,.section,.room-card,.form-card,.table-card) { color:var(--portal-text) !important; background:#fff !important; border:1px solid var(--portal-line) !important; border-radius:14px !important; box-shadow:var(--portal-shadow) !important; }
+.page-container :is(button,.btn,a.button,input[type="submit"]) { min-height:44px !important; border-radius:9px !important; font-size:15px !important; font-weight:750 !important; }
+.page-container table { color:var(--portal-text) !important; background:#fff !important; }
+.page-container table th { color:#244633 !important; background:#edf3ee !important; }
+.page-container table td,.page-container table th { border-color:var(--portal-line) !important; font-size:15px !important; }
+.faculty-room-schedule-body { min-height:100vh; padding:28px !important; color:var(--portal-text) !important; background:var(--portal-canvas) !important; font-family:Inter,"Segoe UI",Arial,sans-serif !important; }
+.faculty-room-schedule-body :is(h1,h2,h3) { color:var(--portal-ink) !important; font-size:clamp(26px,3vw,34px) !important; }
+.faculty-room-schedule-body table { width:100%; border-collapse:collapse; border:1px solid var(--portal-line); border-radius:12px; overflow:hidden; background:#fff !important; box-shadow:var(--portal-shadow); }
+.faculty-room-schedule-body th { color:#244633 !important; background:#edf3ee !important; font-size:14px !important; }
+.faculty-room-schedule-body td,.faculty-room-schedule-body th { padding:12px !important; border:1px solid var(--portal-line) !important; color:var(--portal-text) !important; font-size:15px !important; }
+.chair-excel-clay { min-height:100vh !important; color:var(--portal-text) !important; background:var(--portal-canvas) !important; font-family:Inter,"Segoe UI",Arial,sans-serif !important; }
+.chair-excel-clay :is(.program-header,.editor-panel,.merge-section,.program-popup-card,.table-wrapper) { color:var(--portal-text) !important; background:#fff !important; border:1px solid var(--portal-line) !important; border-radius:14px !important; box-shadow:var(--portal-shadow) !important; }
+.chair-excel-clay :is(.program-title,.editor-title,.merge-title,h1,h2,h3) { color:var(--portal-ink) !important; }
+.chair-excel-clay :is(.editor-subtitle,.merge-description,.program-meta,.meta-item) { color:var(--portal-muted) !important; }
+.chair-excel-clay :is(.btn-green,.btn-primary,.btn-save,.btn-update,.btn-schedule) { color:#fff !important; -webkit-text-fill-color:#fff !important; background:var(--portal-green) !important; border-color:var(--portal-green) !important; }
+.chair-excel-clay :is(.btn-gray,.btn-back,.back-link) { color:#254634 !important; -webkit-text-fill-color:#254634 !important; background:#edf3ee !important; border-color:#cedbd1 !important; }
+.chair-excel-clay .table-wrapper { overflow:auto !important; }
+.chair-excel-clay table :is(th,thead th) { color:#244633 !important; background:#edf3ee !important; }
+.chair-excel-clay table :is(td,th) { border-color:var(--portal-line) !important; }
+.chair-excel-clay .schedule-cell { border-color:#cfdcd2 !important; }
+.chair-excel-clay :is(input,select,textarea) { background:#fff !important; color:#24392b !important; border-color:#c7d5ca !important; }
+/* Welcome and sign-in screens share the neutral background and readable controls. */
+body.welcome-page,body.auth-page { color:var(--portal-text) !important; background:var(--portal-canvas) !important; }
+body.welcome-page :is(h1,h2,h3,p,label,small) { text-shadow:none !important; }
+.welcome-page :is(.panel,.split-card,.login-panel,.brand-panel,.content-panel) { color:var(--portal-text) !important; background:#fff !important; border:1px solid var(--portal-line) !important; border-radius:16px !important; box-shadow:var(--portal-shadow) !important; }
+.welcome-page :is(.brand-title,.brand-text,.brand-campus,.small-title,.login-panel-title,.eyebrow,.description,.access-info,.footer-note,.form-label) { color:var(--portal-text) !important; text-shadow:none !important; }
+.welcome-page :is(h1,h2,h3,p,small,label) { color:var(--portal-ink) !important; text-shadow:none !important; }
+.welcome-page :is(.form-input,input) { min-height:46px !important; background:#fff !important; color:#24392b !important; border:1px solid #c7d5ca !important; border-radius:9px !important; font-size:16px !important; }
+.welcome-page :is(.btn-login,.login-button,.btn-schedule) { min-height:48px !important; padding:10px 18px !important; color:#fff !important; -webkit-text-fill-color:#fff !important; background:var(--portal-green) !important; border:1px solid var(--portal-green) !important; border-radius:10px !important; font-size:16px !important; font-weight:750 !important; }
+.welcome-page :is(.btn-login,.login-button,.btn-schedule):hover { color:#fff !important; background:var(--portal-green-hover) !important; border-color:var(--portal-green-hover) !important; }

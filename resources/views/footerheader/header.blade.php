@@ -48,6 +48,21 @@
         }
         .top-header { border-top: 5px solid var(--department-theme-color); }
         .header-action.profile { display:flex; align-items:center; gap:8px; max-width:240px; }
+        .header-notification-wrap { position:relative; }
+        .header-notification-button { position:relative; }
+        .header-notification-count { position:absolute; top:-4px; right:-4px; min-width:17px; height:17px; padding:0 4px; display:grid; place-items:center; border:2px solid #fff; border-radius:999px; background:#dc2626; color:#fff; font-size:9px; line-height:1; font-weight:800; }
+        .header-notification-menu { position:absolute; top:calc(100% + 12px); right:0; z-index:1000100; width:min(360px,calc(100vw - 24px)); max-height:min(470px,calc(100vh - 100px)); overflow:auto; border:1px solid #e2e8e4; border-radius:14px; background:#fff; box-shadow:0 18px 50px rgba(15,23,42,.18); }
+        .header-notification-menu[hidden] { display:none !important; }
+        .header-notification-heading { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #edf1ee; color:#20392c; font-size:13px; font-weight:800; }
+        .header-notification-heading small { color:#718078; font-size:10px; font-weight:650; }
+        .header-notification-item { display:block; padding:13px 16px; border-bottom:1px solid #f0f3f1; color:#34443a; text-decoration:none; }
+        .header-notification-item:last-child { border-bottom:0; }
+        .header-notification-item:hover { background:#f5faf6; }
+        .header-notification-item.unread { background:#f0f8f2; box-shadow:inset 3px 0 var(--department-theme-color); }
+        .header-notification-item strong { display:block; color:#1f3e2c; font-size:12px; }
+        .header-notification-item span { display:block; margin-top:4px; color:#64736a; font-size:11px; line-height:1.45; }
+        .header-notification-item time { display:block; margin-top:6px; color:#87928b; font-size:9px; }
+        .header-notification-empty { padding:22px 16px; color:#718078; text-align:center; font-size:11px; }
         .header-profile-photo { width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid var(--department-theme-color); }
         .header-profile-name { max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:600; }
         .profile-photo-overlay, .global-message-overlay { position:fixed; inset:0; z-index:1000000; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.52); backdrop-filter:blur(3px); }
@@ -81,9 +96,24 @@
         @media(max-width:600px) { .header-profile-name { display:none; } .profile-photo-dialog,.global-message-dialog { padding:24px 20px; } }
     </style>
 
+    <link rel="stylesheet" href="{{ asset('css/neon-theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin-theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/shell-layout.css') }}?v=20261018-sidebar-3">
+    <script src="{{ asset('js/sidebar.js') }}" defer></script>
+
 </head>
 
-<body>
+<body class="{{ request()->routeIs('admin.*') ? 'admin-portal' : '' }}">
+
+<?php
+    $headerNotifications = auth()->check()
+        ? auth()->user()->notifications()->latest()->limit(8)->get()
+        : collect();
+
+    $headerUnreadNotificationCount = auth()->check()
+        ? auth()->user()->unreadNotifications()->count()
+        : 0;
+?>
 
 <header class="top-header">
 
@@ -114,13 +144,35 @@
 
     <div class="header-right">
 
-        <button
-            type="button"
-            class="header-action notification"
-            title="Notifications"
-        >
-            <i class="fa-solid fa-bell"></i>
-        </button>
+        <?php if (auth()->check()): ?>
+            <div class="header-notification-wrap">
+                <button type="button" class="header-action notification header-notification-button"
+                        id="headerNotificationButton" title="Notifications" aria-label="Notifications"
+                        data-latest-url="{{ route('notifications.latest') }}"
+                        aria-expanded="false" aria-controls="headerNotificationMenu">
+                    <i class="fa-solid fa-bell"></i>
+                    @if($headerUnreadNotificationCount > 0)
+                        <span class="header-notification-count">{{ $headerUnreadNotificationCount > 9 ? '9+' : $headerUnreadNotificationCount }}</span>
+                    @endif
+                </button>
+                <div class="header-notification-menu" id="headerNotificationMenu" hidden>
+                    <div class="header-notification-heading">
+                        <span>Notifications</span>
+                        <small>{{ $headerUnreadNotificationCount }} unread</small>
+                    </div>
+                    @forelse($headerNotifications as $headerNotification)
+                        <a class="header-notification-item {{ $headerNotification->read_at ? '' : 'unread' }}"
+                           href="{{ route('notifications.open', $headerNotification->id) }}">
+                            <strong>{{ $headerNotification->data['title'] ?? 'Notification' }}</strong>
+                            <span>{{ $headerNotification->data['message'] ?? 'You have a new notification.' }}</span>
+                            <time>{{ $headerNotification->created_at?->diffForHumans() }}</time>
+                        </a>
+                    @empty
+                        <div class="header-notification-empty">You’re all caught up. Schedule changes and room swap updates will appear here.</div>
+                    @endforelse
+                </div>
+            </div>
+        <?php endif; ?>
 
 
         @auth
@@ -203,6 +255,88 @@ function openProfilePhotoDialog() { const el = document.getElementById('profileP
 function closeProfilePhotoDialog() { const el = document.getElementById('profilePhotoOverlay'); if (el) el.style.display = 'none'; }
 function closeGlobalMessage() { const el = document.getElementById('globalMessageOverlay'); if (el) el.remove(); }
 document.addEventListener('DOMContentLoaded', function () {
+    const notificationButton = document.getElementById('headerNotificationButton');
+    const notificationMenu = document.getElementById('headerNotificationMenu');
+    if (notificationButton && notificationMenu) {
+        const refreshNotifications = async function () {
+            try {
+                const response = await fetch(notificationButton.dataset.latestUrl, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin'
+                });
+                if (!response.ok) return;
+                const payload = await response.json();
+                const unreadCount = Number(payload.unread_count || 0);
+                let badge = notificationButton.querySelector('.header-notification-count');
+                if (unreadCount > 0) {
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'header-notification-count';
+                        notificationButton.appendChild(badge);
+                    }
+                    badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+                } else if (badge) {
+                    badge.remove();
+                }
+
+                notificationMenu.replaceChildren();
+                const heading = document.createElement('div');
+                heading.className = 'header-notification-heading';
+                const headingTitle = document.createElement('span');
+                headingTitle.textContent = 'Notifications';
+                const unreadLabel = document.createElement('small');
+                unreadLabel.textContent = unreadCount + ' unread';
+                heading.append(headingTitle, unreadLabel);
+                notificationMenu.appendChild(heading);
+
+                const notifications = payload.notifications || [];
+                if (!notifications.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'header-notification-empty';
+                    empty.textContent = 'You’re all caught up. New room swap requests will appear here.';
+                    notificationMenu.appendChild(empty);
+                    return;
+                }
+
+                notifications.forEach(function (item) {
+                    const link = document.createElement('a');
+                    link.className = 'header-notification-item' + (item.read ? '' : ' unread');
+                    link.href = item.url;
+                    const title = document.createElement('strong');
+                    title.textContent = item.title || 'Notification';
+                    const body = document.createElement('span');
+                    body.textContent = item.message || 'You have a new notification.';
+                    const time = document.createElement('time');
+                    time.textContent = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+                    link.append(title, body, time);
+                    notificationMenu.appendChild(link);
+                });
+            } catch (error) {
+                // Leave the server-rendered notifications available if polling fails.
+            }
+        };
+
+        notificationButton.addEventListener('click', function (event) {
+            event.stopPropagation();
+            const willOpen = notificationMenu.hidden;
+            notificationMenu.hidden = !willOpen;
+            notificationButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+        document.addEventListener('click', function (event) {
+            if (!event.target.closest('.header-notification-wrap')) {
+                notificationMenu.hidden = true;
+                notificationButton.setAttribute('aria-expanded', 'false');
+            }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                notificationMenu.hidden = true;
+                notificationButton.setAttribute('aria-expanded', 'false');
+            }
+        });
+        refreshNotifications();
+        window.setInterval(refreshNotifications, 20000);
+    }
     const photoInput = document.getElementById('profile_photo');
     if (photoInput) photoInput.addEventListener('change', function () {
         const file = this.files && this.files[0];

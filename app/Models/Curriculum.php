@@ -16,6 +16,7 @@ class Curriculum extends Model
         'program',
         'major',
         'curriculum_code',
+        'effective_year',
         'status',
     ];
 

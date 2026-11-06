@@ -12,6 +12,6 @@
 
     </div>
 
-    @include('footerheader.footer')
+    <!-- @include('footerheader.footer') -->
 
 </div>

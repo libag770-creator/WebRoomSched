@@ -1122,6 +1122,312 @@
 
 </style>
 
+<style>
+    /* Department management: high contrast, generous controls, consistent neon accents. */
+    .department-page { max-width: 1480px; margin: 0 auto; padding: 8px 0 36px; }
+    .department-page .department-hero {
+        display: flex; align-items: center; justify-content: space-between; gap: 28px;
+        min-height: 190px; margin: 0 0 26px; padding: 30px clamp(24px, 4vw, 42px);
+        overflow: hidden; border: 1px solid rgba(101,231,255,.25); border-radius: 20px;
+        background: radial-gradient(ellipse at 85% 15%, rgba(84,81,166,.28), transparent 42%), linear-gradient(120deg, #142b38 0%, #12222f 55%, #171a35 100%);
+        box-shadow: 0 18px 38px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.035);
+    }
+    .department-page .department-hero-copy { min-width: 0; }
+    .department-page .department-hero-eyebrow { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; color: #9befff; font-size: 13px; font-weight: 800; letter-spacing: .12em; }
+    .department-page .department-hero h1 { margin: 0 0 9px; color: #f1f9fc; font-size: clamp(32px, 3vw, 42px); font-weight: 850; line-height: 1.15; letter-spacing: -.03em; }
+    .department-page .department-hero-description { margin: 0; color: #c5d5de; font-size: 17px; line-height: 1.6; }
+    .department-page .department-hero-mark { display: flex; flex: 0 0 132px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 132px; height: 132px; border: 1px solid rgba(101,231,255,.25); border-radius: 22px; background: rgba(6,18,28,.35); color: #89eaff; box-shadow: 0 0 32px rgba(101,231,255,.08), inset 0 0 28px rgba(101,231,255,.04); }
+    .department-page .department-hero-mark i { font-size: 42px; }
+    .department-page .department-hero-mark span { color: #b7d2dd; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-align: center; }
+
+    .department-page .add-card,
+    .department-page .table-card {
+        overflow: hidden; border: 1px solid rgba(146,190,210,.24) !important;
+        border-radius: 18px; background: #111f2a !important;
+        box-shadow: 0 14px 32px rgba(0,0,0,.2) !important;
+    }
+    .department-page .add-card { margin-bottom: 24px; padding: 25px; border-top: 3px solid #65e7ff !important; }
+    .department-page .add-card h3,
+    .department-page .table-header h3 { margin: 0; color: #f0f8fc !important; font-size: 23px !important; line-height: 1.35; }
+    .department-page .add-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px 24px; align-items: stretch; }
+    .department-page .form-group { min-width: 0; }
+    .department-page .form-group label { margin-bottom: 9px; color: #e1edf2 !important; font-size: 17px !important; line-height: 1.45; }
+    .department-page .form-group small { display: block; margin-top: 8px; color: #b3c6d0 !important; font-size: 14px !important; line-height: 1.5; }
+    .department-page .form-group input:not([type=color]):not([type=file]) {
+        min-height: 52px !important; padding: 12px 14px !important; border: 1px solid rgba(157,194,211,.35) !important;
+        border-radius: 10px !important; background: #0a151e !important; color: #f0f8fc !important; font-size: 17px !important;
+    }
+    .department-page .form-group input[type=file] {
+        display: block; box-sizing: border-box; width: 100%; min-height: 52px !important; margin: 0 !important; padding: 8px 10px !important;
+        border: 1px solid rgba(157,194,211,.35) !important; border-radius: 10px !important;
+        background: #0a151e !important; color: #e0edf2 !important; font-size: 15px !important;
+    }
+    .department-page .add-department-action {
+        display: flex; flex-direction: column; align-self: start; min-width: 0; padding: 0;
+    }
+    .department-page .add-department-action-spacer {
+        display: block; height: auto; min-height: 24.65px; margin: 0 0 9px;
+        visibility: hidden; font-size: 17px; line-height: 1.45; pointer-events: none;
+    }
+    .department-page .add-department-btn {
+        width: 100%; min-height: 52px !important; margin: 0 !important; padding: 12px 18px !important;
+        border: 1px solid rgba(101,231,255,.35) !important; border-radius: 11px !important;
+        background: linear-gradient(120deg,#087c96,#5551a6) !important; color: #f4fcff !important;
+        font-size: 17px !important; font-weight: 800 !important;
+    }
+    .department-page .add-department-btn:hover { filter: brightness(1.12); box-shadow: 0 0 22px rgba(101,231,255,.14); }
+
+    .department-page .table-header {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        padding: 22px 25px; border-bottom: 1px solid rgba(146,190,210,.2); background: #152631;
+    }
+    .department-page .department-count {
+        display: inline-flex; align-items: center; justify-content: center; min-height: 40px;
+        padding: 7px 13px; border: 1px solid rgba(101,231,255,.25); border-radius: 999px;
+        background: rgba(101,231,255,.09); color: #c2f3fb; font-size: 15px; font-weight: 750;
+    }
+    .department-page .table-container { overflow-x: auto !important; background: #111f2a !important; }
+    .department-page table { min-width: 820px; border-collapse: separate; border-spacing: 0; }
+    .department-page table th {
+        padding: 16px 17px !important; border-color: rgba(146,190,210,.2) !important;
+        background: #1b2d39 !important; color: #e0f5fb !important; font-size: 15px !important;
+        line-height: 1.45; text-align: left; white-space: nowrap;
+    }
+    .department-page table td {
+        padding: 15px 17px !important; border-color: rgba(146,190,210,.15) !important;
+        background: #111f2a !important; color: #dceaf0 !important;
+        font-size: 16px !important; line-height: 1.5; vertical-align: middle;
+    }
+    .department-page table tbody tr:nth-child(even) td { background: #14232e !important; }
+    .department-page table tbody tr:hover td { background: #1a303c !important; }
+    .department-page .department-code,
+    .department-page .id-number,
+    .department-page .building-count {
+        color: #d9edf4 !important; font-size: 15px !important; font-weight: 700;
+    }
+    .department-page .department-code { display: inline-flex; padding: 6px 9px; border: 1px solid rgba(101,231,255,.22); border-radius: 8px; background: rgba(101,231,255,.08); color: #a8effa !important; }
+    .department-page .department-name { color: #f0f8fc !important; font-size: 17px !important; font-weight: 750; }
+    .department-page .department-logo-preview { width: 52px; height: 52px; object-fit: cover; border: 1px solid rgba(146,190,210,.28); border-radius: 12px; background: #0a151e; }
+    .department-page .actions { display: flex; flex-wrap: wrap; gap: 9px; }
+    .department-page .actions form { margin: 0; }
+    .department-page .actions .btn { min-width: 88px; min-height: 44px !important; padding: 9px 13px !important; border: 1px solid transparent !important; border-radius: 9px !important; font-size: 15px !important; font-weight: 750 !important; }
+    .department-page .actions .btn.yellow { background: #49391a !important; border-color: #8f7135 !important; color: #ffe5a0 !important; }
+    .department-page .actions .btn.red { background: #48232d !important; border-color: #a34e62 !important; color: #ffc2cb !important; }
+    .department-page .actions .btn:hover { filter: brightness(1.18); }
+    .department-page .empty-state { padding: 44px 20px; color: #cad8df !important; }
+    .department-page .empty-state-icon { font-size: 44px; }
+    .department-page .empty-state h3 { color: #eff8fc !important; font-size: 23px !important; }
+    .department-page .empty-state p { color: #bdcfd8 !important; font-size: 16px !important; }
+
+    body.admin-portal .modal { z-index: 10000; background: rgba(2,8,13,.82) !important; backdrop-filter: blur(5px); }
+    body.admin-portal .modal-content {
+        width: min(620px, 100%); margin: 26px auto; padding: 30px;
+        border: 1px solid rgba(101,231,255,.28) !important; border-top: 3px solid #65e7ff !important;
+        border-radius: 18px; background: #111f2a !important; color: #e8f4fb !important;
+        box-shadow: 0 28px 80px rgba(0,0,0,.48) !important;
+    }
+    body.admin-portal .modal-content h3 { color: #f0f8fc !important; font-size: 26px !important; }
+    body.admin-portal .modal-subtitle { margin-bottom: 24px; color: #bdcfd8 !important; font-size: 16px !important; line-height: 1.55; }
+    body.admin-portal .modal-form-group label { margin-bottom: 8px; color: #e1edf2 !important; font-size: 17px !important; }
+    body.admin-portal .modal-form-group input:not([type=color]):not([type=file]) {
+        min-height: 50px !important; padding: 11px 13px !important; border: 1px solid rgba(157,194,211,.35) !important;
+        border-radius: 10px !important; background: #0a151e !important; color: #f0f8fc !important; font-size: 17px !important;
+    }
+    body.admin-portal .modal-buttons { justify-content: stretch; gap: 12px; margin-top: 26px; }
+    body.admin-portal .modal-buttons .btn { min-height: 48px !important; padding: 10px 18px !important; border-radius: 10px !important; font-size: 16px !important; }
+    body.admin-portal .modal-buttons .btn.green { background: linear-gradient(120deg,#087c96,#5551a6) !important; color: #f4fcff !important; }
+    body.admin-portal .modal-buttons .btn.gray { border: 1px solid rgba(146,190,210,.3) !important; background: #1b2b37 !important; color: #e4f0f5 !important; }
+
+    .department-page .action-message-overlay { background: rgba(2,8,13,.82) !important; backdrop-filter: blur(5px); }
+    .department-page .action-message-modal { width: min(520px, calc(100vw - 32px)); padding: 34px; border: 1px solid rgba(101,231,255,.3); border-radius: 20px; background: #111f2a !important; box-shadow: 0 28px 80px rgba(0,0,0,.5); }
+    .department-page .action-message-modal h2 { color: #eff8fc !important; font-size: 27px !important; }
+    .department-page .action-message-modal p { color: #c4d4dc !important; font-size: 17px !important; line-height: 1.6; }
+    .department-page .action-message-close { width: 42px; height: 42px; border: 1px solid rgba(146,190,210,.25); border-radius: 10px; background: #1b2b37; color: #eaf6fb; font-size: 25px; }
+    .department-page .action-message-ok { min-width: 112px; min-height: 48px !important; border-radius: 10px; font-size: 16px !important; }
+    .department-page .action-message-ok.success { background: #087c96 !important; color: #f4fcff !important; }
+    .department-page .action-message-ok.error { background: #8f3045 !important; color: #fff1f3 !important; }
+    .department-page :focus-visible { outline: 3px solid #75eaff !important; outline-offset: 3px !important; }
+
+    @media (max-width: 900px) {
+        .department-page .add-form { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+        .department-page .add-department-action { grid-column: auto; }
+    }
+    @media (max-width: 700px) {
+        .department-page { padding-top: 4px; }
+        .department-page .department-hero { align-items: flex-start; min-height: 0; padding: 24px 21px; }
+        .department-page .department-hero h1 { font-size: 31px; }
+        .department-page .department-hero-description { font-size: 16px; }
+        .department-page .department-hero-mark { display: none; }
+        .department-page .add-card { padding: 19px; }
+        .department-page .add-form { grid-template-columns: 1fr; gap: 16px; }
+        .department-page .add-department-action-spacer { display: none; }
+        .department-page .table-header { align-items: flex-start; flex-direction: column; padding: 19px; }
+        .department-page .actions { flex-direction: column; align-items: stretch; }
+        .department-page .actions .btn { width: 100%; }
+        .department-page .modal-content { margin: 10px auto; padding: 22px; }
+    }
+</style>
+
+<style>
+    /* White sage neumorphic department management, with the existing Blade actions preserved. */
+    .department-page {
+        --dept-ink: #263b31;
+        --dept-muted: #52665a;
+        --dept-green: #36785c;
+        --dept-line: #d8e2da;
+        max-width: 1480px !important;
+        margin: 0 auto !important;
+        padding: 24px clamp(18px, 3vw, 38px) 44px !important;
+        color: var(--dept-ink) !important;
+        font-size: 17px;
+        line-height: 1.55;
+    }
+    .department-page * { box-sizing: border-box; }
+    .department-page .department-hero {
+        position: relative;
+        min-height: 190px;
+        margin: 0 0 27px;
+        padding: clamp(26px, 4vw, 42px);
+        border: 1px solid #cbdacf !important;
+        border-radius: 22px;
+        background: linear-gradient(120deg, #e6eee7 0%, #f5f8f4 68%, #e9f0e9 100%) !important;
+        box-shadow: 9px 9px 20px #dce3dc, -8px -8px 20px #fff !important;
+    }
+    .department-page .department-hero-eyebrow { color: #3c7358 !important; font-size: 14px !important; }
+    .department-page .department-hero h1 { color: #203c2d !important; font-size: clamp(32px, 3vw, 42px) !important; line-height: 1.2; }
+    .department-page .department-hero-description { color: #4c6254 !important; font-size: 18px !important; line-height: 1.6; }
+    .department-page .department-hero-mark {
+        border: 1px solid #d3dfd4 !important;
+        border-radius: 20px;
+        background: #eaf0ea !important;
+        color: #36785c !important;
+        box-shadow: 5px 5px 12px #dce3dc, -5px -5px 12px #fff !important;
+    }
+    .department-page .department-hero-mark span { color: #52665a !important; font-size: 12px !important; }
+    .department-page .add-card,
+    .department-page .table-card {
+        overflow: hidden;
+        border: 1px solid var(--dept-line) !important;
+        border-radius: 18px;
+        background: #f1f5f1 !important;
+        box-shadow: 7px 7px 16px #dce3dc, -7px -7px 16px #fff !important;
+        color: var(--dept-ink) !important;
+    }
+    .department-page .add-card { margin-bottom: 25px; padding: clamp(20px, 3vw, 28px); border-top: 3px solid #7da58a !important; }
+    .department-page .add-card h3,
+    .department-page .table-header h3 { color: #294b37 !important; font-size: 24px !important; line-height: 1.35; }
+    .department-page .add-form { gap: 20px 24px; align-items: end; }
+    .department-page .form-group { min-width: 0; }
+    .department-page .form-group label { margin-bottom: 9px; color: #344a3b !important; font-size: 17px !important; line-height: 1.45; }
+    .department-page .form-group small { color: #52665a !important; font-size: 15px !important; line-height: 1.5; }
+    .department-page .form-group input:not([type=color]):not([type=file]),
+    .department-page .form-group input[type=file] {
+        min-height: 52px !important;
+        padding: 12px 14px !important;
+        border: 1px solid #cbdacf !important;
+        border-radius: 11px !important;
+        background: #edf2ed !important;
+        color: #263b31 !important;
+        font-size: 17px !important;
+        box-shadow: inset 3px 3px 6px #dce3dc, inset -3px -3px 6px #fff !important;
+    }
+    .department-page input::placeholder { color: #69796e !important; opacity: 1; }
+    .department-page .add-department-action-spacer { min-height: 24px; }
+    .department-page .add-department-btn {
+        min-height: 52px !important;
+        padding: 12px 18px !important;
+        border: 1px solid #6f9d7b !important;
+        border-radius: 12px !important;
+        background: #3f7b5d !important;
+        color: #fff !important;
+        font-size: 17px !important;
+        font-weight: 800 !important;
+        box-shadow: 4px 4px 9px #d1dbd2, -4px -4px 9px #fff !important;
+        transition: background .18s ease, transform .18s ease, box-shadow .18s ease;
+    }
+    .department-page .add-department-btn:hover { background: #32684d !important; transform: translateY(-1px); box-shadow: 5px 6px 12px #d1dbd2, -4px -4px 9px #fff !important; }
+    .department-page .table-header { padding: 22px 25px; border-bottom: 1px solid #dce5dc; background: #e9f0e9 !important; }
+    .department-page .department-count { border: 1px solid #c8d9ca; background: #e4ede5; color: #315f43 !important; font-size: 16px; }
+    .department-page .table-container { overflow-x: auto !important; background: #f1f5f1 !important; }
+    .department-page table { min-width: 820px; border-collapse: separate; border-spacing: 0; }
+    .department-page table th {
+        padding: 16px 17px !important;
+        border-color: #d5dfd6 !important;
+        background: #e5ede6 !important;
+        color: #294b37 !important;
+        font-size: 16px !important;
+        line-height: 1.45;
+    }
+    .department-page table td {
+        padding: 15px 17px !important;
+        border-color: #dce5dc !important;
+        background: #f6f8f6 !important;
+        color: #344a3b !important;
+        font-size: 17px !important;
+        line-height: 1.5;
+    }
+    .department-page table tbody tr:nth-child(even) td { background: #edf2ed !important; }
+    .department-page table tbody tr:hover td { background: #e5eee6 !important; }
+    .department-page .department-code,
+    .department-page .id-number,
+    .department-page .building-count { color: #344a3b !important; font-size: 16px !important; font-weight: 750; }
+    .department-page .department-code { border: 1px solid #d2dfd3; border-radius: 8px; background: #e8efe8; color: #315f43 !important; }
+    .department-page .department-name { color: #263b31 !important; font-size: 18px !important; font-weight: 800; }
+    .department-page .department-logo-preview { border: 1px solid #d2dfd3; border-radius: 12px; background: #edf2ed; }
+    .department-page .actions { gap: 9px; }
+    .department-page .actions .btn { min-width: 92px; min-height: 46px !important; border-radius: 10px !important; font-size: 16px !important; font-weight: 750 !important; }
+    .department-page .actions .btn.yellow { border-color: #b49a59 !important; background: #f4edda !important; color: #5d4918 !important; }
+    .department-page .actions .btn.red { border-color: #ca9a9e !important; background: #f6e8e9 !important; color: #752e36 !important; }
+    .department-page .actions .btn:hover { filter: brightness(.97); transform: translateY(-1px); }
+    .department-page .empty-state { padding: 44px 20px; color: #52665a !important; }
+    .department-page .empty-state-icon { color: #518066; font-size: 44px; }
+    .department-page .empty-state h3 { color: #294b37 !important; font-size: 24px !important; }
+    .department-page .empty-state p { color: #52665a !important; font-size: 17px !important; }
+    body.admin-portal .modal { background: rgba(28, 45, 34, .42) !important; backdrop-filter: blur(4px); }
+    body.admin-portal .modal-content {
+        border: 1px solid #d3dfd4 !important;
+        border-top: 3px solid #7da58a !important;
+        border-radius: 18px;
+        background: #f1f5f1 !important;
+        color: #263b31 !important;
+        box-shadow: 8px 8px 20px rgba(50,70,55,.18), -4px -4px 12px rgba(255,255,255,.8) !important;
+    }
+    body.admin-portal .modal-content h3 { color: #294b37 !important; font-size: 27px !important; }
+    body.admin-portal .modal-subtitle { color: #52665a !important; font-size: 17px !important; line-height: 1.55; }
+    body.admin-portal .modal-form-group label { color: #344a3b !important; font-size: 17px !important; }
+    body.admin-portal .modal-form-group input:not([type=color]):not([type=file]) {
+        min-height: 50px !important; padding: 11px 13px !important; border: 1px solid #cbdacf !important;
+        border-radius: 10px !important; background: #edf2ed !important; color: #263b31 !important; font-size: 17px !important;
+        box-shadow: inset 3px 3px 6px #dce3dc, inset -3px -3px 6px #fff !important;
+    }
+    body.admin-portal .modal-buttons { gap: 12px; margin-top: 26px; }
+    body.admin-portal .modal-buttons .btn { min-height: 48px !important; border-radius: 10px !important; font-size: 16px !important; }
+    body.admin-portal .modal-buttons .btn.green { background: #3f7b5d !important; color: #fff !important; }
+    body.admin-portal .modal-buttons .btn.gray { border: 1px solid #cbdacf !important; background: #e8eee8 !important; color: #344a3b !important; }
+    .department-page .action-message-overlay { background: rgba(28, 45, 34, .45) !important; backdrop-filter: blur(4px); }
+    .department-page .action-message-modal { border: 1px solid #d3dfd4 !important; border-radius: 20px; background: #f1f5f1 !important; box-shadow: 8px 8px 24px rgba(50,70,55,.2), -4px -4px 12px rgba(255,255,255,.8); }
+    .department-page .action-message-modal h2 { color: #294b37 !important; font-size: 27px !important; }
+    .department-page .action-message-modal p { color: #52665a !important; font-size: 17px !important; line-height: 1.6; }
+    .department-page .action-message-close { border: 1px solid #cbdacf; background: #e8eee8; color: #344a3b; }
+    .department-page .action-message-ok.success { background: #3f7b5d !important; color: #fff !important; }
+    .department-page .action-message-ok.error { background: #8b3b45 !important; color: #fff !important; }
+    .department-page :focus-visible { outline: 3px solid #438463 !important; outline-offset: 3px !important; }
+    @media (max-width: 700px) {
+        .department-page { padding: 16px 14px 30px !important; }
+        .department-page .department-hero { align-items: flex-start; min-height: 0; padding: 24px 21px; }
+        .department-page .department-hero h1 { font-size: 31px !important; }
+        .department-page .department-hero-mark { display: none; }
+        .department-page .add-card { padding: 19px; }
+        .department-page .add-form { grid-template-columns: 1fr; gap: 16px; }
+        .department-page .add-department-action { grid-column: 1 / -1; }
+        .department-page .add-department-action-spacer { display: none; }
+        .department-page .table-header { align-items: flex-start; flex-direction: column; padding: 19px; }
+        .department-page .actions { flex-direction: row; }
+        .department-page .actions .btn { width: auto; }
+        .department-page .modal-content { margin: 10px auto; padding: 22px; }
+    }
+</style>
+
             <div class="department-page">
 
                 <!-- =====================================
@@ -1130,17 +1436,17 @@
 
                 ====================================== -->
 
-                <div class="title">
-
-                    Manage College Departments
-
-                </div>
-
-                <div class="subtitle">
-
-                    Add, edit and remove departments.
-
-                </div>
+                <header class="department-hero">
+                    <div class="department-hero-copy">
+                        <p class="department-hero-eyebrow"><i class="fa-solid fa-building-columns" aria-hidden="true"></i> CAMPUS ADMINISTRATION</p>
+                        <h1>Manage College Departments</h1>
+                        <p class="department-hero-description">Add, edit and remove departments.</p>
+                    </div>
+                    <div class="department-hero-mark" aria-hidden="true">
+                        <i class="fa-solid fa-building-columns"></i>
+                        <span>DEPARTMENT DIRECTORY</span>
+                    </div>
+                </header>
 
                 <!-- =====================================
 
@@ -1265,16 +1571,6 @@
 
                             </div>
 
-                            <!-- THEME COLOR -->
-
-                            <div class="form-group">
-
-                                <label for="departmentThemeColor">Department Theme Color</label>
-
-                                <input class="color-input" type="color" id="departmentThemeColor" name="theme_color" value="{{ old('theme_color', '#2563eb') }}" required>
-
-                            </div>
-
                             <!-- DEPARTMENT LOGO -->
 
                             <div class="form-group">
@@ -1289,7 +1585,9 @@
 
                             <!-- ADD -->
 
-                            <div class="add-button">
+                            <div class="add-department-action">
+
+                                <span class="add-department-action-spacer" aria-hidden="true">Action</span>
 
                                 <button
 
@@ -1367,7 +1665,6 @@
 
                                         <th>Logo</th>
 
-                                        <th>Theme Color</th>
 
                                         <th>
 
@@ -1455,20 +1752,6 @@
 
                                             </td>
 
-                                            <!-- THEME COLOR -->
-
-                                            <td>
-
-                                                <span class="department-color-swatch">
-
-                                                    <span class="department-color-dot" style="background-color: {{ $department->theme_color ?: '#2563eb' }};"></span>
-
-                                                    {{ $department->theme_color ?: '#2563eb' }}
-
-                                                </span>
-
-                                            </td>
-
                                             <!-- BUILDINGS -->
 
                                             <td>
@@ -1508,8 +1791,6 @@
                                                             @js($department->code),
 
                                                             @js($department->name),
-
-                                                            @js($department->theme_color ?: '#2563eb'),
 
                                                             @js($department->logo)
 
@@ -1709,10 +1990,6 @@
 
             <div class="modal-form-group">
 
-                <label for="editDepartmentThemeColor">Department Theme Color</label>
-
-                <input class="color-input" type="color" name="theme_color" id="editDepartmentThemeColor" value="#2563eb" required>
-
             </div>
 
             <div class="modal-form-group">
@@ -1783,8 +2060,6 @@ function openEditDepartment(
 
     name,
 
-    themeColor,
-
     logoPath
 
 )
@@ -1823,7 +2098,6 @@ function openEditDepartment(
 
         );
 
-    const colorInput = document.getElementById('editDepartmentThemeColor');
 
     const logoPreview = document.getElementById('editDepartmentCurrentLogo');
 
@@ -1839,7 +2113,6 @@ function openEditDepartment(
 
         !nameInput ||
 
-        !colorInput ||
 
         !logoPreview
 
@@ -1859,7 +2132,6 @@ function openEditDepartment(
 
     nameInput.value = name;
 
-    colorInput.value = themeColor || '#2563eb';
 
     logoPreview.innerHTML = logoPath
 

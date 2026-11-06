@@ -20,6 +20,7 @@ class ScheduleDraft extends Model
         'created_by',
 
         'faculty_id',
+        'faculty_subject_id',
 
         'department_id',
 
@@ -84,6 +85,11 @@ class ScheduleDraft extends Model
             User::class,
             'faculty_id'
         );
+    }
+
+    public function facultySubject()
+    {
+        return $this->belongsTo(FacultySubject::class, 'faculty_subject_id');
     }
 
     public function department()

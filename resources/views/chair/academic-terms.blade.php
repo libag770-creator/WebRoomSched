@@ -15,7 +15,7 @@
              MAIN CONTENT
         ========================================================== --}}
 
-        <main class="content">
+        <main class="content chair-workspace-redesign chair-library-redesign">
 
             <style>
                 * {
@@ -23,7 +23,7 @@
                 }
 
                 body {
-                    background: #f5f7f5;
+                    background: #f3f6fb;
                     margin: 0;
                 }
 
@@ -659,7 +659,181 @@
 
                 }
 
+                /* White and blue neumorphic theme, matched to the chair dashboard. */
+                body { background:#f3f6fb !important; color:#1e2d43; }
+                main.content:has(.academic-library-page) { background:#f3f6fb !important; }
+                .academic-library-page {
+                    --library-ink:#1e2d43;
+                    --library-muted:#52647b;
+                    --library-blue:#315f9b;
+                    --library-line:#dbe4ef;
+                    color:var(--library-ink) !important;
+                    font-size:16px;
+                    line-height:1.55;
+                    padding:24px clamp(16px,2.4vw,32px) 42px;
+                }
+                .academic-library-hero {
+                    position:relative;
+                    display:flex;
+                    align-items:center;
+                    justify-content:space-between;
+                    gap:26px;
+                    min-height:218px;
+                    margin:0 0 22px;
+                    padding:clamp(24px,3vw,36px);
+                    overflow:hidden;
+                    border:1px solid var(--library-line);
+                    border-radius:22px;
+                    background:linear-gradient(145deg,#fff,#f0f4fa) !important;
+                    box-shadow:10px 10px 22px #dce3ec,-8px -8px 20px #fff,inset 1px 1px 0 #fff !important;
+                }
+                .academic-library-hero-copy { position:relative; z-index:1; max-width:760px; }
+                .academic-library-eyebrow { display:inline-flex; align-items:center; gap:9px; color:#355d8f !important; font-size:13px; font-weight:800; letter-spacing:.09em; }
+                .academic-library-eyebrow i { color:var(--library-blue); }
+                .academic-library-title,.academic-library-hero .academic-library-title {
+                    margin:12px 0 9px;
+                    color:#1d2b40 !important;
+                    font-size:clamp(30px,3vw,40px) !important;
+                    line-height:1.2;
+                    letter-spacing:-.025em;
+                }
+                .academic-library-subtitle,.academic-library-hero .academic-library-subtitle { margin:0; color:#52647b !important; font-size:17px !important; line-height:1.6; }
+                .active-term-badge {
+                    position:relative;
+                    z-index:1;
+                    display:grid;
+                    gap:5px;
+                    min-width:220px;
+                    padding:15px 17px;
+                    white-space:normal;
+                    border:1px solid #d2deed;
+                    border-radius:14px;
+                    background:#edf2f8 !important;
+                    color:#294b75 !important;
+                    box-shadow:inset 4px 4px 9px #dfe5ed,inset -4px -4px 9px #fff !important;
+                }
+                .active-term-badge > span { color:#526b89 !important; font-size:12px; font-weight:800; letter-spacing:.09em; }
+                .active-term-badge strong { color:#244b7c !important; font-size:16px; line-height:1.45; }
+                .academic-library-hero-mark { right:260px; color:rgba(49,95,155,.055) !important; }
+                .library-message { padding:14px 17px; margin-bottom:16px; border-radius:12px; font-size:15px; line-height:1.55; }
+                .library-message.success { border-color:#b9dfc7; background:#eaf6ee !important; color:#205d3d !important; }
+                .library-message.error { border-color:#e8c5c4; background:#fff0ef !important; color:#8f302e !important; }
+                .academic-library-grid { grid-template-columns:minmax(315px,.82fr) minmax(0,1.55fr); gap:20px; align-items:stretch; }
+                .library-sidebar,.library-preview {
+                    min-width:0;
+                    border:1px solid var(--library-line) !important;
+                    border-radius:18px;
+                    background:linear-gradient(145deg,#fff,#f0f4fa) !important;
+                    box-shadow:8px 8px 18px #dfe5ed,-7px -7px 18px #fff,inset 1px 1px 0 rgba(255,255,255,.9) !important;
+                }
+                .library-sidebar { overflow:hidden; }
+                .sidebar-block { padding:20px; border-color:#dce4ef !important; }
+                .sidebar-heading { margin-bottom:16px; color:#1e3049 !important; font-size:20px; line-height:1.35; }
+                .term-create-form { gap:15px; }
+                .term-create-fields { gap:12px; }
+                .term-field { min-width:0; }
+                .term-field label { margin-bottom:7px; color:#354c69 !important; font-size:15px; font-weight:700; letter-spacing:0; line-height:1.4; }
+                .term-field input,.term-field select {
+                    width:100%;
+                    min-height:48px !important;
+                    padding:10px 13px !important;
+                    border:1px solid #cbd8e8 !important;
+                    border-radius:10px !important;
+                    background:#f0f4fa !important;
+                    color:#243850 !important;
+                    font-size:16px !important;
+                    box-shadow:inset 4px 4px 8px #e0e6ef,inset -4px -4px 8px #fff !important;
+                }
+                .term-field input::placeholder { color:#657a95 !important; opacity:1; }
+                .term-field input:focus,.term-field select:focus { outline:3px solid rgba(49,95,155,.17); border-color:#7293bd !important; }
+                .active-checkbox { gap:10px; color:#354c69 !important; font-size:15px; line-height:1.5; }
+                .active-checkbox input { width:19px; height:19px; accent-color:#315f9b; }
+                .library-btn {
+                    min-height:44px;
+                    padding:9px 12px;
+                    border-radius:10px;
+                    font-size:14px;
+                    line-height:1.35;
+                    box-shadow:5px 5px 11px #dce3ec,-4px -4px 10px #fff,inset 1px 1px 0 rgba(255,255,255,.4) !important;
+                    transition:transform .18s ease,box-shadow .18s ease,background .18s ease;
+                }
+                .library-btn:hover { transform:translateY(-1px); }
+                .library-btn:focus-visible { outline:3px solid rgba(49,95,155,.28); outline-offset:2px; }
+                .library-btn-green { border:1px solid #315f9b !important; background:#315f9b !important; color:#fff !important; }
+                .library-btn-green:hover { background:#284f83 !important; color:#fff !important; }
+                .library-btn-soft,.library-btn-outline { border:1px solid #cbd8e8 !important; background:#edf2f8 !important; color:#294b75 !important; }
+                .library-btn-soft:hover,.library-btn-outline:hover { background:#e3ebf5 !important; color:#1f477a !important; }
+                .library-btn-gray { border:1px solid #d7dfea !important; background:#e8edf4 !important; color:#52647b !important; box-shadow:inset 3px 3px 7px #dce3ec,inset -3px -3px 7px #fff !important; }
+                .library-btn-danger { border:1px solid #e3c4c2 !important; background:#fff0ef !important; color:#8f302e !important; }
+                .library-btn-danger:hover { background:#fbe3e1 !important; color:#762624 !important; }
+                .term-list { gap:12px; max-height:760px; padding:2px 5px 2px 2px; }
+                .term-item { padding:15px; border:1px solid #dbe4ef !important; border-radius:14px; background:linear-gradient(145deg,#fff,#f2f5fa) !important; box-shadow:5px 5px 12px #e0e6ee,-5px -5px 12px #fff,inset 1px 1px 0 #fff !important; }
+                .term-item.active-term { border-color:#b8cbe3 !important; background:#edf3fb !important; box-shadow:inset 4px 4px 9px #e0e6ef,inset -4px -4px 9px #fff !important; }
+                .term-item-header { align-items:flex-start; gap:12px; }
+                .term-name { color:#203650 !important; font-size:16px; line-height:1.45; overflow-wrap:anywhere; }
+                .term-name .term-dot { color:#647791 !important; }
+                .term-count { color:#52647b !important; font-size:14px; line-height:1.45; }
+                .term-status { padding:6px 9px; font-size:12px; }
+                .term-status.active { background:#e4f2e9 !important; color:#205d3d !important; }
+                .term-status.saved { background:#e8edf4 !important; color:#40536d !important; }
+                .term-actions { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:13px; }
+                .term-actions .library-btn { white-space:normal; }
+                .reuse-panel { margin-top:13px; padding:15px; border:1px solid #d7e0eb !important; border-radius:12px; background:#edf2f8 !important; box-shadow:inset 4px 4px 9px #e0e6ef,inset -4px -4px 9px #fff !important; }
+                .reuse-title { margin-bottom:10px; color:#294b75 !important; font-size:16px; }
+                .reuse-form { gap:10px; }
+                .reuse-form .term-field input,.reuse-form .term-field select { min-height:46px; font-size:15px !important; }
+                .reuse-note { color:#52647b !important; font-size:14px; line-height:1.55; }
+                .library-preview { min-height:640px; }
+                .preview-header { padding:21px 23px; border-color:#dce4ef !important; background:linear-gradient(145deg,#fff,#f0f4fa) !important; }
+                .preview-title { color:#1e3049 !important; font-size:22px; line-height:1.35; }
+                .preview-description { color:#52647b !important; font-size:15px; line-height:1.5; }
+                .preview-count { padding:9px 12px; border:1px solid #d2deed !important; border-radius:10px; background:#eaf0f8 !important; color:#294b75 !important; font-size:14px; }
+                .preview-body { padding:19px; }
+                .empty-preview-box { color:#52647b !important; font-size:16px; line-height:1.7; }
+                .empty-preview-icon { width:64px; height:64px; border:1px solid #d6e1ef; background:#e8eef7 !important; color:#315f9b !important; box-shadow:inset 4px 4px 9px #dce4ef,inset -4px -4px 9px #fff !important; }
+                .empty-preview-title { color:#203650 !important; font-size:20px; }
+                .schedule-meta { margin-bottom:14px; color:#52647b !important; font-size:14px; line-height:1.5; }
+                .schedule-meta strong { color:#294b75 !important; }
+                .schedule-table-wrapper { border-color:#d5dfeb !important; border-radius:12px; background:#f5f7fb; box-shadow:5px 5px 12px #e0e6ee,-4px -4px 10px #fff; }
+                .schedule-table { min-width:980px; }
+                .schedule-table th,.schedule-table td { padding:12px 13px; border-color:#dfe6ef !important; color:#283c55 !important; font-size:14px !important; line-height:1.45; }
+                .schedule-table th { background:#e8eef7 !important; color:#294b75 !important; font-size:13px !important; }
+                .schedule-table tbody tr:nth-child(even) { background:#f8faff; }
+                .schedule-table tbody tr:hover { background:#edf3fb !important; }
+                .schedule-course { color:#244f88 !important; }
+                .schedule-subject { color:#283c55 !important; }
+                .no-schedule-records { color:#52647b !important; font-size:15px; }
+                @media (max-width:1000px) {
+                    .academic-library-grid { grid-template-columns:minmax(0,1fr); }
+                    .term-list { max-height:none; }
+                    .library-preview { min-height:520px; }
+                }
+                @media (max-width:700px) {
+                    .academic-library-page { padding:16px 13px 30px; }
+                    .academic-library-hero { align-items:flex-start; flex-direction:column; min-height:0; padding:23px; }
+                    .academic-library-hero-copy { padding-right:58px; }
+                    .academic-library-hero .active-term-badge { width:100%; min-width:0; }
+                    .academic-library-hero-mark { top:20px; right:18px; transform:none; font-size:72px; }
+                    .term-create-fields,.reuse-form { grid-template-columns:1fr; }
+                    .reuse-full { grid-column:auto; }
+                    .preview-header-row { align-items:flex-start; flex-direction:column; }
+                    .preview-count { white-space:normal; }
+                }
+                @media (max-width:480px) {
+                    .academic-library-title,.academic-library-hero .academic-library-title { font-size:28px !important; }
+                    .academic-library-subtitle,.academic-library-hero .academic-library-subtitle { font-size:16px !important; }
+                    .academic-library-hero-copy { padding-right:0; }
+                    .academic-library-hero-mark { opacity:.45; }
+                    .sidebar-block { padding:16px; }
+                    .term-actions { grid-template-columns:1fr; }
+                    .term-item-header { flex-direction:column; }
+                    .preview-body { padding:12px; }
+                    .schedule-meta { align-items:flex-start; flex-direction:column; }
+                }
+
             </style>
+            <link rel="stylesheet" href="{{ asset('css/chair-workspace.css') }}">
+
 
 
             {{-- =========================================================
@@ -673,34 +847,18 @@
                      PAGE HEADER
                 ====================================================== --}}
 
-                <div class="academic-library-header">
-
-                    <div>
-
-                        <h1 class="academic-library-title">
-                            Schedule Library
-                        </h1>
-
-                        <p class="academic-library-subtitle">
-                            Save, view, activate, and reuse complete semester schedules.
-                        </p>
-
+                <section class="academic-library-hero">
+                    <div class="academic-library-hero-copy">
+                        <span class="academic-library-eyebrow"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> DEPARTMENT WORKSPACE</span>
+                        <h1 class="academic-library-title">Academic Terms &amp; Schedule Library</h1>
+                        <p class="academic-library-subtitle">Create terms, review saved schedules, and choose the active semester.</p>
                     </div>
-
-
                     <div class="active-term-badge">
-
-                        Active Term:
-
-                        {{ $activeTerm->academic_year }}
-
-                        •
-
-                        {{ $activeTerm->semester }}
-
+                        <span>ACTIVE TERM</span>
+                        <strong>{{ $activeTerm->academic_year }} <span aria-hidden="true">•</span> {{ $activeTerm->semester }}</strong>
                     </div>
-
-                </div>
+                    <i class="academic-library-hero-mark fa-solid fa-calendar-days" aria-hidden="true"></i>
+                </section>
 
 
                 {{-- =====================================================
@@ -1022,6 +1180,18 @@
 
                                                 </div>
 
+                                            @endif
+
+                                            @if((int) $activeTerm->id !== (int) $term->id)
+                                                <form method="POST"
+                                                      action="{{ route('chair.academic.terms.delete', $term->id) }}"
+                                                      onsubmit="return confirm('Delete this academic term? Terms with schedules or drafts cannot be deleted.');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="library-btn library-btn-danger">
+                                                        <i class="fa-solid fa-trash" aria-hidden="true"></i> Delete
+                                                    </button>
+                                                </form>
                                             @endif
 
                                         </div>

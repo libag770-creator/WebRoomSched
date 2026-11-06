@@ -1,4 +1,12 @@
 @include('footerheader.header')
+@php
+    $curriculumCollection = collect($curricula ?? []);
+    $curriculumPageCourseCount = $curriculumCollection->sum(function ($curriculumItem) {
+        return $curriculumItem->courses_count ?? $curriculumItem->courses->count();
+    });
+    $curriculumPageActiveCount = $curriculumCollection->where('status', 'active')->count();
+    $curriculumPagePostedCount = collect($postedCurricula ?? [])->count();
+@endphp
 
 <div class="wrapper">
     <div class="main-layout">
@@ -114,6 +122,62 @@
                     background:#eef5ff;
                     color:#245d8a;
                 }
+                /* Curriculum workspace visual refresh */
+                .curr-page{max-width:1500px;padding:22px 24px 40px;color:#26372d}
+                .curr-page .header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:22px;overflow:hidden;margin:0 0 20px;padding:25px 27px;border:1px solid #dce9df;border-radius:20px;background:linear-gradient(115deg,#fff 0%,#f5faf6 67%,#eaf4ec 100%);box-shadow:0 12px 32px rgba(23,52,34,.055)}
+                .curr-page .header:after{position:absolute;content:"";right:115px;top:-80px;width:230px;height:230px;border:1px solid rgba(37,128,82,.09);border-radius:50%;box-shadow:0 0 0 24px rgba(37,128,82,.025),0 0 0 52px rgba(37,128,82,.02);pointer-events:none}
+                .curr-hero-copy,.curr-hero-action{position:relative;z-index:1}
+                .curr-eyebrow{display:flex;align-items:center;gap:7px;margin-bottom:8px;color:#74877a;font-size:9px;font-weight:850;letter-spacing:.15em}
+                .curr-eyebrow i{color:#2e7d52}
+                .curr-page .title{color:#1b2d21;font-size:clamp(25px,3vw,34px);font-weight:800;letter-spacing:-.045em;line-height:1.12}
+                .curr-page .subtitle{max-width:650px;margin:8px 0 0;color:#6f7e73;font-size:12px;line-height:1.65}
+                .curr-hero-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:17px}
+                .curr-hero-stat{display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid #e0eae2;border-radius:10px;background:rgba(255,255,255,.78);color:#6e7d72;font-size:9px}
+                .curr-hero-stat i{color:#347c50}
+                .curr-hero-stat strong{color:#2a4633;font-size:11px}
+                .curr-hero-action{flex:0 0 auto;padding:11px 15px;box-shadow:0 5px 12px rgba(39,111,66,.15)}
+                .curr-page .card{margin-bottom:16px;padding:20px;border:1px solid #e1e9e3;border-radius:16px;background:#fff;box-shadow:0 8px 24px rgba(23,52,34,.04)}
+                .curr-page .card h2,.curr-page .card h3{color:#294434}
+                .curr-page .curr-item{padding:15px;border-color:#e3ebe5;border-radius:13px;background:linear-gradient(135deg,#fff,#fbfdfb);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+                .curr-page .curr-item:hover{transform:translateY(-1px);border-color:#c9ddce;box-shadow:0 8px 18px rgba(23,52,34,.055)}
+                .curr-page .curr-item.active{border-color:#b8d7c0;background:#f5faf6}
+                .curr-page .curr-name{color:#263e2e;font-size:14px}
+                .curr-page .actions{margin-top:12px}
+                .curr-page .curr-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+                .curr-page .curr-item{position:relative;display:flex;min-height:148px;flex-direction:column;justify-content:flex-start;padding:16px 16px 13px 19px}
+                .curr-page .curr-item:before{position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 4px 4px 0;background:#72a782;content:""}
+                .curr-page .curr-item .curr-name{font-size:14px;line-height:1.45}
+                .curr-page .curr-item .muted{margin-top:7px!important;color:#758278;font-size:10px;line-height:1.7}
+                .curr-page .curr-item .muted strong{color:#43584a}
+                .curr-page .curr-item .actions{align-items:center;margin-top:auto;padding-top:13px}
+                .curr-page .curr-item .actions form{display:inline-flex}
+                .curr-page .grid>.card:first-child{border-color:#dbe8de;background:linear-gradient(115deg,#fff,#f4f9f5);box-shadow:0 10px 26px rgba(23,52,34,.05)}
+                .curr-page .grid>.card:first-child h2{color:#1f3e2a;font-size:19px;letter-spacing:-.02em}
+                .curr-page .grid>.card:first-child .muted{font-size:10px}
+                .curr-page .status-badge{letter-spacing:.04em}
+                .curr-page .btn{min-height:36px;padding:8px 12px;border-radius:9px;font-size:10px;transition:filter .15s ease,transform .15s ease}
+                .curr-page .btn:hover{filter:brightness(.97);transform:translateY(-1px)}
+                .curr-page .green{background:#287a4b}
+                .curr-page .gray{border:1px solid #e0e8e2;background:#f6f8f6;color:#4d5e52}
+                .curr-page .red{background:#b44d46}
+                .curr-page .message{padding:13px 15px;border-radius:12px;box-shadow:0 4px 12px rgba(20,40,26,.035)}
+                .curr-page .semester-heading{border-radius:11px;padding:12px 14px}
+                .curr-page .table-wrap{border-color:#e0e8e2;border-radius:13px;box-shadow:0 3px 10px rgba(20,40,26,.025)}
+                .curr-page .table-wrap th{background:#f3f7f4;color:#596b5f;font-size:10px;font-weight:800;letter-spacing:.03em;text-transform:uppercase}
+                .curr-page .table-wrap td{color:#49594e;font-size:11px}
+                .curr-page .document{border-color:#e1e9e3;border-radius:11px;background:#f8fbf8}
+                .curr-page .modal-trigger-card{padding:2px 1px}
+                .curr-page .modal-trigger-card h3{font-size:14px;font-weight:800}
+                .curr-page .modal-trigger-card p{font-size:10px}
+                .curr-page .year-block,.curr-page .checklist-year-block{border-color:#dfe8e1;border-radius:14px;box-shadow:0 4px 12px rgba(20,40,26,.025)}
+                .curr-page .master-list-header{align-items:flex-start}
+                .curr-page .master-list-header .section-title{color:#263e2e;font-size:17px;font-weight:800}
+                .curr-page .master-count-pill{border:1px solid #dce9df;background:#f0f7f1;color:#34734a}
+                .curr-page .checklist-year-toolbar{border-radius:11px}
+                .curr-page .method-card{border-color:#e1e9e3;border-radius:16px;background:#fbfdfb}
+                .curr-page .modal-box{border-radius:18px;box-shadow:0 24px 70px rgba(18,40,25,.22)}
+                .curr-page input,.curr-page select{min-height:40px;border-color:#d9e3db;border-radius:9px}
+                .curr-page input:focus,.curr-page select:focus{border-color:#4b9564;box-shadow:0 0 0 3px rgba(61,139,74,.1)}
                 .modal-backdrop{position:fixed;inset:0;background:rgba(17,30,21,.58);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999;}
                 .modal-backdrop.show{display:flex;}
                 .modal-box{width:min(620px,100%);max-height:calc(100vh - 40px);overflow-y:auto;background:#fff;border:1px solid #dfe8e0;border-radius:18px;box-shadow:0 20px 70px rgba(0,0,0,.24);padding:22px;animation:modalIn .18s ease-out;}
@@ -293,18 +357,28 @@
                 }
 
                 @media(max-width:1100px){.grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.curr-page{padding:18px}}
-                @media(max-width:650px){.method-grid{grid-template-columns:1fr}.modal-box{padding:17px}.modal-backdrop{padding:12px}.method-card{min-height:auto;}}
+                @media(max-width:900px){.curr-page .curr-list{grid-template-columns:1fr}}
+                @media(max-width:700px){.curr-page .header{align-items:flex-start;flex-direction:column;padding:21px}.curr-page .header:after{right:-95px}.curr-hero-action{width:100%}.curr-hero-stats{gap:6px}.curr-hero-stat{flex:1 1 130px}.selected-header{flex-direction:column}.selected-actions{justify-content:flex-start}.method-grid{grid-template-columns:1fr}.modal-box{padding:17px}.modal-backdrop{padding:12px}.method-card{min-height:auto;}}
             </style>
 
             <div class="curr-page">
                 <div class="header">
-                    <div>
-                        <h1 class="title">Curriculum</h1>
+                    <div class="curr-hero-copy">
+                        <div class="curr-eyebrow"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> ACADEMIC PLANNING</div>
+                        <h1 class="title">Curriculum workspace</h1>
                         <p class="subtitle">
-                            Create separate curricula, upload the official file separately,
-                            and manage the master course list.
+                            Organize program curricula, official documents, and master course checklists in one place.
                         </p>
+                        <div class="curr-hero-stats" aria-label="Curriculum summary">
+                            <div class="curr-hero-stat"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><strong>{{ $curriculumCollection->count() }}</strong> Department curricula</span></div>
+                            <div class="curr-hero-stat"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span><strong>{{ $curriculumPageCourseCount }}</strong> Master courses</span></div>
+                            <div class="curr-hero-stat"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span><strong>{{ $curriculumPageActiveCount }}</strong> Active</span></div>
+                            @if($curriculumPagePostedCount)
+                                <div class="curr-hero-stat"><i class="fa-solid fa-earth-asia" aria-hidden="true"></i><span><strong>{{ $curriculumPagePostedCount }}</strong> Shared curricula</span></div>
+                            @endif
+                        </div>
                     </div>
+                    <button class="btn green curr-hero-action" type="button" onclick="openModal('curriculumMethodModal')"><i class="fa-solid fa-plus" aria-hidden="true" style="margin-right:7px;"></i>New Curriculum</button>
                 </div>
 
                 @if(session('success'))
@@ -386,6 +460,7 @@
                                     <div class="field"><label>Program</label><input name="program" value="{{ old('program') }}" placeholder="Bachelor of Science in Information Technology" required></div>
                                     <div class="field"><label>Major <span style="font-weight:400">(Optional)</span></label><input name="major" value="{{ old('major') }}" placeholder="Network Administration"></div>
                                     <div class="field"><label>Curriculum Code</label><input name="curriculum_code" value="{{ old('curriculum_code') }}" placeholder="BSIT-2015-2022" required></div>
+                                    <div class="field"><label>Effective Year</label><input name="effective_year" value="{{ old('effective_year') }}" placeholder="2025-2026" maxlength="20" required></div>
                                     <div class="field"><label>Status</label><select name="status"><option value="active" @selected(old('status','active') === 'active')>Active</option><option value="inactive" @selected(old('status') === 'inactive')>Inactive</option></select></div>
                                     <div class="modal-actions">
                                         <button class="btn gray" type="button" onclick="backToCurriculumMethod('newCurriculumModal')">Back</button>
@@ -412,6 +487,7 @@
                                         <div><label>Program</label><input name="program" value="{{ old('program') }}" placeholder="Bachelor of Science in Information Technology" required></div>
                                         <div><label>Major <span style="font-weight:400">(Optional)</span></label><input name="major" value="{{ old('major') }}" placeholder="Network Administration"></div>
                                         <div><label>Curriculum Code</label><input name="curriculum_code" value="{{ old('curriculum_code') }}" placeholder="BSIT-2015-2022" required></div>
+                                        <div><label>Effective Year</label><input name="effective_year" value="{{ old('effective_year') }}" placeholder="2025-2026" maxlength="20" required></div>
                                         <div><label>Status</label><select name="status"><option value="active" @selected(old('status','active') === 'active')>Active</option><option value="inactive" @selected(old('status') === 'inactive')>Inactive</option></select></div>
                                         <div><label>Curriculum Files</label><input id="uploadNewCurriculumFiles" type="file" name="curriculum_file[]" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" multiple required><div id="uploadNewCurriculumFilesInfo" class="muted" style="margin-top:6px;">Select one or multiple PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG or WEBP files. Maximum 50 MB per file.</div></div>
                                     </div>
@@ -573,6 +649,7 @@
                                     <div class="field"><label>Program</label><input name="program" value="{{ old('program') }}" placeholder="Bachelor of Science in Information Technology" required></div>
                                     <div class="field"><label>Major <span style="font-weight:400">(Optional)</span></label><input name="major" value="{{ old('major') }}" placeholder="Network Administration"></div>
                                     <div class="field"><label>Curriculum Code</label><input name="curriculum_code" value="{{ old('curriculum_code') }}" placeholder="BSIT-2015-2022" required></div>
+                                    <div class="field"><label>Effective Year</label><input name="effective_year" value="{{ old('effective_year') }}" placeholder="2025-2026" maxlength="20" required></div>
                                     <div class="field"><label>Status</label><select name="status"><option value="active" @selected(old('status','active') === 'active')>Active</option><option value="inactive" @selected(old('status') === 'inactive')>Inactive</option></select></div>
                                     <div class="modal-actions"><button class="btn gray" type="button" onclick="backToCurriculumMethod('newCurriculumModal')">Back</button><button class="btn green" type="submit">Create Curriculum</button></div>
                                 </form>
@@ -592,6 +669,7 @@
                                         <div><label>Program</label><input name="program" value="{{ old('program') }}" placeholder="Bachelor of Science in Information Technology" required></div>
                                         <div><label>Major <span style="font-weight:400">(Optional)</span></label><input name="major" value="{{ old('major') }}" placeholder="Network Administration"></div>
                                         <div><label>Curriculum Code</label><input name="curriculum_code" value="{{ old('curriculum_code') }}" placeholder="BSIT-2015-2022" required></div>
+                                        <div><label>Effective Year</label><input name="effective_year" value="{{ old('effective_year') }}" placeholder="2025-2026" maxlength="20" required></div>
                                         <div><label>Status</label><select name="status"><option value="active" @selected(old('status','active') === 'active')>Active</option><option value="inactive" @selected(old('status') === 'inactive')>Inactive</option></select></div>
                                         <div><label>Curriculum Files</label><input id="uploadNewCurriculumFiles" type="file" name="curriculum_file[]" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" multiple required><div id="uploadNewCurriculumFilesInfo" class="muted" style="margin-top:6px;">Select one or multiple PDF, DOC, DOCX, XLS, XLSX, JPG, JPEG, PNG or WEBP files. Maximum 50 MB per file.</div></div>
                                     </div>
@@ -620,6 +698,7 @@
                                     <div class="muted">
                                         {{ $selectedCurriculum->curriculum_code }}
                                         • {{ $selectedCurriculum->courses->count() }} course(s)
+                                        • Effective year: {{ $selectedCurriculum->effective_year ?? 'Not specified' }}
                                         • Status: <strong style="color:{{ $selectedCurriculum->status === 'active' ? '#267a3d' : '#777' }};">{{ ucfirst($selectedCurriculum->status) }}</strong>
                                     </div>
                                 </div>
@@ -681,6 +760,7 @@
                                             <div><label>Program</label><input name="program" value="{{ $selectedCurriculum->program }}" required></div>
                                             <div><label>Major <span style="font-weight:400">(Optional)</span></label><input name="major" value="{{ $selectedCurriculum->major }}"></div>
                                             <div><label>Curriculum Code</label><input name="curriculum_code" value="{{ $selectedCurriculum->curriculum_code }}" required></div>
+                                            <div><label>Effective Year</label><input name="effective_year" value="{{ old('effective_year', $selectedCurriculum->effective_year) }}" placeholder="2025-2026" maxlength="20" required></div>
                                             <div><label>Status</label><select name="status"><option value="active" @selected($selectedCurriculum->status === 'active')>Active</option><option value="inactive" @selected($selectedCurriculum->status === 'inactive')>Inactive</option></select></div>
                                         </div>
                                         <div class="modal-actions"><button class="btn gray" type="button" onclick="closeModal('updateCurriculumModal')">Cancel</button><button class="btn green" type="submit">Save Changes</button></div>
