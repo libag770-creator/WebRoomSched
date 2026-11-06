@@ -2648,7 +2648,7 @@
 
 
         const url =
-            "{{ route('student.schedule.programs') }}" +
+            "{{ route('student.schedule.programs', [], false) }}" +
             "?department_id=" +
             encodeURIComponent(
                 selectedDepartmentId
@@ -2945,7 +2945,7 @@
 
 
         const url =
-            "{{ route('student.schedule.years') }}" +
+            "{{ route('student.schedule.years', [], false) }}" +
 
             "?department_id=" +
 
