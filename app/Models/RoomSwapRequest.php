@@ -17,16 +17,43 @@ class RoomSwapRequest extends Model
         'target_schedule_id',
         'requester_room_id',
         'target_room_id',
+        'swap_type',
         'swap_date',
         'start_time',
         'end_time',
         'reason',
+        'decline_reason',
         'status',
     ];
 
     protected $casts = [
         'swap_date' => 'date',
     ];
+
+    public static function expireElapsedTemporarySwaps(): int
+    {
+        $today = Carbon::today()->toDateString();
+        $currentTime = Carbon::now()->format('H:i:s');
+
+        return static::query()
+            ->whereRaw('LOWER(TRIM(status)) = ?', ['approved'])
+            ->where(function ($query) {
+                $query->whereNull('swap_type')->orWhere('swap_type', 'temporary');
+            })
+            ->whereNotNull('swap_date')
+            ->whereNotNull('end_time')
+            ->where(function ($query) use ($today, $currentTime) {
+                $query->whereDate('swap_date', '<', $today)
+                    ->orWhere(function ($sameDay) use ($today, $currentTime) {
+                        $sameDay->whereDate('swap_date', '=', $today)
+                            ->where('end_time', '<=', $currentTime);
+                    });
+            })
+            ->update([
+                'status' => 'expired',
+                'updated_at' => Carbon::now(),
+            ]);
+    }
 
     public function requester()
     {
@@ -60,9 +87,15 @@ class RoomSwapRequest extends Model
 
     public function isActive(): bool
     {
-        if ($this->status !== 'approved' || !$this->swap_date || !$this->start_time || !$this->end_time) {
+        if ($this->status !== 'approved') {
             return false;
         }
+
+        if (($this->swap_type ?? 'temporary') === 'permanent') {
+            return true;
+        }
+
+        if (!$this->swap_date || !$this->start_time || !$this->end_time) return false;
 
         try {
             $date = $this->swap_date->format('Y-m-d');
@@ -76,7 +109,7 @@ class RoomSwapRequest extends Model
 
     public function isExpired(): bool
     {
-        if (!$this->swap_date || !$this->end_time) {
+        if (($this->swap_type ?? 'temporary') === 'permanent' || !$this->swap_date || !$this->end_time) {
             return false;
         }
 

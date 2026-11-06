@@ -3,6 +3,254 @@
 @endphp
 
 @include('footerheader.header')
+
+<style>
+    /* Modify schedule: the Chair workspace theme with a readable room picker and timetable. */
+    body.portal-shell.chair-portal { --chair-sidebar-width:252px; --chair-shell-gutter:28px; background:#e9eee8; }
+    body.portal-shell.chair-portal .wrapper { min-height:100vh; background:#e9eee8; }
+    body.portal-shell.chair-portal .main-layout { grid-template-columns:var(--chair-sidebar-width) minmax(0,1fr); align-items:stretch; min-height:100vh; }
+    body.portal-shell.chair-portal .main-layout > .chair-sidebar { position:sticky; top:0; align-self:start; width:var(--chair-sidebar-width); height:100vh; min-height:100vh; padding:25px 15px 18px; border:0; background:linear-gradient(165deg,#112f29 0%,#173b33 54%,#285342 100%); color:#f7f5eb; box-shadow:12px 0 32px rgba(20,47,37,.1); }
+    body.portal-shell.chair-portal .top-header { position:fixed; top:16px; right:var(--chair-shell-gutter); left:calc(var(--chair-sidebar-width) + var(--chair-shell-gutter)); z-index:1000; min-height:72px; padding:10px 15px 10px 22px; border:1px solid rgba(224,231,224,.96); border-radius:18px; background:rgba(255,255,255,.95); box-shadow:0 12px 34px rgba(31,57,43,.09); backdrop-filter:blur(18px); }
+    body.portal-shell.chair-portal .header-title small { color:#9a8450; font-size:11px; }
+    body.portal-shell.chair-portal .header-title h3 { color:#173b33; font-size:20px; }
+    body.portal-shell.chair-portal .header-action { color:#375448; }
+    body.portal-shell.chair-portal .sidebar-toggle { top:36px; left:calc(var(--chair-sidebar-width) - 15px); z-index:1200; border-color:rgba(216,193,140,.52); background:#f8f5eb; color:#224336; }
+    body.portal-shell.chair-portal.sidebar-collapsed { --chair-sidebar-width:76px; }
+    body.portal-shell.chair-portal.sidebar-collapsed .main-layout { grid-template-columns:76px minmax(0,1fr); }
+    body.portal-shell.chair-portal.sidebar-collapsed .main-layout > .chair-sidebar { width:76px; padding-right:10px; padding-left:10px; }
+    body.portal-shell.chair-portal.sidebar-collapsed .sidebar-toggle { left:61px; }
+    body.portal-shell.chair-portal .main-layout > .content.chair-modify-view { min-height:100vh; padding:124px clamp(20px,3vw,42px) 42px; background:radial-gradient(ellipse at 90% 2%,rgba(214,194,143,.23),transparent 28%),linear-gradient(145deg,#eef2ec 0%,#f8f7f2 58%,#f1f0e8 100%); }
+
+    .chair-modify-view .page { width:min(100%,1480px); margin:0 auto; }
+    .chair-modify-view .modify-hero { position:relative; display:flex; align-items:flex-start; gap:19px; min-height:205px; margin:0 0 20px; padding:clamp(27px,4vw,42px); overflow:hidden; border:1px solid rgba(231,214,173,.22); border-radius:24px; background:radial-gradient(circle at 82% 20%,rgba(215,194,143,.18),transparent 23%),linear-gradient(118deg,#163b33 0%,#245543 58%,#37664d 100%); box-shadow:0 18px 40px rgba(28,65,48,.16); color:#fff; }
+    .chair-modify-view .modify-hero::after { position:absolute; right:-48px; bottom:-165px; width:330px; height:330px; border:1px solid rgba(232,215,169,.25); border-radius:50%; box-shadow:0 0 0 26px rgba(232,215,169,.035),0 0 0 62px rgba(232,215,169,.025),0 0 0 101px rgba(232,215,169,.02); content:""; pointer-events:none; }
+    .chair-modify-view .modify-hero-icon { position:relative; z-index:1; display:grid; flex:0 0 52px; width:52px; height:52px; place-items:center; border:1px solid rgba(255,255,255,.24); border-radius:15px; background:rgba(255,255,255,.11); color:#e2c987; font-size:22px; }
+    .chair-modify-view .modify-hero-copy { position:relative; z-index:1; }
+    .chair-modify-view .modify-eyebrow { margin:0 0 10px; color:#e2c987; font-size:11px; font-weight:800; letter-spacing:.15em; }
+    .chair-modify-view .modify-title { margin:0 0 8px; color:#fff; font:800 clamp(34px,3.2vw,45px)/1.12 var(--wr-display); letter-spacing:-.045em; }
+    .chair-modify-view .modify-subtitle { margin:0; color:#e1e8df; font-size:15px; font-weight:600; line-height:1.6; }
+    .chair-modify-view .modify-term { display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-top:16px; color:#f2eee0; font-size:13px; font-weight:650; }
+    .chair-modify-view .modify-term > i { color:#e2c987; }
+    .chair-modify-view .modify-term strong { color:#fff; font-weight:800; }
+    .chair-modify-view .modify-term-note { color:#d3e0d5; font-size:12px; font-weight:550; }
+    .chair-modify-view .editor-mode-switch { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:-3px 0 16px; padding:6px; border:1px solid #dfe7dd; border-radius:12px; background:#fff; }
+    .chair-modify-view .editor-mode-link { display:inline-flex; min-height:40px; align-items:center; gap:8px; padding:0 14px; border-radius:8px; color:#53675a; font-size:13px; font-weight:800; text-decoration:none; }
+    .chair-modify-view .editor-mode-link.active { background:#24543e; color:#fff; }
+    .chair-modify-view .message { margin:0 0 15px; padding:14px 17px; border:1px solid; border-radius:12px; font-size:14px; font-weight:700; line-height:1.5; }
+    .chair-modify-view .message.success { border-color:#b9d9bd; background:#edf7ee; color:#28603a; }
+    .chair-modify-view .message.error { border-color:#edc8c2; background:#fff3f1; color:#8f3e36; }
+
+    .chair-modify-view .navigation-section,.chair-modify-view .editor-panel,.chair-modify-view .schedule-section { min-width:0; margin:0 0 17px; overflow:hidden; border:1px solid #dfe7dd; border-radius:18px; background:#fff; box-shadow:0 8px 24px rgba(31,57,43,.045); }
+    .chair-modify-view .navigation-header { padding:20px 22px; border-bottom:1px solid #e7ece5; background:linear-gradient(110deg,#f5f7f1,#fff); }
+    .chair-modify-view .navigation-title,.chair-modify-view .level-title { display:flex; align-items:center; gap:10px; color:#173b33; font-size:20px; font-weight:800; letter-spacing:-.025em; }
+    .chair-modify-view .navigation-title i,.chair-modify-view .level-title i { color:#35684a; font-size:17px; }
+    .chair-modify-view .navigation-subtitle { margin-top:6px; color:#5b6d61; font-size:13px; font-weight:550; line-height:1.5; }
+    .chair-modify-view .room-search-panel { display:grid; gap:7px; margin:0 22px 17px; padding:14px; border:1px solid #e2e9e1; border-radius:13px; background:#f8faf7; }
+    .chair-modify-view .editor-mode-switch .room-search-panel { flex:0 1 340px; gap:4px; margin:0 0 0 auto; padding:0; border:0; background:transparent; }
+    .chair-modify-view .editor-mode-switch .room-search-panel label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+    .chair-modify-view .editor-mode-switch .room-search-control { min-height:40px; }
+    .chair-modify-view .room-search-panel label { color:#43594d; font-size:12px; font-weight:800; }
+    .chair-modify-view .room-search-control { display:flex; min-height:46px; align-items:center; gap:10px; padding:0 12px; border:1px solid #d7e0d7; border-radius:10px; background:#fff; color:#65776a; }
+    .chair-modify-view .room-search-control:focus-within { outline:3px solid rgba(49,104,76,.14); border-color:#648a70; }
+    .chair-modify-view .room-search-control input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:#273f32; font:600 14px/1.4 var(--wr-body); }
+    .chair-modify-view .room-search-control input::placeholder { color:#89968c; font-weight:500; }
+    .chair-modify-view .room-search-clear { display:grid; flex:0 0 30px; width:30px; height:30px; place-items:center; border:0; border-radius:8px; background:#eef3ed; color:#496052; cursor:pointer; }
+    .chair-modify-view .room-search-status { margin:0; color:#68776d; font-size:12px; font-weight:600; }
+    .chair-modify-view .room-search-results { padding:0 22px 22px; }
+    .chair-modify-view .room-search-results[hidden],.chair-modify-view .room-search-clear[hidden],.chair-modify-view .room-search-empty[hidden] { display:none !important; }
+    .chair-modify-view .room-search-empty { margin:0 22px 22px; }
+    .chair-modify-view #departmentLevel,.chair-modify-view #buildingLevel,.chair-modify-view #roomLevel { padding:19px 21px 22px; }
+    .chair-modify-view .level-title { margin-bottom:14px; font-size:16px; }
+    .chair-modify-view .department-list,.chair-modify-view .building-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+    .chair-modify-view .department-card,.chair-modify-view .building-card { display:flex; align-items:center; justify-content:space-between; gap:13px; width:100%; min-height:78px; padding:14px 15px; border:1px solid #e2e9e1; border-radius:13px; background:#fff; color:#2f493b; text-align:left; cursor:pointer; transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease; }
+    .chair-modify-view .department-card:hover,.chair-modify-view .building-card:hover { transform:translateY(-2px); border-color:#adc5b0; background:#f9fbf8; box-shadow:0 8px 18px rgba(31,57,43,.07); }
+    .chair-modify-view .card-left { display:flex; align-items:center; gap:12px; min-width:0; }
+    .chair-modify-view .card-icon { display:grid; flex:0 0 40px; width:40px; height:40px; place-items:center; border:1px solid #e3e9e0; border-radius:12px; background:#edf3eb; color:#285940; font-size:15px; }
+    .chair-modify-view .card-name { color:#294437; font-size:14px; font-weight:800; line-height:1.35; overflow-wrap:anywhere; }
+    .chair-modify-view .card-description,.chair-modify-view .card-count { margin-top:4px; color:#68776d; font-size:12px; font-weight:600; }
+    .chair-modify-view .card-arrow { color:#819188; font-size:13px; }
+    .chair-modify-view .breadcrumb { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin-bottom:17px; color:#8a978e; font-size:13px; }
+    .chair-modify-view .breadcrumb strong { color:#294437; font-size:13px; font-weight:800; }
+    .chair-modify-view .back-button { display:inline-flex; align-items:center; gap:8px; min-height:37px; padding:0 11px; border:1px solid #dce6dc; border-radius:9px; background:#f8faf6; color:#315b43; font:800 12px/1.2 var(--wr-body); cursor:pointer; }
+    .chair-modify-view .back-button:hover { background:#eef5ec; }
+    .chair-modify-view .room-selection-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .chair-modify-view .room-selection-card { display:grid; gap:13px; padding:15px; border:1px solid #e2e9e1; border-radius:14px; background:#fff; }
+    .chair-modify-view .room-selection-top { display:flex; align-items:center; gap:11px; }
+    .chair-modify-view .room-selection-icon { display:grid; flex:0 0 40px; width:40px; height:40px; place-items:center; border-radius:12px; background:#edf3eb; color:#285940; font-size:16px; }
+    .chair-modify-view .room-selection-name { color:#203d30; font-size:15px; font-weight:800; line-height:1.35; }
+    .chair-modify-view .room-selection-label { margin-top:4px; color:#68776d; font-size:12px; font-weight:600; }
+    .chair-modify-view .open-room-button,.chair-modify-view .change-room-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:41px; padding:0 14px; border:1px solid #24543e; border-radius:10px; background:#24543e; color:#fff; font:800 12px/1.2 var(--wr-body); cursor:pointer; transition:transform .16s ease,background .16s ease; }
+    .chair-modify-view .open-room-button:hover,.chair-modify-view .change-room-button:hover { transform:translateY(-1px); background:#173b33; }
+    .chair-modify-view .empty { grid-column:1/-1; padding:17px; border:1px dashed #d7e1d7; border-radius:12px; background:#f8faf6; color:#637268; font-size:13px; font-weight:600; }
+
+    .chair-modify-view .editor-panel { padding:20px 22px 21px; scroll-margin-top:105px; }
+    .chair-modify-view .modify-entry-overlay { position:fixed; inset:0; z-index:2147483000; display:grid; place-items:center; padding:18px; pointer-events:none; }
+    .chair-modify-view .modify-entry-overlay[hidden] { display:none !important; }
+    .chair-modify-view .modify-entry-overlay .editor-panel { width:min(790px,calc(100vw - 36px)); max-height:min(88vh,820px); margin:0; overflow:auto; border-color:#dce5df; border-radius:17px; box-shadow:0 22px 70px rgba(28,47,37,.22); pointer-events:auto; }
+    .chair-modify-view .modify-entry-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:17px; }
+    .chair-modify-view .modify-entry-heading .editor-subtitle { margin-bottom:8px; }
+    .chair-modify-view .modify-entry-target { display:inline-flex; min-height:28px; align-items:center; padding:4px 10px; border:1px solid #dce9df; border-radius:999px; background:#f1f7f2; color:#365d43; font-size:12px; font-weight:750; }
+    .chair-modify-view .modify-entry-close { display:grid; flex:0 0 36px; width:36px; height:36px; place-items:center; border:1px solid #dce5df; border-radius:10px; background:#f8faf8; color:#53645a; font:500 24px/1 Arial,sans-serif; cursor:pointer; }
+    .chair-modify-view .modify-entry-close:hover { background:#edf3ee; color:#1e392a; }
+    .chair-modify-view .modify-entry-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; }
+    .chair-modify-view .editor-title { display:flex; align-items:center; gap:10px; color:#173b33; font-size:20px; font-weight:800; }
+    .chair-modify-view .editor-title i { color:#35684a; }
+    .chair-modify-view .editor-subtitle { max-width:900px; margin:7px 0 17px; color:#5b6d61; font-size:13px; font-weight:550; line-height:1.6; }
+    .chair-modify-view .editor-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; }
+    .chair-modify-view .editor-field { display:grid; min-width:0; gap:6px; }
+    .chair-modify-view .editor-field label { color:#43594d; font-size:12px; font-weight:800; }
+    .chair-modify-view .shared-audience-picker { margin-top:12px; padding:12px; border:1px solid #dbe6dd; border-radius:10px; background:#f7faf7; }
+    .chair-modify-view .shared-audience-picker[hidden] { display:none !important; }
+    .chair-modify-view .shared-audience-heading { margin-bottom:8px; color:#294533; font-size:12px; font-weight:800; }
+    .chair-modify-view .shared-audience-choices { display:grid; gap:7px; max-height:135px; overflow:auto; }
+    .chair-modify-view .shared-audience-option { display:flex; align-items:flex-start; gap:8px; padding:8px; border:1px solid #e1e9e2; border-radius:8px; background:#fff; color:#34483b; font-size:12px; line-height:1.4; cursor:pointer; }
+    .chair-modify-view .shared-audience-option input { margin:2px 0 0; accent-color:#28583f; }
+    .chair-modify-view .shared-audience-help { margin-top:8px; color:#68776c; font-size:11px; line-height:1.4; }
+    .chair-modify-view .editor-field input,.chair-modify-view .editor-field select { width:100%; min-height:43px; padding:0 12px; border:1px solid #d7e0d7; border-radius:10px; background:#fff; color:#273f32; font:600 13px/1.4 var(--wr-body); }
+    .chair-modify-view .editor-field input[readonly] { background:#f6f8f4; color:#4d6255; }
+    .chair-modify-view .editor-field input::placeholder { color:#929d95; font-weight:500; }
+    .chair-modify-view .editor-field input:focus,.chair-modify-view .editor-field select:focus { outline:3px solid rgba(49,104,76,.15); border-color:#648a70; }
+    .chair-modify-view #modifySubjectChoice[hidden] { display:none !important; }
+    .chair-modify-view #modifySubjectChoice:not([hidden]) { display:block !important; }
+    .chair-modify-view .editor-status { margin-top:14px; padding:12px 14px; border:1px solid #dfe8dc; border-radius:11px; background:#f4f7f1; color:#40574a; font-size:13px; font-weight:700; line-height:1.5; }
+    .chair-modify-view .editor-status.success { border-color:#b9d9bd; background:#edf7ee; color:#28603a; }
+    .chair-modify-view .editor-status.warning { border-color:#e6d9b9; background:#fbf7ea; color:#806a39; }
+    .chair-modify-view .editor-status.error { border-color:#edc8c2; background:#fff3f1; color:#8f3e36; }
+    .chair-modify-view .editor-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:15px; }
+    .chair-modify-view .editor-actions-left,.chair-modify-view .editor-actions-right { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+    .chair-modify-view .editor-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:41px; padding:0 13px; border:1px solid #dce5dc; border-radius:10px; background:#f7f9f6; color:#40574a; font:800 12px/1.2 var(--wr-body); cursor:pointer; }
+    .chair-modify-view .editor-button:hover { background:#edf3eb; }
+    .chair-modify-view .editor-clear { border-color:#ecd2ce; background:#fff8f7; color:#9b4c43; }
+    .chair-modify-view .editor-save { border-color:#24543e; background:#24543e; color:#fff; }
+    .chair-modify-view .editor-save:hover { background:#173b33; }
+    .chair-modify-view .editor-color-inline { display:flex; align-items:center; gap:8px; min-height:41px; padding:0 11px; border:1px solid #dce5dc; border-radius:10px; background:#fff; color:#43594d; font-size:12px; font-weight:800; }
+    .chair-modify-view .editor-color-inline input { width:30px; height:27px; padding:0; border:0; background:transparent; cursor:pointer; }
+
+    .chair-modify-view .modify-sheet-toolbar { position:sticky; top:100px; z-index:1000101; display:flex; align-items:center; justify-content:space-between; gap:15px; margin:0 22px 12px; padding:11px 13px; border:1px solid #dfe7dd; border-radius:12px; background:#fff; box-shadow:0 4px 14px rgba(31,57,43,.045); }
+    .chair-modify-view .modify-sheet-toolbar.is-entry-open { visibility:hidden; pointer-events:none; }
+    .chair-modify-view .modify-sheet-toolbar-guide,.chair-modify-view .modify-sheet-toolbar-actions { display:flex; min-width:0; align-items:center; flex-wrap:wrap; gap:9px 14px; }
+    .chair-modify-view .modify-sheet-toolbar-guide { color:#54675a; font-size:11px; font-weight:600; }
+    .chair-modify-view .modify-sheet-toolbar-guide > strong { color:#284a35; font-size:13px; }
+    .chair-modify-view .modify-sheet-toolbar-guide span { display:inline-flex; align-items:center; gap:6px; }
+    .chair-modify-view .modify-sheet-toolbar-guide b { display:inline-grid; width:19px; height:19px; place-items:center; border-radius:50%; background:#e6f0e7; color:#2f6842; font-size:10px; }
+    .chair-modify-view .modify-sheet-toolbar-actions { justify-content:flex-end; }
+    .chair-modify-view .modify-sheet-toolbar-actions [hidden] { display:none !important; }
+    .chair-modify-view .modify-sheet-toolbar .editor-color-inline { min-height:39px; }
+    .chair-modify-view #modifyMergeClassButton:not(:disabled) { border-color:#bad0bc; background:#edf5ed; color:#285940; }
+    .chair-modify-view #modifyMergeClassButton:not(:disabled):hover { background:#e2efe3; }
+    .chair-modify-view .modify-sheet-toolbar .editor-button:disabled { opacity:.48; cursor:not-allowed; transform:none; }
+    .chair-modify-view .modify-sheet-toolbar-left { display:flex; min-width:0; align-items:center; flex-wrap:wrap; gap:9px 13px; }
+    .chair-modify-view .modify-merge-target-label { color:#64766a; font-size:11px; font-weight:650; }
+
+    .chair-modify-view .schedule-section { scroll-margin-top:105px; }
+    .chair-modify-view .schedule-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:19px 22px; border-bottom:1px solid #e7ece5; background:linear-gradient(110deg,#f5f7f1,#fff); }
+    .chair-modify-view .schedule-main-title { display:flex; align-items:center; gap:9px; color:#173b33; font-size:19px; font-weight:800; }
+    .chair-modify-view .schedule-main-title i { color:#35684a; }
+    .chair-modify-view .schedule-room-name { margin-top:4px; color:#344d3e; font-size:16px; font-weight:750; }
+    .chair-modify-view .room-info { padding:12px 22px 0; color:#65746a; font-size:12px; font-weight:600; }
+    .chair-modify-view .room-info strong { color:#304a3b; font-weight:800; }
+    .chair-modify-view .room-schedule-meta { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:13px 22px; }
+    .chair-modify-view .room-schedule-meta-item { display:grid; gap:4px; padding:12px 13px; border:1px solid #e2e9e1; border-radius:11px; background:#f8faf6; }
+    .chair-modify-view .room-schedule-meta-label { color:#68776d; font-size:11px; font-weight:700; }
+    .chair-modify-view .room-schedule-meta-item strong { color:#294437; font-size:13px; font-weight:800; }
+    .chair-modify-view .permission-info { display:flex; align-items:flex-start; gap:9px; margin:0 22px 14px; padding:12px 14px; border:1px solid #e6ddc4; border-radius:11px; background:#fbf8ee; color:#695b38; font-size:12px; font-weight:650; line-height:1.55; }
+    .chair-modify-view .permission-info i { margin-top:2px; color:#967941; }
+    .chair-modify-view .excel-wrapper { position:relative; width:calc(100% - 44px); margin:0 22px 22px; overflow:auto; border:1px solid #dfe7dd; border-radius:13px; }
+    .chair-modify-view .excel-schedule { width:100%; min-width:1120px; border-collapse:separate; border-spacing:0; table-layout:fixed; background:#fff; }
+    .chair-modify-view .excel-schedule th { position:sticky; top:0; z-index:2; height:43px; padding:9px; border-right:1px solid #dbe4d9; border-bottom:1px solid #dbe4d9; background:#f0f5ee; color:#365444; text-align:center; font-size:12px; font-weight:800; letter-spacing:.04em; }
+    .chair-modify-view .excel-schedule th.time-header,.chair-modify-view .excel-schedule td.time-cell { width:100px; background:#f5f7f3; color:#465b4e; }
+    .chair-modify-view .excel-schedule td { height:104px; padding:8px; border-right:1px solid #e6ebe4; border-bottom:1px solid #e6ebe4; color:#30473a; vertical-align:top; font-size:12px; line-height:1.35; }
+    .chair-modify-view .excel-schedule td:last-child,.chair-modify-view .excel-schedule th:last-child { border-right:0; }
+    .chair-modify-view .excel-schedule tbody tr:last-child td { border-bottom:0; }
+    .chair-modify-view .excel-schedule td.time-cell { height:auto; vertical-align:middle; text-align:center; font-size:11px; font-weight:800; white-space:nowrap; }
+    .chair-modify-view .excel-schedule .schedule-cell { transition:box-shadow .12s ease,filter .12s ease; }
+    .chair-modify-view .modify-auto-merge-days { display:inline-flex; max-width:100%; margin:0 0 3px; padding:2px 5px; border-radius:5px; background:rgba(255,255,255,.82); color:#315540; font-size:10px; font-weight:850; line-height:1.1; }
+    .chair-modify-view .modify-schedule-block { container-type:inline-size; overflow:auto; scrollbar-width:thin; scrollbar-color:#b8c8ba transparent; }
+    .chair-modify-view .modify-schedule-block .schedule-course { font-size:clamp(9px,3.2cqw,13px); overflow-wrap:anywhere; }
+    .chair-modify-view .modify-schedule-block .schedule-subject { font-size:clamp(8px,2.9cqw,12px); line-height:1.2; overflow-wrap:anywhere; }
+    .chair-modify-view .modify-schedule-block .schedule-instructor,
+    .chair-modify-view .modify-schedule-block .schedule-year,
+    .chair-modify-view .modify-schedule-block .merged-course-details,
+    .chair-modify-view .modify-schedule-block .schedule-merge-pending-label { font-size:clamp(7px,2.4cqw,10px); line-height:1.15; overflow-wrap:anywhere; }
+    .chair-modify-view .excel-schedule .editable-cell { cursor:pointer; }
+    .chair-modify-view .excel-schedule .editable-cell:hover { position:relative; z-index:1; box-shadow:inset 0 0 0 2px #5a8768; filter:saturate(1.06); }
+    .chair-modify-view .merged-course-details { margin-top:5px; padding:5px 7px; border-left:2px solid #5b8b67; border-radius:0 6px 6px 0; background:rgba(255,255,255,.78); color:#3f5b49; font-size:10px; line-height:1.4; }
+    .chair-modify-view .merged-course-details strong { color:#28543a; font-size:9px; text-transform:uppercase; letter-spacing:.04em; }
+    .chair-modify-view .cell-shared-majors span { display:block; margin-top:2px; color:#40584a; font-size:10px; font-weight:700; }
+    .chair-modify-view .excel-schedule .is-selected-edit { position:relative; z-index:1; box-shadow:inset 0 0 0 3px #285940 !important; }
+    .chair-modify-view .excel-schedule .locked-cell { cursor:not-allowed; }
+    .chair-modify-view .excel-schedule .locked-cell[data-merge-schedule-id] { cursor:pointer; }
+    .chair-modify-view .excel-schedule .is-selected-merge { position:relative; z-index:1; box-shadow:inset 0 0 0 3px #d38a38 !important; }
+    .chair-modify-view .excel-schedule .locked-cell.filled { filter:saturate(.62); }
+    .chair-modify-view .excel-schedule .schedule-course { margin-bottom:3px; color:#173b33; font-size:13px; font-weight:850; line-height:1.3; }
+    .chair-modify-view .excel-schedule .schedule-subject { margin-bottom:3px; color:#304a3b; font-size:12px; font-weight:750; line-height:1.35; }
+    .chair-modify-view .excel-schedule .schedule-instructor { color:#4b6053; font-size:11px; font-weight:650; }
+    .chair-modify-view .excel-schedule .schedule-time { margin:3px 0; color:#405a49; font-size:10px; font-weight:800; }
+    .chair-modify-view .excel-schedule .schedule-year { margin-top:2px; color:#65746a; font-size:10px; font-weight:650; }
+    .chair-modify-view .excel-schedule .empty-cell { color:#849187; font-size:11px; font-weight:700; }
+    .chair-modify-view .excel-schedule .editable-label,.chair-modify-view .excel-schedule .locked,.chair-modify-view .excel-schedule .not-allowed { display:inline-flex; align-items:center; gap:5px; margin-top:5px; color:#35684a; font-size:10px; font-weight:800; line-height:1.35; }
+    .chair-modify-view .excel-schedule .locked,.chair-modify-view .excel-schedule .not-allowed { color:#8b5a4e; }
+    .chair-modify-view .excel-schedule .allowed-other .editable-label { color:#4d7654; }
+    .chair-modify-view .excel-schedule .noon-break-row td { height:34px; padding:7px; background:#f5f1e4; color:#806a39; text-align:center; font-size:11px; font-weight:850; letter-spacing:.16em; }
+    .chair-modify-view .excel-schedule td.modify-block-source > * { visibility:hidden; }
+    .chair-modify-view .modify-schedule-block-layer { position:absolute; z-index:5; inset:0 auto auto 0; overflow:visible; pointer-events:none; }
+    .chair-modify-view .modify-schedule-block { position:absolute; box-sizing:border-box; z-index:1; overflow:hidden; padding:7px 8px; border:1px solid rgb(52 76 97 / 35%); border-radius:5px; color:#243746; box-shadow:0 2px 5px rgb(22 40 55 / 14%); cursor:pointer; pointer-events:auto; touch-action:none; }
+    .chair-modify-view .modify-schedule-block.is-selected { z-index:3; outline:3px solid #285940; outline-offset:-3px; }
+    .chair-modify-view .modify-schedule-block.is-resizing { z-index:4; box-shadow:0 5px 16px rgb(22 40 55 / 25%); }
+    .chair-modify-view .modify-schedule-block.resize-conflict { outline:3px solid #c74343; outline-offset:-3px; }
+    .chair-modify-view .modify-schedule-block > .schedule-time { position:absolute; top:3px; right:4px; padding:1px 4px; border-radius:4px; background:#fff; color:#243746; font-size:10px; font-weight:800; }
+    .chair-modify-view .modify-resize-handle { position:absolute; z-index:5; left:0; width:100%; height:20px; padding:0; border:0; background:transparent; cursor:ns-resize; visibility:hidden; opacity:0; pointer-events:none; touch-action:none; }
+    .chair-modify-view .modify-resize-handle.start { top:0; }
+    .chair-modify-view .modify-resize-handle.end { bottom:0; }
+    .chair-modify-view .modify-resize-handle span { display:block; width:50px; height:5px; margin:0 auto; border-radius:999px; background:#245c90; }
+    .chair-modify-view .modify-schedule-block.is-selected .modify-resize-handle { height:26px; visibility:visible; opacity:1; pointer-events:auto; }
+
+    @media(max-width:1100px) {
+        body.portal-shell.chair-portal { --chair-sidebar-width:226px; --chair-shell-gutter:22px; }
+        body.portal-shell.chair-portal.sidebar-collapsed { --chair-sidebar-width:76px; }
+        body.portal-shell.chair-portal .main-layout { grid-template-columns:var(--chair-sidebar-width) minmax(0,1fr); }
+        body.portal-shell.chair-portal .main-layout > .content.chair-modify-view { padding-right:24px; padding-left:24px; }
+        .chair-modify-view .room-selection-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .chair-modify-view .editor-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media(max-width:760px) {
+        body.portal-shell.chair-portal .top-header { position:sticky; top:0; right:auto; left:auto; min-height:64px; margin:0; padding:9px 12px 9px 54px; border:0; border-radius:0 0 15px 15px; box-shadow:0 5px 18px rgba(31,57,43,.08); }
+        body.portal-shell.chair-portal .header-title h3 { font-size:17px; }
+        body.portal-shell.chair-portal .wrapper,body.portal-shell.chair-portal .main-layout { min-height:calc(100vh - 64px); }
+        body.portal-shell.chair-portal .main-layout { display:block; }
+        body.portal-shell.chair-portal .main-layout > .chair-sidebar { position:fixed; top:0; bottom:0; left:0; z-index:1100; width:262px; height:100dvh; min-height:0; padding:20px 15px; transform:translateX(0); }
+        body.portal-shell.chair-portal.sidebar-collapsed .main-layout > .chair-sidebar { width:262px; transform:translateX(-110%); }
+        body.portal-shell.chair-portal .sidebar-backdrop { position:fixed; inset:0; z-index:1050; }
+        body.portal-shell.chair-portal .sidebar-toggle,body.portal-shell.chair-portal.sidebar-collapsed .sidebar-toggle { top:17px; left:14px; z-index:1200; }
+        body.portal-shell.chair-portal:not(.sidebar-collapsed) .sidebar-toggle { top:17px; left:270px; }
+        body.portal-shell.chair-portal .main-layout > .content.chair-modify-view { min-height:calc(100vh - 64px); padding:22px 17px 32px; }
+        .chair-modify-view .modify-hero { gap:14px; padding:27px 23px; }
+        .chair-modify-view .department-list,.chair-modify-view .building-list { grid-template-columns:minmax(0,1fr); }
+        .chair-modify-view .room-search-panel { margin-right:16px; margin-left:16px; }
+        .chair-modify-view .editor-mode-switch .room-search-panel { flex-basis:100%; margin:4px 0 0; }
+        .chair-modify-view .room-search-results { padding-right:16px; padding-left:16px; }
+        .chair-modify-view .room-search-empty { margin-right:16px; margin-left:16px; }
+        .chair-modify-view .editor-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media(max-width:540px) {
+        .chair-modify-view .modify-hero { flex-direction:column; }
+        .chair-modify-view .modify-term { align-items:flex-start; flex-direction:column; gap:6px; }
+        .chair-modify-view .room-selection-grid,.chair-modify-view .editor-grid { grid-template-columns:minmax(0,1fr); }
+        .chair-modify-view #departmentLevel,.chair-modify-view #buildingLevel,.chair-modify-view #roomLevel { padding:16px; }
+        .chair-modify-view .navigation-header,.chair-modify-view .schedule-header { padding:17px; }
+        .chair-modify-view .schedule-header { align-items:flex-start; flex-direction:column; }
+        .chair-modify-view .change-room-button { align-self:flex-start; }
+        .chair-modify-view .room-schedule-meta { grid-template-columns:minmax(0,1fr); padding:12px 17px; }
+        .chair-modify-view .room-info { padding-right:17px; padding-left:17px; line-height:1.6; }
+        .chair-modify-view .permission-info { margin-right:17px; margin-left:17px; }
+        .chair-modify-view .excel-wrapper { width:calc(100% - 34px); margin-right:17px; margin-left:17px; }
+        .chair-modify-view .editor-panel { padding:17px; }
+        .chair-modify-view .editor-actions { align-items:stretch; flex-direction:column; }
+        .chair-modify-view .editor-actions-right { justify-content:flex-start; }
+        .chair-modify-view .modify-sheet-toolbar { align-items:flex-start; flex-direction:column; margin-right:17px; margin-left:17px; }
+        .chair-modify-view .modify-sheet-toolbar-actions { justify-content:flex-start; }
+    }
+</style>
 <div class="wrapper">
 
    
@@ -11,1510 +259,35 @@
 
         @include('chair.sidebar')
 
-        <main class="content chair-modify-schedule chair-workspace-redesign {{ $initialRoomId ? "modify-room-page" : "" }}">
+        <main class="content chair-modify-schedule chair-workspace-redesign chair-modify-view {{ $initialRoomId ? "modify-room-page" : "" }}">
 
-            <style>
-
-                * {
-                    box-sizing: border-box;
-                }
-
-                body {
-                    background: #f5f5f5;
-                }
-
-                .page {
-                    max-width: 1200px;
-                    margin: auto;
-                }
-
-                .title {
-                    font-size: 28px;
-                    font-weight: bold;
-                    color: #2e7d32;
-                    margin-bottom: 5px;
-                }
-
-                .subtitle {
-                    color: #777;
-                    margin-bottom: 25px;
-                }
-
-                .section {
-                    background: white;
-                    padding: 25px;
-                    border-radius: 12px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,.07);
-                    margin-bottom: 20px;
-                }
-
-                .filters {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 15px;
-                }
-
-                .filter-group label {
-                    display: block;
-                    font-size: 13px;
-                    font-weight: bold;
-                    color: #555;
-                    margin-bottom: 6px;
-                }
-
-                .filter-group select {
-                    width: 100%;
-                    padding: 10px;
-                    border: 1px solid #ccc;
-                    border-radius: 6px;
-                    background: white;
-                }
-
-                .schedule-title {
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #2e7d32;
-                    margin-bottom: 15px;
-                }
-
-                .room-info {
-                    background: #e8f5e9;
-                    padding: 12px 15px;
-                    border-radius: 7px;
-                    margin-bottom: 20px;
-                    color: #2e7d32;
-                }
-
-                .room-schedule-meta {
-                    display: grid;
-                    grid-template-columns: repeat(2, minmax(0, 1fr));
-                    gap: 12px;
-                    margin-bottom: 15px;
-                }
-
-                .room-schedule-meta-item {
-                    background: #ffffff;
-                    border: 1px solid #dfe7e2;
-                    border-radius: 9px;
-                    padding: 11px 14px;
-                }
-
-                .room-schedule-meta-label {
-                    display: block;
-                    color: #667085;
-                    font-size: 10px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: .4px;
-                    margin-bottom: 4px;
-                }
-
-                .room-schedule-meta-item strong {
-                    color: #176b3a;
-                    font-size: 14px;
-                }
-
-
-                .schedule-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-
-                .schedule-table th {
-                    background: #2e7d32;
-                    color: white;
-                    padding: 11px;
-                    text-align: center;
-                    font-size: 13px;
-                }
-
-                .schedule-table td {
-                    border: 1px solid #ddd;
-                    padding: 8px;
-                    text-align: center;
-                    min-width: 130px;
-                    height: 90px;
-                    vertical-align: middle;
-                }
-
-                .time-cell {
-                    background: #f5f5f5;
-                    font-weight: bold;
-                    color: #555;
-                    width: 130px;
-                }
-
-                .schedule-cell {
-                    background: white;
-                }
-
-                .filled {
-                    background: #f1f5fb;
-                    color: #333;
-                }
-
-                .locked {
-                    display: inline-block;
-                    margin-top: 5px;
-                    font-size: 11px;
-                    color: #777;
-                }
-
-                .empty-slot {
-                    background: #fafafa;
-                    color: #aaa;
-                }
-
-                .add-button {
-                    display: inline-block;
-                    margin-top: 6px;
-                    padding: 6px 10px;
-                    border: none;
-                    border-radius: 5px;
-                    background: #2e7d32;
-                    color: white;
-                    font-size: 11px;
-                    font-weight: bold;
-                    cursor: pointer;
-                }
-
-                .add-button:hover {
-                    background: #1b5e20;
-                }
-
-                .not-allowed {
-                    display: inline-block;
-                    margin-top: 5px;
-                    font-size: 11px;
-                    color: #999;
-                }
-
-                .schedule-course {
-                    font-weight: bold;
-                    color: #2e7d32;
-                    margin-bottom: 4px;
-                }
-
-                .schedule-subject {
-                    font-size: 12px;
-                    margin-bottom: 3px;
-                }
-
-                .schedule-instructor {
-                    font-size: 11px;
-                    color: #777;
-                }
-
-                .schedule-year {
-                    font-size: 11px;
-                    color: #777;
-                }
-
-                .message {
-                    padding: 12px;
-                    border-radius: 6px;
-                    margin-bottom: 20px;
-                }
-
-                .success {
-                    background: #e8f5e9;
-                    color: #2e7d32;
-                }
-
-                .error {
-                    background: #ffebee;
-                    color: #b71c1c;
-                }
-
-                .permission-info {
-                    padding: 10px 14px;
-                    background: #fff8e1;
-                    border-left: 4px solid #f9a825;
-                    border-radius: 5px;
-                    color: #6d4c00;
-                    font-size: 13px;
-                    margin-bottom: 20px;
-                }
-
-                .empty {
-                    padding: 30px;
-                    text-align: center;
-                    color: #777;
-                }
-
-                /* =========================================================
-   PROFESSIONAL CLASSROOM NAVIGATION
-========================================================= */
-
-.navigation-section {
-    background: #ffffff;
-
-    border: 1px solid #e3e8e5;
-
-    border-radius: 14px;
-
-    padding: 25px;
-
-    margin-bottom: 20px;
-
-    box-shadow:
-        0 2px 8px rgba(0,0,0,.04);
-}
-
-.navigation-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding-bottom: 20px;
-
-    border-bottom: 1px solid #edf0ee;
-
-    margin-bottom: 20px;
-}
-
-.navigation-title {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-
-    color: #1f2937;
-
-    font-size: 18px;
-
-    font-weight: 700;
-}
-
-.navigation-title i {
-    color: #2e7d32;
-}
-
-.navigation-subtitle {
-    margin-top: 5px;
-
-    color: #667085;
-
-    font-size: 12px;
-}
-
-
-/* =========================================================
-   LEVEL TITLE
-========================================================= */
-
-.level-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    color: #344054;
-
-    font-size: 14px;
-
-    font-weight: 700;
-
-    margin-bottom: 12px;
-}
-
-.level-title i {
-    color: #2e7d32;
-}
-
-
-/* =========================================================
-   DEPARTMENT CARDS
-========================================================= */
-
-.department-list,
-.building-list {
-    display: flex;
-    flex-direction: column;
-
-    gap: 10px;
-}
-
-.department-card,
-.building-card {
-    width: 100%;
-
-    border: 1px solid #e1e7e3;
-
-    background: #ffffff;
-
-    border-radius: 10px;
-
-    padding: 15px 17px;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    text-align: left;
-
-    cursor: pointer;
-
-    transition:
-        border-color .18s ease,
-        background .18s ease,
-        transform .18s ease,
-        box-shadow .18s ease;
-}
-
-.department-card:hover,
-.building-card:hover {
-    background: #f7fbf8;
-
-    border-color: #b8d8bd;
-
-    transform: translateY(-1px);
-
-    box-shadow:
-        0 4px 10px rgba(0,0,0,.05);
-}
-
-.card-left {
-    display: flex;
-
-    align-items: center;
-
-    gap: 13px;
-}
-
-.card-icon {
-    width: 43px;
-    height: 43px;
-
-    flex-shrink: 0;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 9px;
-
-    background: #eaf6ed;
-
-    color: #2e7d32;
-
-    font-size: 17px;
-}
-
-.card-name {
-    color: #1f2937;
-
-    font-size: 14px;
-
-    font-weight: 700;
-}
-
-.card-description {
-    color: #98a2b3;
-
-    font-size: 11px;
-
-    margin-top: 3px;
-}
-
-.card-count {
-    color: #667085;
-
-    font-size: 11px;
-
-    margin-top: 3px;
-}
-
-.card-arrow {
-    width: 31px;
-    height: 31px;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 7px;
-
-    color: #667085;
-
-    background: #f6f8f7;
-
-    transition:
-        background .18s ease,
-        color .18s ease;
-}
-
-.department-card:hover .card-arrow,
-.building-card:hover .card-arrow {
-    background: #e8f5e9;
-
-    color: #2e7d32;
-}
-
-
-/* =========================================================
-   BREADCRUMB
-========================================================= */
-
-.breadcrumb {
-    display: flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    margin-bottom: 18px;
-
-    font-size: 12px;
-
-    color: #98a2b3;
-}
-
-.breadcrumb strong {
-    color: #344054;
-}
-
-.back-button {
-    border: none;
-
-    background: transparent;
-
-    color: #2e7d32;
-
-    font-size: 12px;
-
-    font-weight: 700;
-
-    cursor: pointer;
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 6px;
-
-    padding: 0;
-}
-
-.back-button:hover {
-    color: #1b5e20;
-}
-
-
-/* =========================================================
-   ROOM CARDS
-========================================================= */
-
-.room-selection-grid {
-    display: grid;
-
-    grid-template-columns:
-        repeat(auto-fill, minmax(220px, 1fr));
-
-    gap: 12px;
-}
-
-.room-selection-card {
-    background: #ffffff;
-
-    border: 1px solid #e1e7e3;
-
-    border-radius: 10px;
-
-    padding: 17px;
-
-    cursor: pointer;
-
-    transition:
-        transform .18s ease,
-        border-color .18s ease,
-        box-shadow .18s ease;
-}
-
-.room-selection-card:hover {
-    transform: translateY(-2px);
-
-    border-color: #9fcaa6;
-
-    box-shadow:
-        0 6px 15px rgba(0,0,0,.06);
-}
-
-.room-selection-top {
-    display: flex;
-
-    align-items: center;
-
-    gap: 11px;
-
-    margin-bottom: 14px;
-}
-
-.room-selection-icon {
-    width: 40px;
-    height: 40px;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    background: #eaf6ed;
-
-    color: #2e7d32;
-
-    border-radius: 8px;
-}
-
-.room-selection-name {
-    color: #1f2937;
-
-    font-size: 14px;
-
-    font-weight: 700;
-}
-
-.room-selection-label {
-    color: #98a2b3;
-
-    font-size: 10px;
-
-    margin-top: 2px;
-}
-
-.open-room-button {
-    width: 100%;
-
-    border: 1px solid #2e7d32;
-
-    background: #2e7d32;
-
-    color: #ffffff;
-
-    padding: 9px;
-
-    border-radius: 7px;
-
-    font-size: 11px;
-
-    font-weight: 700;
-
-    cursor: pointer;
-}
-
-.open-room-button:hover {
-    background: #256b2a;
-}
-
-
-/* =========================================================
-   SCHEDULE SECTION
-========================================================= */
-
-.schedule-section {
-    background: #ffffff;
-
-    border: 1px solid #e1e7e3;
-
-    border-radius: 14px;
-
-    padding: 20px;
-
-    box-shadow:
-        0 2px 8px rgba(0,0,0,.04);
-}
-
-.schedule-header {
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-between;
-
-    margin-bottom: 15px;
-}
-
-.schedule-main-title {
-    display: flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    color: #1f2937;
-
-    font-size: 18px;
-
-    font-weight: 700;
-}
-
-.schedule-main-title i {
-    color: #2e7d32;
-}
-
-.schedule-room-name {
-    color: #667085;
-
-    font-size: 12px;
-
-    margin-top: 4px;
-}
-
-.change-room-button {
-    border: 1px solid #d0d5d2;
-
-    background: #ffffff;
-
-    color: #475467;
-
-    padding: 9px 13px;
-
-    border-radius: 7px;
-
-    cursor: pointer;
-
-    font-size: 11px;
-
-    font-weight: 700;
-}
-
-.change-room-button:hover {
-    border-color: #2e7d32;
-
-    color: #2e7d32;
-
-    background: #f8fbf9;
-}
-
-
-/* =========================================================
-   ROOM INFO
-========================================================= */
-
-.room-info {
-    background: #f0f8f2;
-
-    border: 1px solid #d8eadb;
-
-    padding: 12px 15px;
-
-    border-radius: 8px;
-
-    margin-bottom: 12px;
-
-    color: #176b3a;
-
-    font-size: 12px;
-}
-
-
-/* =========================================================
-   PERMISSION INFO
-========================================================= */
-
-.permission-info {
-    display: flex;
-
-    align-items: center;
-
-    gap: 8px;
-
-    padding: 10px 13px;
-
-    background: #fff9e8;
-
-    border: 1px solid #f1dfad;
-
-    border-radius: 7px;
-
-    color: #765b13;
-
-    font-size: 11px;
-
-    margin-bottom: 15px;
-}
-
-.permission-info i {
-    color: #d99a00;
-}
-
-
-/* =========================================================
-   EXCEL TABLE
-========================================================= */
-
-.excel-wrapper {
-    width: 100%;
-
-    overflow-x: auto;
-
-    border: 1px solid #dfe5e1;
-
-    border-radius: 8px;
-}
-
-.excel-schedule {
-    width: 100%;
-
-    min-width: 850px;
-
-    border-collapse: collapse;
-
-    table-layout: fixed;
-
-    background: #ffffff;
-}
-
-.excel-schedule th {
-    background: #2e7d32;
-
-    color: #ffffff;
-
-    border: 1px solid #276b2b;
-
-    height: 42px;
-
-    padding: 8px;
-
-    text-align: center;
-
-    font-size: 11px;
-
-    font-weight: 700;
-
-    letter-spacing: .3px;
-}
-
-.excel-schedule th.time-header {
-    width: 105px;
-}
-
-.excel-schedule td {
-    border: 1px solid #dfe5e1;
-
-    height: 72px;
-
-    padding: 6px;
-
-    text-align: center;
-
-    vertical-align: middle;
-
-    font-size: 11px;
-}
-
-.excel-schedule td.time-cell {
-    background: #f7f9f8;
-
-    color: #475467;
-
-    font-weight: 700;
-
-    font-size: 10px;
-}
-
-.excel-schedule td.schedule-cell {
-    background: #ffffff;
-
-    transition:
-        background .15s ease;
-}
-
-.excel-schedule td.schedule-cell:hover {
-    background: #f7fbf8;
-}
-
-
-/* =========================================================
-   FILLED SCHEDULE
-========================================================= */
-
-.excel-schedule td.filled {
-    background: #f1f5fb;
-
-    color: #1f2937;
-}
-
-.schedule-course {
-    color: #176b3a;
-
-    font-weight: 800;
-
-    font-size: 11px;
-
-    margin-bottom: 3px;
-}
-
-.schedule-subject {
-    color: #344054;
-
-    font-size: 10px;
-
-    line-height: 1.25;
-
-    margin-bottom: 3px;
-}
-
-.schedule-instructor {
-    color: #667085;
-
-    font-size: 9px;
-
-    line-height: 1.2;
-}
-
-.schedule-year {
-    color: #667085;
-
-    font-size: 9px;
-
-    margin-top: 2px;
-}
-
-.editable-label {
-    display: block;
-
-    color: #2e7d32;
-
-    font-size: 8px;
-
-    font-weight: 700;
-
-    margin-top: 4px;
-}
-
-.locked {
-    display: block;
-
-    color: #98a2b3;
-
-    font-size: 9px;
-
-    margin-top: 4px;
-}
-
-
-/* =========================================================
-   EMPTY SLOT
-========================================================= */
-
-.excel-schedule td.empty-slot {
-    background: #fafcfb;
-
-    color: #98a2b3;
-}
-
-.excel-schedule td.allowed-other {
-    background: #f7fbf8;
-}
-
-.add-button {
-    margin-top: 5px;
-
-    padding: 5px 8px;
-
-    border: none;
-
-    border-radius: 5px;
-
-    background: #2e7d32;
-
-    color: #ffffff;
-
-    font-size: 9px;
-
-    font-weight: 700;
-
-    cursor: pointer;
-}
-
-.add-button:hover {
-    background: #1b5e20;
-}
-
-.not-allowed {
-    display: inline-block;
-
-    margin-top: 5px;
-
-    color: #98a2b3;
-
-    font-size: 9px;
-}
-
-
-/* =========================================================
-   NOON BREAK
-========================================================= */
-
-.excel-schedule .noon-break-row td {
-    height: 34px;
-
-    background: #f7f9f8;
-
-    color: #667085;
-
-    font-size: 10px;
-
-    font-weight: 800;
-
-    letter-spacing: 2px;
-
-    text-align: center;
-
-    border-top: 1px solid #dfe5e1;
-
-    border-bottom: 1px solid #dfe5e1;
-}
-
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media (max-width: 700px) {
-
-    .navigation-section,
-    .schedule-section {
-        padding: 15px;
-    }
-
-    .schedule-header {
-        align-items: flex-start;
-
-        gap: 10px;
-    }
-
-    .schedule-main-title {
-        font-size: 16px;
-    }
-
-    .room-selection-grid {
-        grid-template-columns: 1fr;
-    }
-
-}
-
-
-                /* =========================================================
-                   EXCEL EDITOR CONTROLS
-                ========================================================= */
-
-                @keyframes modifyEditorReveal {
-                    from {
-                        opacity: 0;
-                        transform: translateY(-8px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                .editor-panel {
-                    animation: modifyEditorReveal .25s ease-out;
-                    background: #ffffff;
-                    border: 1px solid #e1e7e3;
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 18px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,.04);
-                }
-
-                .editor-title {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    color: #1f2937;
-                    font-size: 18px;
-                    font-weight: 700;
-                    margin-bottom: 5px;
-                }
-
-                .editor-title i { color: #2e7d32; }
-
-                .editor-subtitle {
-                    color: #667085;
-                    font-size: 12px;
-                    line-height: 1.55;
-                    margin-bottom: 18px;
-                }
-
-                .editor-grid {
-                    display: grid;
-                    grid-template-columns: repeat(6, minmax(0, 1fr));
-                    gap: 10px;
-                    align-items: end;
-                }
-
-                .editor-field label {
-                    display: block;
-                    color: #475467;
-                    font-size: 11px;
-                    font-weight: 700;
-                    margin-bottom: 5px;
-                }
-
-                .editor-field input,
-                .editor-field select {
-                    width: 100%;
-                    height: 39px;
-                    padding: 8px 10px;
-                    border: 1px solid #d0d5d2;
-                    border-radius: 7px;
-                    background: #ffffff;
-                    color: #1f2937;
-                    font-size: 12px;
-                    outline: none;
-                }
-
-                .editor-field input:focus,
-                .editor-field select:focus {
-                    border-color: #2e7d32;
-                    box-shadow: 0 0 0 3px rgba(46,125,50,.08);
-                }
-
-                .editor-field input[readonly] {
-                    background: #f7f9f8;
-                    color: #667085;
-                }
-
-                .editor-color {
-                    display: flex;
-                    align-items: flex-end;
-                }
-
-                .editor-color input[type="color"] {
-                    width: 52px;
-                    height: 39px;
-                    padding: 3px;
-                    border: 1px solid #d0d5d2;
-                    border-radius: 7px;
-                    background: #ffffff;
-                    cursor: pointer;
-                }
-
-                .editor-metadata {
-                    display: grid;
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
-                    gap: 8px;
-                    margin-top: 12px;
-                }
-                .editor-meta-item {
-                    background: #f7f9f8;
-                    border: 1px solid #e1e7e3;
-                    border-radius: 7px;
-                    padding: 9px 10px;
-                    min-width: 0;
-                }
-                .editor-meta-label {
-                    display: block;
-                    color: #98a2b3;
-                    font-size: 10px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: .3px;
-                    margin-bottom: 3px;
-                }
-                .editor-meta-value {
-                    display: block;
-                    color: #344054;
-                    font-size: 11px;
-                    font-weight: 700;
-                    line-height: 1.35;
-                    word-break: break-word;
-                }
-                .editor-color-inline {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 7px;
-                    padding: 7px 9px;
-                    border: 1px solid #d0d5d2;
-                    border-radius: 7px;
-                    background: #ffffff;
-                    color: #475467;
-                    font-size: 11px;
-                    font-weight: 700;
-                }
-                .editor-color-inline input[type="color"] {
-                    width: 32px;
-                    height: 28px;
-                    padding: 2px;
-                    border: 1px solid #d0d5d2;
-                    border-radius: 5px;
-                    background: #ffffff;
-                    cursor: pointer;
-                }
-                .editor-status {
-                    min-height: 36px;
-                    display: flex;
-                    align-items: center;
-                    padding: 9px 12px;
-                    margin-top: 12px;
-                    border-radius: 7px;
-                    background: #f7f9f8;
-                    color: #667085;
-                    font-size: 11px;
-                }
-
-                .editor-status.success {
-                    background: #e8f5e9;
-                    color: #2e7d32;
-                }
-
-                .editor-status.warning {
-                    background: #fff8e1;
-                    color: #6d4c00;
-                }
-
-                .editor-status.error {
-                    background: #ffebee;
-                    color: #b71c1c;
-                }
-
-                .editor-actions {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    gap: 10px;
-                    flex-wrap: wrap;
-                    margin-top: 15px;
-                }
-
-                .editor-actions-left,
-                .editor-actions-right {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    flex-wrap: wrap;
-                }
-
-                .editor-button {
-                    border: none;
-                    padding: 9px 14px;
-                    border-radius: 7px;
-                    cursor: pointer;
-                    font-size: 11px;
-                    font-weight: 700;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 6px;
-                    transition: .15s ease;
-                }
-
-                .editor-button:hover { transform: translateY(-1px); }
-
-                .editor-save { background: #2e7d32; color: #ffffff; }
-                .editor-save:hover { background: #1b5e20; }
-
-                .editor-clear { background: #c62828; color: #ffffff; }
-                .editor-clear:hover { background: #a61b1b; }
-
-                .editor-cancel { background: #777; color: #ffffff; }
-                .editor-cancel:hover { background: #616161; }
-
-                .schedule-cell.editable-cell { cursor: pointer; }
-
-                .schedule-cell.editable-cell:hover {
-                    background: #e6eef9 !important;
-                }
-
-                .schedule-cell.is-selected-edit {
-                    outline: 3px solid #2e7d32 !important;
-                    outline-offset: -3px;
-                    box-shadow: inset 0 0 0 2px rgba(46,125,50,.12);
-                }
-
-                @media (max-width: 1100px) {
-                    .editor-grid {
-                        grid-template-columns: repeat(3, minmax(0, 1fr));
-                    }
-                }
-
-                @media (max-width: 700px) {
-                    .editor-grid {
-                        grid-template-columns: 1fr 1fr;
-                    }
-
-                    .editor-metadata {
-                        grid-template-columns: 1fr;
-                    }
-                }
-
-                /* MODAL */
-
-                .modal {
-                    display: none;
-                    position: fixed;
-                    z-index: 9999;
-                    left: 0;
-                    top: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,.5);
-                }
-
-                .modal-content {
-                    background: white;
-                    width: 450px;
-                    max-width: 90%;
-                    margin: 7% auto;
-                    padding: 25px;
-                    border-radius: 10px;
-                    position: relative;
-                }
-
-                .modal-title {
-                    font-size: 20px;
-                    font-weight: bold;
-                    color: #2e7d32;
-                    margin-bottom: 20px;
-                }
-
-                .close {
-                    position: absolute;
-                    right: 18px;
-                    top: 12px;
-                    font-size: 25px;
-                    cursor: pointer;
-                    color: #777;
-                }
-
-                .form-group {
-                    margin-bottom: 14px;
-                }
-
-                .form-group label {
-                    display: block;
-                    font-size: 13px;
-                    font-weight: bold;
-                    margin-bottom: 5px;
-                }
-
-                .form-group input,
-                .form-group select {
-                    width: 100%;
-                    padding: 9px;
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
-                }
-
-                .save-button {
-                    width: 100%;
-                    padding: 11px;
-                    border: none;
-                    border-radius: 6px;
-                    background: #2e7d32;
-                    color: white;
-                    font-weight: bold;
-                    cursor: pointer;
-                }
-
-                .save-button:hover {
-                    background: #1b5e20;
-                }
-
-                
-                @media(max-width: 800px) {
-
-                    .filters {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .schedule-table {
-                        font-size: 11px;
-                    }
-
-                    .schedule-table td {
-                        min-width: 100px;
-                    }
-
-                }
-
-            
-/* White and blue neumorphism, matching the chair workspace. */
-.chair-modify-schedule {
-    --mod-ink:#1e2d43; --mod-text:#344b68; --mod-muted:#52647b; --mod-blue:#315f9b;
-    --mod-line:#dbe4ef; --mod-raised:8px 8px 18px #dfe5ed,-7px -7px 18px #fff,inset 1px 1px 0 rgba(255,255,255,.92);
-    --mod-inset:inset 4px 4px 9px #dfe5ed,inset -4px -4px 9px #fff;
-    min-height:100%; color:var(--mod-ink)!important; background:#f1f4f9!important; font-size:16px; line-height:1.55;
-}
-.chair-modify-schedule * { box-sizing:border-box; }
-.chair-modify-schedule.modify-room-page { min-height:100vh; padding:0; color:var(--mod-ink)!important; background:#f1f4f9!important; }
-.chair-modify-schedule .page { width:100%; max-width:1540px; margin:0 auto; padding:24px clamp(15px,2.2vw,32px) 44px; }
-.chair-modify-schedule .modify-hero {
-    position:relative; display:flex; align-items:center; gap:22px; min-height:190px; margin:0 0 23px;
-    padding:clamp(23px,3vw,35px); overflow:hidden; border:1px solid var(--mod-line)!important; border-radius:23px!important;
-    background:linear-gradient(145deg,#fff,#eff3fa)!important;
-    box-shadow:10px 10px 22px #dce3ec,-8px -8px 20px #fff,inset 1px 1px 0 #fff!important;
-}
-.chair-modify-schedule .modify-hero::after { content:""; position:absolute; right:7%; top:-100px; width:300px; height:300px; border-radius:50%; background:radial-gradient(circle,rgba(49,95,155,.07),transparent 70%); pointer-events:none; }
-.chair-modify-schedule .modify-hero-icon { z-index:1; display:grid; place-items:center; flex:0 0 68px; width:68px; height:68px; border:1px solid #d5e0ee; border-radius:20px; background:#eaf0f8!important; color:#315f9b!important; font-size:26px; box-shadow:inset 4px 4px 9px #dce4ef,inset -4px -4px 9px #fff!important; }
-.chair-modify-schedule .modify-hero-copy { z-index:1; min-width:0; }
-.chair-modify-schedule .modify-eyebrow { display:flex; align-items:center; gap:8px; margin-bottom:8px; color:#355d8f!important; font-size:13px; font-weight:850; letter-spacing:.09em; }
-.chair-modify-schedule .modify-eyebrow i { color:#315f9b!important; }
-.chair-modify-schedule .modify-title { margin:0; color:#1d2b40!important; font-size:clamp(31px,3vw,40px); font-weight:850; letter-spacing:-.025em; line-height:1.18; }
-.chair-modify-schedule .modify-subtitle { margin:8px 0 13px; color:#52647b!important; font-size:17px; line-height:1.55; }
-.chair-modify-schedule .modify-term { display:flex; align-items:center; flex-wrap:wrap; gap:9px; color:#344b68!important; font-size:15px; }
-.chair-modify-schedule .modify-term > i { color:#315f9b!important; }
-.chair-modify-schedule .modify-term strong { margin-right:5px; color:#294b75!important; }
-.chair-modify-schedule .modify-term-note { color:#52647b!important; }
-.chair-modify-schedule .navigation-section,
-.chair-modify-schedule .section,
-.chair-modify-schedule .schedule-section,
-.chair-modify-schedule .editor-panel {
-    border:1px solid var(--mod-line)!important; border-radius:20px!important;
-    background:linear-gradient(145deg,#fff,#f0f4fa)!important; color:var(--mod-ink)!important;
-    box-shadow:9px 9px 20px #dfe5ed,-8px -8px 19px #fff,inset 1px 1px 0 #fff!important;
-}
-.chair-modify-schedule .navigation-section,.chair-modify-schedule .schedule-section { margin-bottom:20px; padding:23px; }
-.chair-modify-schedule.modify-room-page .navigation-section { display:none!important; }
-.chair-modify-schedule .navigation-header { margin-bottom:18px; padding-bottom:17px; border-bottom:1px solid #e1e8f1; }
-.chair-modify-schedule .navigation-title,.chair-modify-schedule .level-title,.chair-modify-schedule .schedule-main-title,.chair-modify-schedule .editor-title { color:#1e3049!important; font-size:22px; font-weight:850; line-height:1.35; }
-.chair-modify-schedule .navigation-title i,.chair-modify-schedule .level-title i,.chair-modify-schedule .schedule-main-title i,.chair-modify-schedule .editor-title i { color:#315f9b!important; }
-.chair-modify-schedule .navigation-subtitle,.chair-modify-schedule .subtitle,.chair-modify-schedule .editor-subtitle { color:#52647b!important; font-size:15px; line-height:1.65; }
-.chair-modify-schedule .navigation-subtitle { margin-top:6px; }
-.chair-modify-schedule .level-title { gap:10px; margin-bottom:13px; font-size:17px; }
-.chair-modify-schedule .department-list,.chair-modify-schedule .building-list,.chair-modify-schedule .room-selection-grid { gap:13px; }
-.chair-modify-schedule .department-card,.chair-modify-schedule .building-card,.chair-modify-schedule .room-selection-card {
-    width:100%; padding:16px 18px; border:1px solid #d7e1ee!important; border-radius:17px!important;
-    background:linear-gradient(145deg,#f4f7fc,#eaf0f8)!important; color:#2c435f!important; text-align:left;
-    box-shadow:6px 6px 13px #dce3ec,-6px -6px 13px #fff,inset 1px 1px 0 #fff!important;
-    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease;
-}
-.chair-modify-schedule .department-card:hover,.chair-modify-schedule .building-card:hover,.chair-modify-schedule .room-selection-card:hover { transform:translateY(-2px); border-color:#b9cbe2!important; background:#edf3fb!important; box-shadow:8px 8px 16px #d6deea,-7px -7px 15px #fff,inset 1px 1px 0 #fff!important; }
-.chair-modify-schedule .card-left,.chair-modify-schedule .room-selection-top { display:flex; align-items:center; gap:13px; min-width:0; }
-.chair-modify-schedule .card-icon,.chair-modify-schedule .room-selection-icon { display:flex; flex:0 0 46px; align-items:center; justify-content:center; width:46px; height:46px; border:1px solid #d6e1ef; border-radius:15px; background:#e9eff8!important; color:#315f9b!important; font-size:18px; box-shadow:inset 3px 3px 7px #dce4ef,inset -3px -3px 7px #fff!important; }
-.chair-modify-schedule .card-name,.chair-modify-schedule .room-selection-name { color:#203650!important; font-size:17px; font-weight:850; line-height:1.4; overflow-wrap:anywhere; }
-.chair-modify-schedule .card-description,.chair-modify-schedule .room-selection-label,.chair-modify-schedule .card-count { margin-top:3px; color:#52647b!important; font-size:14px; line-height:1.45; }
-.chair-modify-schedule .card-arrow { display:flex; flex:0 0 35px; align-items:center; justify-content:center; width:35px; height:35px; border:1px solid #d7e1ee; border-radius:12px; background:#edf2f9!important; color:#41638e!important; box-shadow:inset 2px 2px 5px #dfe5ed,inset -2px -2px 5px #fff; }
-.chair-modify-schedule .breadcrumb { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin-bottom:18px; padding:10px 12px; border:1px solid #dbe4ef; border-radius:14px; background:#eaf0f8!important; color:#52647b!important; font-size:15px; box-shadow:var(--mod-inset); }
-.chair-modify-schedule .breadcrumb strong { color:#203650!important; }
-.chair-modify-schedule .back-button,.chair-modify-schedule .change-room-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:9px 14px; border:1px solid #cbd8e8!important; border-radius:13px!important; background:#edf2f8!important; color:#294b75!important; font-size:15px; font-weight:800; box-shadow:5px 5px 10px #dce3ec,-5px -5px 10px #fff!important; transition:transform .18s ease,background .18s ease; }
-.chair-modify-schedule .back-button:hover,.chair-modify-schedule .change-room-button:hover { transform:translateY(-1px); background:#e4ebf5!important; color:#1f477a!important; }
-.chair-modify-schedule .room-selection-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr)); }
-.chair-modify-schedule .room-selection-card { display:flex; flex-direction:column; gap:15px; cursor:default; }
-.chair-modify-schedule .open-room-button,.chair-modify-schedule .save-button,.chair-modify-schedule .add-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:45px; padding:10px 14px; border:1px solid #315f9b!important; border-radius:13px!important; background:#315f9b!important; color:#fff!important; font-size:15px; font-weight:800; text-decoration:none; box-shadow:5px 5px 10px #d5dde8,-4px -4px 9px #fff!important; transition:transform .18s ease,background .18s ease; }
-.chair-modify-schedule .open-room-button { width:100%; }
-.chair-modify-schedule .open-room-button:hover,.chair-modify-schedule .save-button:hover,.chair-modify-schedule .add-button:hover { transform:translateY(-1px); background:#284f83!important; color:#fff!important; }
-.chair-modify-schedule .schedule-header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:17px; }
-.chair-modify-schedule .schedule-main-title { display:flex; align-items:center; gap:10px; font-size:23px; }
-.chair-modify-schedule .schedule-room-name { margin-top:5px; color:#52647b!important; font-size:16px; font-weight:700; }
-.chair-modify-schedule .room-info { margin-bottom:14px; padding:14px 16px; border:1px solid #d3dfed!important; border-radius:15px!important; background:#eaf0f8!important; color:#344b68!important; font-size:15px; line-height:1.55; box-shadow:var(--mod-inset); }
-.chair-modify-schedule .room-schedule-meta { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:0 0 15px; }
-.chair-modify-schedule .room-schedule-meta-item,.chair-modify-schedule .editor-meta-item { min-width:0; padding:13px 15px; border:1px solid #d9e2ee!important; border-radius:15px!important; background:#eaf0f8!important; box-shadow:var(--mod-inset); }
-.chair-modify-schedule .room-schedule-meta-label,.chair-modify-schedule .editor-meta-label { display:block; margin-bottom:4px; color:#526780!important; font-size:13px; font-weight:800; letter-spacing:.035em; text-transform:uppercase; }
-.chair-modify-schedule .room-schedule-meta-item strong,.chair-modify-schedule .editor-meta-value { color:#243a56!important; font-size:16px; font-weight:800; line-height:1.45; overflow-wrap:anywhere; }
-.chair-modify-schedule .permission-info { display:flex; align-items:flex-start; gap:10px; margin:0 0 16px; padding:13px 15px; border:1px solid #e4d3ac!important; border-radius:14px!important; background:#f7f0df!important; color:#654f24!important; font-size:15px; line-height:1.55; }
-.chair-modify-schedule .permission-info i { flex:0 0 auto; margin-top:3px; color:#9b783b!important; }
-.chair-modify-schedule .excel-wrapper { width:100%; overflow:auto; border:1px solid #d4deeb!important; border-radius:18px!important; background:#e8eef7!important; box-shadow:7px 7px 15px #dce3ec,-7px -7px 15px #fff,inset 1px 1px 0 #fff!important; }
-.chair-modify-schedule .excel-schedule { width:100%; min-width:950px; border-collapse:separate; border-spacing:3px; table-layout:fixed; background:#e8eef7!important; color:#243952!important; }
-.chair-modify-schedule .excel-schedule th { height:50px; padding:9px; border:1px solid #d0dced!important; border-radius:12px; background:#e4ebf7!important; color:#294b75!important; text-align:center; font-size:14px!important; font-weight:850; letter-spacing:.04em; box-shadow:4px 4px 8px #d1dae7,-4px -4px 8px #fff,inset 1px 1px 0 #fff; }
-.chair-modify-schedule .excel-schedule th.time-header { width:112px; }
-.chair-modify-schedule .excel-schedule td { height:98px; padding:8px; border:1px solid #d8e1ed!important; border-radius:12px; color:#293f59!important; text-align:center; vertical-align:middle; font-size:14px; }
-.chair-modify-schedule .excel-schedule td.time-cell { background:#e9eff8!important; color:#344b68!important; font-size:14px; font-weight:800; line-height:1.4; box-shadow:var(--mod-inset); }
-.chair-modify-schedule .excel-schedule td.schedule-cell { background:#f1f5fb!important; color:#243952!important; box-shadow:4px 4px 8px #d8e0eb,-4px -4px 8px #fff,inset 1px 1px 0 #fff; }
-.chair-modify-schedule .excel-schedule td.schedule-cell.filled { background-color:#f1f5fb; color:#243952!important; }
-.chair-modify-schedule .excel-schedule td.schedule-cell.empty-slot { background:#edf2f9!important; color:#405772!important; }
-.chair-modify-schedule .excel-schedule td.schedule-cell.allowed-other { background:#e8f0f8!important; color:#3b526e!important; }
-.chair-modify-schedule .excel-schedule td.schedule-cell.locked-cell { background:repeating-linear-gradient(135deg,#e7ebf2,#e7ebf2 8px,#dfe5ee 8px,#dfe5ee 16px)!important; color:#485b73!important; cursor:not-allowed!important; }
-.chair-modify-schedule .excel-schedule td.schedule-cell.editable-cell:hover { background:#e6eef9!important; box-shadow:inset 0 0 0 2px rgba(49,95,155,.42),4px 4px 8px #d8e0eb,-4px -4px 8px #fff; }
-.chair-modify-schedule .excel-schedule td.schedule-cell.filled.editable-cell:hover { background-color:#f1f5fb!important; }
-.chair-modify-schedule .excel-schedule td.filled .schedule-course,.chair-modify-schedule .schedule-course { color:#1e3551!important; font-size:15px; font-weight:850; line-height:1.3; }
-.chair-modify-schedule .schedule-subject { color:#344b68!important; font-size:14px; font-weight:700; line-height:1.35; }
-.chair-modify-schedule .schedule-instructor,.chair-modify-schedule .schedule-year { margin-top:3px; color:#52647b!important; font-size:13px; line-height:1.35; }
-.chair-modify-schedule .editable-label { display:block; margin-top:5px; color:#315f9b!important; font-size:12px; font-weight:800; line-height:1.35; }
-.chair-modify-schedule .locked,.chair-modify-schedule .not-allowed { display:inline-block; margin-top:5px; color:#536984!important; font-size:12px; font-weight:750; line-height:1.35; }
-.chair-modify-schedule .excel-schedule .empty-cell { display:inline-block; padding:5px 9px; border:1px dashed #bbc8dc; border-radius:999px; background:#e6edf7; color:#526780!important; font-size:14px; font-style:normal; font-weight:800; }
-.chair-modify-schedule .excel-schedule td.is-selected-edit { outline:3px solid #315f9b!important; outline-offset:-3px; box-shadow:inset 0 0 0 3px rgba(49,95,155,.14); }
-.chair-modify-schedule .excel-schedule .noon-break-row td { height:40px; border:1px dashed #c8d4e4!important; background:#e5ecf6!important; color:#405773!important; font-size:13px; font-weight:850; letter-spacing:.1em; }
-.chair-modify-schedule .editor-panel { padding:24px; margin:20px 0; }
-.chair-modify-schedule .editor-title { display:flex; align-items:center; gap:10px; margin-bottom:6px; font-size:22px; }
-.chair-modify-schedule .editor-subtitle { margin-bottom:18px; color:#52647b!important; font-size:15px; line-height:1.65; }
-.chair-modify-schedule .editor-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:end; }
-.chair-modify-schedule .editor-field { min-width:0; }
-.chair-modify-schedule .editor-field label,.chair-modify-schedule .filter-group label { display:block; margin-bottom:7px; color:#354c69!important; font-size:15px; font-weight:750; line-height:1.4; }
-.chair-modify-schedule input:not([type=checkbox]):not([type=radio]):not([type=color]),.chair-modify-schedule select,.chair-modify-schedule textarea { width:100%; min-height:47px; padding:10px 13px; border:1px solid #cbd8e8!important; border-radius:12px!important; background:#edf2f9!important; color:#243850!important; font-size:16px!important; box-shadow:inset 4px 4px 8px #dfe5ed,inset -4px -4px 8px #fff!important; }
-.chair-modify-schedule input::placeholder,.chair-modify-schedule textarea::placeholder { color:#657a95!important; opacity:1; }
-.chair-modify-schedule input:focus,.chair-modify-schedule select:focus,.chair-modify-schedule textarea:focus { outline:3px solid rgba(49,95,155,.18); outline-offset:1px; border-color:#7895bd!important; }
-.chair-modify-schedule input[readonly] { color:#465d79!important; }
-.chair-modify-schedule .editor-color-inline { display:inline-flex; align-items:center; gap:9px; padding:8px 11px; border:1px solid #d2ddeb; border-radius:13px; background:#eaf0f8; color:#344b68; font-size:14px; font-weight:750; box-shadow:var(--mod-inset); }
-.chair-modify-schedule .editor-color-inline input[type=color] { width:40px; height:36px; padding:3px; border:1px solid #cbd8e8; border-radius:10px; background:#edf2f9; cursor:pointer; }
-.chair-modify-schedule .editor-metadata { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-top:14px; }
-.chair-modify-schedule .editor-status { display:flex; align-items:center; min-height:45px; margin-top:14px; padding:10px 13px; border:1px solid #d7e1ee; border-radius:13px; background:#eaf0f8!important; color:#405772!important; font-size:14px; line-height:1.5; box-shadow:var(--mod-inset); }
-.chair-modify-schedule .editor-status.success { border-color:#c4ddcc; background:#eaf5ee!important; color:#205d3d!important; }
-.chair-modify-schedule .editor-status.warning { border-color:#e5d3a8; background:#f8f1df!important; color:#6e531c!important; }
-.chair-modify-schedule .editor-status.error { border-color:#e5c5c4; background:#fff0ef!important; color:#8f302e!important; }
-.chair-modify-schedule .editor-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:16px; padding:13px; border:1px solid #dbe4ef; border-radius:16px; background:#eaf0f8; box-shadow:var(--mod-inset); }
-.chair-modify-schedule .editor-actions-left,.chair-modify-schedule .editor-actions-right { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
-.chair-modify-schedule .editor-button,.chair-modify-schedule .save-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:45px; padding:10px 15px; border:1px solid #cbd8e8!important; border-radius:13px!important; background:#eaf0f8!important; color:#344b68!important; font-size:14px; font-weight:800; box-shadow:5px 5px 10px #d6deea,-5px -5px 10px #fff!important; transition:transform .18s ease,box-shadow .18s ease,background .18s ease; }
-.chair-modify-schedule .editor-button:hover { transform:translateY(-1px); }
-.chair-modify-schedule .editor-save { border-color:#315f9b!important; background:#315f9b!important; color:#fff!important; }
-.chair-modify-schedule .editor-save:hover { background:#284f83!important; }
-.chair-modify-schedule .editor-clear { border-color:#e1c4c3!important; background:#fff0ef!important; color:#8f302e!important; }
-.chair-modify-schedule .editor-cancel { border-color:#cbd8e8!important; background:#e8edf5!important; color:#40536d!important; }
-.chair-modify-schedule .message { margin:0 0 16px; padding:14px 17px; border:1px solid #dbe4ef; border-radius:14px; font-size:15px; line-height:1.55; box-shadow:var(--mod-raised); }
-.chair-modify-schedule .message.success { background:#eaf5ee!important; color:#205d3d!important; border-color:#c4ddcc!important; }
-.chair-modify-schedule .message.error { background:#fff0ef!important; color:#8f302e!important; border-color:#e5c5c4!important; }
-.chair-modify-schedule .empty { padding:24px; border:1px dashed #c6d2e2; border-radius:16px; background:#eaf0f8!important; color:#52647b!important; text-align:center; font-size:16px; line-height:1.6; box-shadow:var(--mod-inset); }
-.chair-modify-schedule .modal { background:rgba(37,52,75,.48)!important; backdrop-filter:blur(5px); }
-.chair-modify-schedule .modal-content { width:min(500px,calc(100% - 28px)); padding:25px; border:1px solid #d4deeb!important; border-radius:22px!important; background:linear-gradient(145deg,#f2f6fc,#e7edf6)!important; color:#243952!important; box-shadow:12px 12px 24px rgba(37,52,75,.2),-6px -6px 17px rgba(255,255,255,.7),inset 1px 1px 0 #fff!important; }
-.chair-modify-schedule .modal-title { color:#203650!important; font-size:22px; font-weight:850; }
-.chair-modify-schedule .close { display:grid; place-items:center; width:38px; height:38px; border:1px solid #d3deeb; border-radius:12px; background:#eaf0f8; color:#405773!important; box-shadow:4px 4px 8px #d2dbe7,-4px -4px 8px #fff; }
-.chair-modify-schedule .form-group label { color:#354c69!important; font-size:15px; }
-.chair-modify-schedule .save-button { width:100%; background:#315f9b!important; color:#fff!important; }
-.chair-modify-schedule .back-button:focus-visible,.chair-modify-schedule button:focus-visible,.chair-modify-schedule a:focus-visible,.chair-modify-schedule input:focus-visible,.chair-modify-schedule select:focus-visible { outline:3px solid rgba(49,95,155,.3); outline-offset:3px; }
-.chair-modify-schedule button,.chair-modify-schedule a { transition:transform .18s ease,box-shadow .18s ease,color .18s ease,background .18s ease; }
-@media(max-width:1000px) {
-    .chair-modify-schedule .editor-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-    .chair-modify-schedule .editor-metadata { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
-@media(max-width:760px) {
-    .chair-modify-schedule .page { padding:17px 13px 30px; }
-    .chair-modify-schedule .modify-hero { min-height:0; padding:23px 20px; }
-    .chair-modify-schedule .navigation-section,.chair-modify-schedule .schedule-section { padding:18px 15px; }
-    .chair-modify-schedule .room-schedule-meta { grid-template-columns:1fr; }
-    .chair-modify-schedule .excel-schedule { min-width:860px; }
-    .chair-modify-schedule .schedule-header { align-items:flex-start; flex-direction:column; }
-    .chair-modify-schedule .change-room-button { align-self:flex-start; }
-}
-@media(max-width:560px) {
-    .chair-modify-schedule .modify-hero { gap:14px; padding:20px 16px; border-radius:19px!important; }
-    .chair-modify-schedule .modify-hero-icon { flex-basis:50px; width:50px; height:50px; border-radius:15px; font-size:21px; }
-    .chair-modify-schedule .modify-title { font-size:29px; }
-    .chair-modify-schedule .modify-subtitle { font-size:15px; }
-    .chair-modify-schedule .modify-term { align-items:flex-start; font-size:14px; }
-    .chair-modify-schedule .modify-term-note { flex-basis:100%; padding-left:23px; }
-    .chair-modify-schedule .navigation-title,.chair-modify-schedule .level-title,.chair-modify-schedule .schedule-main-title,.chair-modify-schedule .editor-title { font-size:19px; }
-    .chair-modify-schedule .department-card,.chair-modify-schedule .building-card,.chair-modify-schedule .room-selection-card { padding:13px; }
-    .chair-modify-schedule .editor-grid,.chair-modify-schedule .editor-metadata { grid-template-columns:1fr; }
-    .chair-modify-schedule .editor-panel { padding:18px 14px; }
-    .chair-modify-schedule .editor-actions { align-items:stretch; }
-    .chair-modify-schedule .editor-actions-left,.chair-modify-schedule .editor-actions-right { width:100%; }
-    .chair-modify-schedule .editor-actions-right { display:grid; grid-template-columns:1fr; }
-    .chair-modify-schedule .editor-button,.chair-modify-schedule .editor-color-inline { width:100%; justify-content:center; }
-}
-@media(prefers-reduced-motion:reduce) {
-    .chair-modify-schedule *, .chair-modify-schedule *::before, .chair-modify-schedule *::after { scroll-behavior:auto!important; transition-duration:.01ms!important; animation-duration:.01ms!important; }
-}
-</style>
-            <link rel="stylesheet" href="{{ asset('css/chair-workspace.css') }}">
-
-
+          
 
             <div class="page">
     <section class="modify-hero">
         <div class="modify-hero-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></div>
         <div class="modify-hero-copy">
-            <div class="modify-eyebrow"><i class="fa-solid fa-building-columns" aria-hidden="true"></i> DEPARTMENT WORKSPACE</div>
-            <h1 class="modify-title">Modify Schedule</h1>
-            <p class="modify-subtitle">View department schedules and add classes to available room times.</p>
+            <div class="modify-eyebrow"><i class="fa-solid fa-building-columns" aria-hidden="true"></i> CROSS-COLLEGE WORKSPACE</div>
+            <h1 class="modify-title">Cross-Scheduling</h1>
+            <p class="modify-subtitle">Browse rooms from other colleges. Their existing schedules stay protected; room owners control whether you can add classes to empty slots.</p>
             <div class="modify-term"><i class="fa-regular fa-calendar" aria-hidden="true"></i><span><strong>Active term</strong> {{ $activeTerm->academic_year ?? '-' }} · {{ $activeTerm->semester ?? '-' }}</span><span class="modify-term-note">Schedule changes apply to this term.</span></div>
         </div>
     </section>
+
+    <nav class="editor-mode-switch" aria-label="Schedule editor mode">
+        <a class="editor-mode-link" href="{{ route('chair.setschedule') }}"><i class="fa-solid fa-building"></i> Schedule editor</a>
+        <a class="editor-mode-link active" aria-current="page" href="{{ route('chair.modifyschedule', ['term_id' => $activeTerm->id]) }}"><i class="fa-solid fa-arrow-right-arrow-left"></i> Cross-scheduling</a>
+        <a class="editor-mode-link" href="{{ route('chair.roomavailability', ['term_id' => $activeTerm->id]) }}"><i class="fa-solid fa-table-cells-large"></i> All-room availability</a>
+        <div class="room-search-panel">
+            <label for="crossScheduleRoomSearch">Find a room</label>
+            <div class="room-search-control">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="crossScheduleRoomSearch" type="search" autocomplete="off" aria-label="Find a room" placeholder="Search rooms across colleges">
+                <button type="button" id="clearCrossScheduleRoomSearch" class="room-search-clear" aria-label="Clear room search" hidden><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+            </div>
+            <p class="room-search-status" id="crossScheduleRoomSearchStatus" role="status" aria-live="polite">Search across colleges, buildings, and rooms.</p>
+        </div>
+    </nav>
 
     {{-- SUCCESS --}}
 
@@ -1560,16 +333,14 @@
 
             </div>
 
-            <div class="navigation-subtitle">
-
-                Select a department, building, and room
-                to view its schedule.
-
-            </div>
+            <div class="navigation-subtitle">Only other colleges are listed. Choose a room to open the shared Excel schedule editor.</div>
 
         </div>
 
     </div>
+
+    <div class="room-selection-grid room-search-results" id="crossScheduleRoomSearchResults" hidden></div>
+    <div class="empty room-search-empty" id="crossScheduleRoomSearchEmpty" role="status" hidden>No rooms match your search.</div>
 
 
     {{-- =================================================
@@ -1582,7 +353,7 @@
 
             <i class="fa-solid fa-building-columns"></i>
 
-            Departments
+            Colleges
 
         </div>
 
@@ -1617,7 +388,7 @@
 
                             <div class="card-description">
 
-                                Department
+                                College
 
                             </div>
 
@@ -1660,7 +431,7 @@
 
                 <i class="fa-solid fa-arrow-left"></i>
 
-                Departments
+                Colleges
 
             </button>
 
@@ -1669,7 +440,7 @@
             </span>
 
             <strong id="selectedDepartmentName">
-                Department
+                College
             </strong>
 
         </div>
@@ -1747,6 +518,8 @@
 </div>
 
 
+@include('chair.partials.schedule-merge-request-modal')
+
                
 {{-- =========================================================
      EXCEL-STYLE MODIFY EDITOR
@@ -1756,17 +529,21 @@
     $modifyFacultySubjects = $facultySubjects ?? collect();
 @endphp
 
-<div class="editor-panel" id="modifyEditor" style="display:none;">
+<div class="modify-entry-overlay" id="modifyEntryOverlay" hidden>
+<section class="editor-panel" id="modifyEditor" role="dialog" aria-modal="false" aria-labelledby="modifyEditorTitle">
 
-    <div class="editor-title">
-        <i class="fa-solid fa-table-cells-large"></i>
-        Schedule Cell Editor
-    </div>
-
-    <div class="editor-subtitle">
-        Click an editable timetable cell. The course code uses the same
-        Faculty Setup entries used by Set Schedule Excel. Subject, year level,
-        faculty, major, and program are filled automatically.
+    <div class="modify-entry-heading">
+        <div>
+            <div class="editor-title" id="modifyEditorTitle">
+                <i class="fa-solid fa-table-cells-large"></i>
+                Schedule Entry
+            </div>
+            <div class="editor-subtitle">
+                Enter a course code, review the loaded details, then confirm to update the selected cell.
+            </div>
+            <div class="modify-entry-target" id="modifyEntryTarget">Selected timetable cell</div>
+        </div>
+        <button type="button" class="modify-entry-close" id="modifyEntryClose" aria-label="Close schedule entry">×</button>
     </div>
 
     <form
@@ -1780,6 +557,7 @@
         <input type="hidden" name="day" id="modifyFormDay">
         <input type="hidden" name="time" id="modifyFormTime">
         <input type="hidden" name="schedule_id" id="modifyFormScheduleId">
+        <input type="hidden" name="adjustments" id="modifyScheduleAdjustments" value="[]">
         <input type="hidden" name="faculty_subject_id" id="modifyFacultySubjectId">
 
         <div class="editor-grid">
@@ -1822,7 +600,7 @@
             </div>
 
             <div class="editor-field">
-                <label for="modifyInstructor">Faculty</label>
+                <label for="modifyInstructor">Instructor</label>
                 <input type="text" id="modifyInstructor" readonly placeholder="Automatic">
             </div>
 
@@ -1841,56 +619,25 @@
 
         </div>
 
+        <div class="shared-audience-picker" id="modifySharedAudiencePicker" hidden>
+            <div class="shared-audience-heading">Groups included in this assignment</div>
+            <div class="shared-audience-choices" id="modifySharedAudienceChoices"></div>
+            <div class="shared-audience-help">These groups were selected in Instructor Setup and will share this scheduled meeting automatically.</div>
+        </div>
+
         <div class="editor-status" id="modifyEditorStatus">
             Select an editable cell from the timetable.
         </div>
 
-        <div class="editor-actions">
-
-            <div class="editor-actions-left">
-                <button
-                    type="button"
-                    class="editor-button editor-cancel"
-                    id="modifyCancelButton"
-                >
-                    <i class="fa-solid fa-xmark"></i>
-                    Cancel Selection
-                </button>
-            </div>
-
-            <div class="editor-actions-right">
-
-                <label class="editor-color-inline" for="modifyColor">
-                    <span>Color</span>
-                    <input
-                        type="color"
-                        name="color"
-                        id="modifyColor"
-                        value="#ffffff"
-                        title="Choose cell color"
-                    >
-                </label>
-
-                <button
-                    type="button"
-                    class="editor-button editor-clear"
-                    id="modifyClearCellButton"
-                >
-                    <i class="fa-solid fa-eraser"></i>
-                    Clear Cell
-                </button>
-
-                <button
-                    type="submit"
-                    class="editor-button editor-save"
-                    id="modifySaveCellButton"
-                >
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    Save Cell
-                </button>
-
-            </div>
-
+        <div class="modify-entry-footer">
+            <button type="button" class="editor-button editor-cancel" id="modifyCancelButton">
+                <i class="fa-solid fa-xmark"></i>
+                Cancel
+            </button>
+            <button type="submit" class="editor-button editor-save" id="modifyConfirmEntryButton">
+                <i class="fa-solid fa-check"></i>
+                Confirm Entry
+            </button>
         </div>
     </form>
 
@@ -1911,6 +658,7 @@
         >
     </form>
 
+</section>
 </div>
 
 
@@ -1921,6 +669,7 @@
 <div
     class="schedule-section"
     id="scheduleSection"
+    data-schedule-sheet
     style="display:none;"
 >
 
@@ -1951,17 +700,16 @@
         </div>
 
 
-        <button
-            type="button"
-            class="change-room-button"
-            onclick="backToRooms()"
-        >
-
-            <i class="fa-solid fa-arrow-left"></i>
-
-            Change Room
-
-        </button>
+        <div class="schedule-header-actions">
+            <button
+                type="button"
+                class="change-room-button"
+                onclick="backToRooms()"
+            >
+                <i class="fa-solid fa-arrow-left"></i>
+                Change Room
+            </button>
+        </div>
 
     </div>
 
@@ -1992,11 +740,36 @@
         <i class="fa-solid fa-circle-info"></i>
 
         <span>
-            Your department schedules can be modified.
-            Other departments' schedules are locked;
-            empty slots in other departments require permission.
+            Your college schedules can be modified.
+            Other colleges' schedules are locked;
+            empty slots in other colleges require permission.
         </span>
 
+    </div>
+
+    <div class="modify-sheet-toolbar" role="toolbar" aria-label="Modify schedule actions">
+        <div class="modify-sheet-toolbar-left">
+            <button type="button" class="editor-button" id="modifyMergeClassButton" data-merge-request-button disabled>Merge Class</button>
+            <span class="modify-merge-target-label" id="modifyMergeTargetLabel">Select another college’s scheduled class to request a merge.</span>
+            <div class="modify-sheet-toolbar-guide">
+                <strong>Quick guide</strong>
+                <span><b>1</b> Click a cell to select it.</span>
+                <span><b>2</b> Right-click it to open course entry.</span>
+                <span><b>3</b> Choose Confirm Entry to save the change.</span>
+                <span><b>4</b> Select a cell to clear it or change its color.</span>
+                <span><b>5</b> Drag a selected class edge by 30 minutes; adjacent classes move with it.</span>
+            </div>
+        </div>
+        <div class="modify-sheet-toolbar-actions">
+            @include('components.schedule-sheet-controls')
+            <button type="button" class="editor-button editor-clear" id="modifyClearCellButton" disabled hidden>
+                <i class="fa-solid fa-eraser"></i> Clear Cell
+            </button>
+            <label class="editor-color-inline" id="modifyColorControl" for="modifyColor" hidden>
+                <span>Cell color</span>
+                <input type="color" name="color" id="modifyColor" value="#ffffff" form="modifyCellForm" title="Choose selected cell color" disabled>
+            </label>
+        </div>
     </div>
 
 
@@ -2004,9 +777,9 @@
          EXCEL STYLE TABLE
     ================================================== --}}
 
-    <div class="excel-wrapper">
+    <div class="excel-wrapper" data-fit-schedule-container>
 
-        <table class="excel-schedule">
+        <table class="excel-schedule" data-fit-schedule>
 
             <thead>
 
@@ -2040,6 +813,9 @@
                         THU
                     </th>
 
+                    <th class="time-header" data-saturday-header hidden>TIME</th>
+                    <th data-saturday-header hidden>SAT</th>
+
                 </tr>
 
             </thead>
@@ -2063,9 +839,21 @@
 
 @php
     $modifyFacultySubjectsData = ($facultySubjects ?? collect())
-        ->map(function ($item) {
+        ->groupBy(fn ($item) => implode('|', [
+            (int) $item->faculty_id,
+            strtoupper(trim((string) $item->course_code)),
+            mb_strtolower(trim((string) $item->subject)),
+        ]))
+        ->map(function ($group) {
+            $item = $group->first();
+            $cohorts = $item->sharedCohorts
+                ->concat($group->skip(1)->map(fn ($assignment) => $assignment->subjectCatalog))
+                ->filter()
+                ->unique('id')
+                ->values();
             return [
                 'id' => $item->id,
+                'assignment_ids' => $group->pluck('id')->values()->all(),
                 'course_code' => $item->course_code,
                 'subject' => $item->subject,
                 'year_level' => $item->year_level,
@@ -2074,6 +862,13 @@
                 'faculty_id' => $item->faculty_id ?? null,
                 'instructor' => optional($item->faculty)->name ?? '',
                 'subject_type' => $item->subject_type ?: (preg_match('/\.1\s*$/', trim($item->course_code)) ? 'Lab' : 'Lec'),
+                'shared_cohorts' => $cohorts->map(fn ($cohort) => [
+                    'program' => $cohort->program?->name,
+                    'program_code' => $cohort->program?->code,
+                    'major' => $cohort->program?->major,
+                    'year_level' => $cohort->year_level,
+                    'semester' => $cohort->semester,
+                ])->values()->all(),
             ];
         })
         ->values()
@@ -2085,12 +880,92 @@ const modifyFacultySubjects = @json($modifyFacultySubjectsData);
 const departments =
     @json($departments);
 const modifyRoomPickerUrl = @json(route('chair.modifyschedule', ['term_id' => $activeTerm->id]));
+const crossScheduleExcelBaseUrl = @json(url('/chair/excel'));
+const crossScheduleTermId = @json($activeTerm->id);
 const initialModifyRoomId = @json($initialRoomId);
 const isModifyRoomPage = Boolean(initialModifyRoomId);
+
+const crossScheduleRoomSearch = document.getElementById('crossScheduleRoomSearch');
+const clearCrossScheduleRoomSearch = document.getElementById('clearCrossScheduleRoomSearch');
+const crossScheduleRoomSearchStatus = document.getElementById('crossScheduleRoomSearchStatus');
+const crossScheduleRoomSearchResults = document.getElementById('crossScheduleRoomSearchResults');
+const crossScheduleRoomSearchEmpty = document.getElementById('crossScheduleRoomSearchEmpty');
 
 let selectedDepartment = null;
 let selectedBuilding = null;
 let selectedRoom = null;
+
+function filterCrossScheduleRooms()
+{
+    const query = String(crossScheduleRoomSearch?.value || '').trim().toLocaleLowerCase();
+    if (clearCrossScheduleRoomSearch) clearCrossScheduleRoomSearch.hidden = !query;
+
+    if (!query) {
+        if (crossScheduleRoomSearchResults) crossScheduleRoomSearchResults.hidden = true;
+        if (crossScheduleRoomSearchEmpty) crossScheduleRoomSearchEmpty.hidden = true;
+        document.getElementById('departmentLevel').style.display = selectedDepartment ? 'none' : 'block';
+        document.getElementById('buildingLevel').style.display = selectedDepartment && !selectedBuilding ? 'block' : 'none';
+        document.getElementById('roomLevel').style.display = selectedBuilding ? 'block' : 'none';
+        if (crossScheduleRoomSearchStatus) crossScheduleRoomSearchStatus.textContent = 'Search across colleges, buildings, and rooms.';
+        return;
+    }
+
+    document.getElementById('departmentLevel').style.display = 'none';
+    document.getElementById('buildingLevel').style.display = 'none';
+    document.getElementById('roomLevel').style.display = 'none';
+    crossScheduleRoomSearchResults.replaceChildren();
+
+    const matches = [];
+    (departments || []).forEach(function(department) {
+        (department.buildings || []).forEach(function(building) {
+            (building.rooms || []).forEach(function(room) {
+                const searchableText = [
+                    room.room_name,
+                    room.purpose,
+                    room.capacity,
+                    room.computers,
+                    room.has_tv ? 'tv television available' : 'no tv',
+                    room.has_projector ? 'projector available' : 'no projector',
+                    building.name,
+                    department.name,
+                ].filter(value => value !== null && value !== undefined).join(' ').toLocaleLowerCase();
+
+                if (searchableText.includes(query)) matches.push({ department, building, room });
+            });
+        });
+    });
+
+    matches.forEach(function(match) {
+        const card = document.createElement('article');
+        card.className = 'room-selection-card room-search-result-card';
+        card.innerHTML = `
+            <div class="room-selection-top">
+                <div class="room-selection-icon"><i class="fa-solid fa-door-open" aria-hidden="true"></i></div>
+                <div>
+                    <div class="room-selection-name">${escapeHtml(match.room.room_name || 'Classroom')}</div>
+                    <div class="room-selection-label">${escapeHtml(match.department.name || 'College')} · ${escapeHtml(match.building.name || 'Building')}</div>
+                </div>
+            </div>
+            <button type="button" class="open-room-button"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> ${match.room.allow_other_departments ? 'Open Excel editor' : 'View schedule'}</button>
+        `;
+        card.querySelector('.open-room-button').addEventListener('click', function() {
+            openRoom(match.room.id);
+        });
+        crossScheduleRoomSearchResults.appendChild(card);
+    });
+
+    crossScheduleRoomSearchResults.hidden = matches.length === 0;
+    crossScheduleRoomSearchEmpty.hidden = matches.length > 0;
+    crossScheduleRoomSearchStatus.textContent = `${matches.length} ${matches.length === 1 ? 'room' : 'rooms'} found.`;
+}
+
+crossScheduleRoomSearch?.addEventListener('input', filterCrossScheduleRooms);
+clearCrossScheduleRoomSearch?.addEventListener('click', function() {
+    if (!crossScheduleRoomSearch) return;
+    crossScheduleRoomSearch.value = '';
+    filterCrossScheduleRooms();
+    crossScheduleRoomSearch.focus();
+});
 
 
 /* =========================================================
@@ -2109,6 +984,8 @@ function selectDepartment(departmentId)
     if (!selectedDepartment) {
         return;
     }
+
+    document.querySelector('.navigation-section').style.display = 'block';
 
     document.getElementById(
         'selectedDepartmentName'
@@ -2259,6 +1136,8 @@ function selectBuilding(buildingId)
         return;
     }
 
+    document.querySelector('.navigation-section').style.display = 'block';
+
 
     document.getElementById(
         'selectedBuildingName'
@@ -2320,11 +1199,7 @@ function selectBuilding(buildingId)
 
                             </div>
 
-                            <div class="room-selection-label">
-
-                                Classroom
-
-                            </div>
+                            <div class="room-selection-label">${(room.schedules || []).length} scheduled classes · ${room.allow_other_departments ? 'You can add to open slots' : 'View only — permission is off'}</div>
 
                         </div>
 
@@ -2341,7 +1216,7 @@ function selectBuilding(buildingId)
 
                         <i class="fa-solid fa-calendar-days"></i>
 
-                        Open Schedule
+                        ${room.allow_other_departments ? 'Open Excel editor' : 'View schedule'}
 
                     </button>
 
@@ -2491,19 +1366,8 @@ buildExcelSchedule(
         'scheduleSection'
     ).style.display = 'block';
 
+    document.querySelector('.navigation-section').style.display = 'none';
 
-    /*
-     * SHOW THE SCHEDULE CELL EDITOR ONLY AFTER A ROOM IS OPENED
-     */
-
-    if (modifyEditor) {
-        modifyEditor.style.display = 'block';
-
-        modifyEditor.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-    }
 
     clearModifyEditor();
 }
@@ -2515,10 +1379,12 @@ buildExcelSchedule(
 
 function openRoom(roomId)
 {
-    window.location.href = modifyRoomPickerUrl + '&room_id=' + encodeURIComponent(roomId);
+    window.location.href = crossScheduleExcelBaseUrl + '/' + encodeURIComponent(roomId)
+        + '?term_id=' + encodeURIComponent(crossScheduleTermId) + '&mode=cross';
 }
 function backToDepartments()
 {
+    document.querySelector('.navigation-section').style.display = 'block';
     selectedDepartment = null;
 
     selectedBuilding = null;
@@ -2545,10 +1411,6 @@ function backToDepartments()
         'scheduleSection'
     ).style.display = 'none';
 
-    if (modifyEditor) {
-        modifyEditor.style.display = 'none';
-    }
-
     clearModifyEditor();
 }
 
@@ -2559,6 +1421,7 @@ function backToDepartments()
 
 function backToBuildings()
 {
+    document.querySelector('.navigation-section').style.display = 'block';
     selectedBuilding = null;
 
     selectedRoom = null;
@@ -2583,10 +1446,6 @@ function backToBuildings()
         'scheduleSection'
     ).style.display = 'none';
 
-    if (modifyEditor) {
-        modifyEditor.style.display = 'none';
-    }
-
     clearModifyEditor();
 }
 
@@ -2600,6 +1459,8 @@ function backToRooms()
         window.location.href = modifyRoomPickerUrl;
         return;
     }
+
+    document.querySelector('.navigation-section').style.display = 'block';
 
     selectedRoom = null;
 
@@ -2623,10 +1484,6 @@ function backToRooms()
         'scheduleSection'
     ).style.display = 'none';
 
-    if (modifyEditor) {
-        modifyEditor.style.display = 'none';
-    }
-
     clearModifyEditor();
 }
 
@@ -2639,6 +1496,14 @@ function buildExcelSchedule(room)
 {
     const schedules =
         room.schedules || [];
+
+    const hasSaturdaySchedule = schedules.some(function(schedule) {
+        return ['SAT', 'SATURDAY'].includes(String(schedule.day || '').trim().toUpperCase());
+    });
+
+    document.querySelectorAll('.excel-schedule [data-saturday-header]').forEach(function(header) {
+        header.hidden = !hasSaturdaySchedule;
+    });
 
 
     const currentDepartmentId =
@@ -2665,18 +1530,17 @@ function buildExcelSchedule(room)
      */
 
     const times = [
-
+        '7:00-8:00',
         '8:00-9:00',
         '9:00-10:00',
         '10:00-11:00',
         '11:00-12:00',
-
-        '12:00-1:00',
         '1:00-2:00',
         '2:00-3:00',
         '3:00-4:00',
-        '4:00-5:00'
-
+        '4:00-5:00',
+        '5:00-6:00',
+        '6:00-7:00'
     ];
 
 
@@ -2704,13 +1568,13 @@ function buildExcelSchedule(room)
              * NOON BREAK
              */
 
-            if (index === 4) {
+            if (index === 5) {
 
                 html += `
 
                     <tr class="noon-break-row">
 
-                        <td colspan="7">
+                        <td colspan="${hasSaturdaySchedule ? 9 : 7}">
 
                             N O O N &nbsp; B R E A K
 
@@ -2799,6 +1663,19 @@ function buildExcelSchedule(room)
                 }
             );
 
+            if (hasSaturdaySchedule) {
+                html += `<td class="time-cell">${escapeHtml(time)}</td>`;
+                html += buildModifyCell(
+                    schedules,
+                    'SAT',
+                    time,
+                    room,
+                    currentDepartmentId,
+                    roomDepartmentId,
+                    allowOtherDepartments
+                );
+            }
+
 
             html += '</tr>';
 
@@ -2809,12 +1686,431 @@ function buildExcelSchedule(room)
     document.getElementById(
         'scheduleBody'
     ).innerHTML = html;
+    renderModifyScheduleBlocks();
 }
 
 
 /* =========================================================
    BUILD INDIVIDUAL CELL
 ========================================================= */
+
+function displayProgramCode(program)
+{
+    return String(program || '')
+        .split(/\s*\/\s*/)
+        .map(function(value) {
+            const label = value.trim();
+            const match = label.match(/\(([^()]*)\)\s*$/);
+            return match ? match[1].trim() : label;
+        })
+        .filter(Boolean)
+        .join(' / ');
+}
+
+function renderMergedCourseDetails(schedule)
+{
+    const merges = Array.isArray(schedule.merges) ? schedule.merges : [];
+    const approved = merges.filter(function(merge) { return String(merge.status || '').toLowerCase() === 'approved'; });
+    const primaryMajor = String(schedule.major || '').trim().toLowerCase();
+    const sharedMajors = [...new Set(approved
+        .filter(function(merge) { return String(merge.share_type || '').toLowerCase() === 'same_faculty'; })
+        .map(function(merge) {
+            const catalog = merge.subject || merge.faculty_subject?.subject_catalog || {};
+            return String(catalog.program?.major || merge.faculty_subject?.major || '').trim();
+        })
+        .filter(function(major) { return major && major.toLowerCase() !== primaryMajor; }))];
+    const details = approved
+        .filter(function(merge) { return String(merge.share_type || '').toLowerCase() !== 'same_faculty'; })
+        .map(function(merge) {
+            const catalog = merge.subject || merge.faculty_subject?.subject_catalog || {};
+            const code = catalog.course_code || merge.faculty_subject?.course_code || '';
+            const title = catalog.course_title || merge.faculty_subject?.subject || '';
+            const program = catalog.program?.code || merge.faculty_subject?.subject_catalog?.program?.code || displayProgramCode(catalog.program?.name || merge.faculty_subject?.program || '');
+            if (!code && !title) return '';
+            return escapeHtml([code, title].filter(Boolean).join(' — ') + (program ? ' · ' + program : ''));
+        })
+        .filter(Boolean);
+
+    if (sharedMajors.length) {
+        details.unshift(`<span class="cell-shared-majors"><strong>Also shared with</strong><span>${sharedMajors.map(escapeHtml).join(' · ')}</span></span>`);
+    }
+
+    return details.length
+        ? `<div class="merged-course-details">${details.join('<br>')}</div>`
+        : '';
+}
+
+function renderPendingMergeDetails(schedule, incoming)
+{
+    const currentDepartmentId = Number(window.chairDepartmentId || 0);
+    const pending = (Array.isArray(schedule.merges) ? schedule.merges : [])
+        .filter(function(merge) {
+            if (String(merge.status || '').toLowerCase() !== 'pending') return false;
+            const requesterDepartmentId = Number(merge.department_id || merge.department?.id || 0);
+            return incoming
+                ? requesterDepartmentId !== currentDepartmentId
+                : requesterDepartmentId === currentDepartmentId;
+        });
+
+    if (!pending.length) return '';
+    return `<div class="schedule-merge-pending-label">${incoming ? pending.length + ' merge request' + (pending.length === 1 ? '' : 's') + ' waiting for your review' : 'Your merge request is waiting for approval'}</div>`;
+}
+
+function modifyClockMinutes(value)
+{
+    const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    if (!match) return null;
+
+    let hour = Number(match[1]);
+    const minute = Number(match[2]);
+    const meridiem = String(match[3] || '').toUpperCase();
+    if (meridiem === 'PM' && hour < 12) hour += 12;
+    if (meridiem === 'AM' && hour === 12) hour = 0;
+    if (!meridiem && hour >= 1 && hour <= 6) hour += 12;
+    return hour <= 23 && minute <= 59 ? hour * 60 + minute : null;
+}
+
+function modifyScheduleStartsInSlot(scheduleTime, slotTime)
+{
+    const scheduleParts = String(scheduleTime || '').trim().replace(/[–—]/g, '-').split('-');
+    const slotParts = String(slotTime || '').trim().replace(/[–—]/g, '-').split('-');
+    if (scheduleParts.length !== 2 || slotParts.length !== 2) return false;
+
+    const start = modifyClockMinutes(scheduleParts[0]);
+    const slotStart = modifyClockMinutes(slotParts[0]);
+    const slotEnd = modifyClockMinutes(slotParts[1]);
+    return start !== null && slotStart !== null && slotEnd !== null
+        && start >= slotStart && start < slotEnd;
+}
+
+function modifyParseRange(value)
+{
+    const parts = String(value || '').trim().replace(/[–—]/g, '-').split(/\s*-\s*/, 2);
+    if (parts.length !== 2) return null;
+    const start = modifyClockMinutes(parts[0]);
+    let end = modifyClockMinutes(parts[1]);
+    if (start === null || end === null) return null;
+    if (!/\b(?:AM|PM)\s*$/i.test(parts[1]) && end <= start) {
+        const hour = Number(String(parts[1]).match(/^(\d{1,2})/)?.[1] || 0);
+        if (hour >= 1 && hour <= 11) end += 720;
+    }
+    return end > start ? { start: start, end: end } : null;
+}
+
+function modifyFormatRange(start, end)
+{
+    const clock = function(minutes) {
+        const hour = Math.floor(minutes / 60) % 24;
+        return String(hour).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+    };
+    return clock(start) + '-' + clock(end);
+}
+
+function modifyFormatRangeLabel(start, end)
+{
+    const clock = function(minutes) {
+        const hour = Math.floor(minutes / 60) % 24;
+        return (hour % 12 || 12) + ':' + String(minutes % 60).padStart(2, '0');
+    };
+    const startPeriod = Math.floor(start / 60) % 24 < 12 ? 'AM' : 'PM';
+    const endPeriod = Math.floor(end / 60) % 24 < 12 ? 'AM' : 'PM';
+    return startPeriod === endPeriod
+        ? clock(start) + '–' + clock(end) + ' ' + endPeriod
+        : clock(start) + ' ' + startPeriod + '–' + clock(end) + ' ' + endPeriod;
+}
+
+function modifyFormatScheduleTime(value)
+{
+    const range = modifyParseRange(value);
+    return range ? modifyFormatRangeLabel(range.start, range.end) : String(value || '');
+}
+
+function modifyCellRange(cell)
+{
+    return modifyParseRange(cell?.dataset.scheduleTime || cell?.dataset.time || '');
+}
+
+function refreshModifyAdjustmentInput(excludeScheduleId = '')
+{
+    const adjustments = Array.from(document.querySelectorAll('#scheduleBody .schedule-cell.filled[data-schedule-id]'))
+        .filter(function(cell) {
+            if (String(cell.dataset.scheduleId || '') === String(excludeScheduleId || '')) return false;
+            const original = modifyParseRange(cell.dataset.originalTime || '');
+            const current = modifyCellRange(cell);
+            return original && current && (original.start !== current.start || original.end !== current.end);
+        })
+        .map(cell => ({ schedule_id: cell.dataset.scheduleId, day: cell.dataset.day, time: cell.dataset.scheduleTime || cell.dataset.time }));
+    const input = document.getElementById('modifyScheduleAdjustments');
+    if (input) input.value = JSON.stringify(adjustments);
+}
+
+function prepareModifyEmptyCellTime(cell)
+{
+    const base = modifyParseRange(cell.dataset.time || '');
+    if (!base || base.end - base.start !== 60) return;
+    const halves = [{ start: base.start, end: base.start + 30 }, { start: base.start + 30, end: base.end }];
+    const available = halves.filter(function(candidate) {
+        return !Array.from(document.querySelectorAll('#scheduleBody .schedule-cell.filled')).some(function(other) {
+            if (other === cell || other.dataset.day !== cell.dataset.day) return false;
+            const range = modifyCellRange(other);
+            return range && candidate.start < range.end && candidate.end > range.start;
+        });
+    });
+    const range = available.length === 1 ? available[0] : base;
+    cell.dataset.scheduleTime = modifyFormatRange(range.start, range.end);
+}
+
+function modifyTimeIndexForCell(cell)
+{
+    return cell.cellIndex <= 3 ? 0 : cell.cellIndex <= 6 ? 4 : 7;
+}
+
+function modifyYAtMinute(cell, minute, edge)
+{
+    const timeIndex = modifyTimeIndexForCell(cell);
+    const rows = Array.from(document.querySelectorAll('#scheduleBody > tr:not(.noon-break-row)'));
+    let lastPoint = null;
+    for (const row of rows) {
+        const timeCell = row.cells[timeIndex];
+        const range = timeCell ? modifyParseRange(timeCell.textContent.trim()) : null;
+        if (!range || minute < range.start || minute > range.end) continue;
+        const rect = timeCell.getBoundingClientRect();
+        lastPoint = rect.top + ((minute - range.start) / (range.end - range.start)) * rect.height;
+        if (edge === 'start' && minute < range.end) return lastPoint;
+        if (edge === 'end' && minute > range.start) return lastPoint;
+    }
+    return lastPoint;
+}
+
+function modifyMinuteAtY(cell, clientY)
+{
+    const timeIndex = modifyTimeIndexForCell(cell);
+    const rows = Array.from(document.querySelectorAll('#scheduleBody > tr:not(.noon-break-row)'));
+    const boundaries = [];
+    for (const row of rows) {
+        const timeCell = row.cells[timeIndex];
+        const range = timeCell ? modifyParseRange(timeCell.textContent.trim()) : null;
+        if (!range) continue;
+        const rect = timeCell.getBoundingClientRect();
+        boundaries.push({ y: rect.top, minute: range.start }, { y: rect.bottom, minute: range.end });
+        if (clientY >= rect.top && clientY <= rect.bottom) {
+            const fraction = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+            return Math.round((range.start + fraction * (range.end - range.start)) / 30) * 30;
+        }
+    }
+    boundaries.sort((a, b) => Math.abs(clientY - a.y) - Math.abs(clientY - b.y));
+    return boundaries.length ? boundaries[0].minute : null;
+}
+
+function modifyBuildResizePlan(source, candidate, original, edge, snapshots = new Map())
+{
+    const dayStart = 7 * 60;
+    const dayEnd = 19 * 60;
+    const { start, end } = candidate;
+    const insideClassHours = (start >= dayStart && end <= 12 * 60)
+        || (start >= 13 * 60 && end <= dayEnd);
+    if (!insideClassHours || end - start < 30) return null;
+
+    for (const other of document.querySelectorAll('#scheduleBody .schedule-cell.filled[data-schedule-id]')) {
+        if (other === source || other.dataset.day !== source.dataset.day) continue;
+        const range = snapshots.get(other) || modifyCellRange(other);
+        if (range && start < range.end && end > range.start) return null;
+    }
+    return new Map([[source, candidate]]);
+}
+
+function modifyResizeHasConflict(source, start, end)
+{
+    const candidate = { start: start, end: end };
+    const initial = modifyCellRange(source);
+    return !initial || !modifyBuildResizePlan(source, candidate, initial, end !== initial.end ? 'end' : 'start');
+}
+
+function positionModifyScheduleBlock(block, cell, range, spanCells = [cell])
+{
+    const wrapper = document.querySelector('.chair-modify-view .excel-wrapper');
+    if (!wrapper || !block || !cell || !range) return;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const cellRect = cell.getBoundingClientRect();
+    const top = modifyYAtMinute(cell, range.start, 'start');
+    const bottom = modifyYAtMinute(cell, range.end, 'end');
+    if (top === null || bottom === null || bottom <= top) return;
+    block.style.left = (cellRect.left - wrapperRect.left - wrapper.clientLeft + wrapper.scrollLeft) + 'px';
+    block.style.top = (top - wrapperRect.top - wrapper.clientTop + wrapper.scrollTop) + 'px';
+    const lastRect = spanCells.length > 1 ? spanCells[spanCells.length - 1].getBoundingClientRect() : cellRect;
+    block.style.width = Math.max(cellRect.width, lastRect.right - cellRect.left) + 'px';
+    block.style.height = (bottom - top) + 'px';
+    const detailsTime = block.querySelector('.schedule-time:not(.modify-time-badge)');
+    if (detailsTime) detailsTime.textContent = 'Time: ' + modifyFormatRangeLabel(range.start, range.end);
+    const badge = block.querySelector('.modify-time-badge');
+    if (badge) badge.textContent = modifyFormatRangeLabel(range.start, range.end);
+}
+
+function renderModifyScheduleBlocks()
+{
+    const wrapper = document.querySelector('.chair-modify-view .excel-wrapper');
+    const table = wrapper?.querySelector('.excel-schedule');
+    if (!wrapper || !table) return;
+    let layer = wrapper.querySelector('.modify-schedule-block-layer');
+    if (!layer) {
+        layer = document.createElement('div');
+        layer.className = 'modify-schedule-block-layer';
+        wrapper.appendChild(layer);
+    }
+    layer.replaceChildren();
+    layer.style.width = table.scrollWidth + 'px';
+    layer.style.height = table.scrollHeight + 'px';
+    const wrapperRect = wrapper.getBoundingClientRect();
+
+    const sourceCells = Array.from(document.querySelectorAll('#scheduleBody .schedule-cell.filled'));
+    const signatureFor = function(cell) {
+        if (!cell.classList.contains('editable-cell') || cell.dataset.locked === '1') return '';
+        const range = modifyCellRange(cell);
+        if (!range) return '';
+        return JSON.stringify([
+            cell.dataset.course, cell.dataset.subject, cell.dataset.instructor,
+            cell.dataset.facultySubjectId, cell.dataset.sharedOfferingIds,
+            cell.dataset.year, cell.dataset.major, cell.dataset.program,
+            cell.dataset.semester, cell.dataset.academicYear, cell.dataset.color,
+            range.start, range.end
+        ].map(value => String(value || '').trim().toLowerCase()));
+    };
+    const handled = new Set();
+    sourceCells.filter(cell => cell.classList.contains('editable-cell') && cell.dataset.scheduleId).forEach(function(cell) {
+        if (handled.has(cell)) return;
+        cell.classList.remove('modify-block-source');
+        const range = modifyCellRange(cell);
+        if (!range) return;
+        const rowCells = Array.from(cell.parentElement.querySelectorAll('.schedule-cell.filled'))
+            .filter(candidate => candidate.classList.contains('editable-cell'))
+            .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left);
+        const index = rowCells.indexOf(cell);
+        const signature = signatureFor(cell);
+        const spanCells = [cell];
+        for (let cursor = index + 1; signature && cursor > -1 && cursor < rowCells.length; cursor++) {
+            const candidate = rowCells[cursor];
+            if (signatureFor(candidate) !== signature) break;
+            const previousRect = spanCells[spanCells.length - 1].getBoundingClientRect();
+            const candidateRect = candidate.getBoundingClientRect();
+            if (Math.abs(candidateRect.left - previousRect.right) > 3) break;
+            spanCells.push(candidate);
+        }
+        spanCells.forEach(candidate => handled.add(candidate));
+        const block = document.createElement('div');
+        block.className = 'modify-schedule-block';
+        block.dataset.scheduleId = cell.dataset.scheduleId || '';
+        block.style.backgroundColor = cell.dataset.color || '#eaf6ed';
+        block.innerHTML = cell.innerHTML;
+        block.querySelector('.editable-label')?.remove();
+        const timeLabel = document.createElement('span');
+        timeLabel.className = 'schedule-time modify-time-badge';
+        timeLabel.textContent = modifyFormatRangeLabel(range.start, range.end);
+        block.appendChild(timeLabel);
+        if (spanCells.length > 1) {
+            const dayLabel = document.createElement('div');
+            dayLabel.className = 'modify-auto-merge-days';
+            dayLabel.textContent = spanCells.map(item => String(item.dataset.day || '').toUpperCase().slice(0, 3)).join(' · ');
+            block.prepend(dayLabel);
+        }
+        positionModifyScheduleBlock(block, cell, range, spanCells);
+        block.classList.toggle('is-selected', spanCells.includes(selectedModifyCell));
+
+        block.addEventListener('click', function(event) {
+            if (event.target.closest('.modify-resize-handle')) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (spanCells.length > 1) {
+                document.querySelectorAll('#scheduleBody .schedule-cell.selected-cell').forEach(item => item.classList.remove('selected-cell'));
+                spanCells.forEach(item => item.classList.add('selected-cell'));
+                selectedModifyCell = cell;
+                renderModifyScheduleBlocks();
+            } else cell.click();
+        });
+        block.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (selectedModifyCell !== cell) {
+                if (spanCells.length > 1) {
+                    document.querySelectorAll('#scheduleBody .schedule-cell.selected-cell').forEach(item => item.classList.remove('selected-cell'));
+                    spanCells.forEach(item => item.classList.add('selected-cell'));
+                    selectedModifyCell = cell;
+                    renderModifyScheduleBlocks();
+                } else cell.click();
+            }
+            openAddModal(selectedRoom ? selectedRoom.id : '', cell.dataset.day || '', cell.dataset.time || '', cell);
+        });
+
+        ['start', 'end'].forEach(function(edge) {
+            const handle = document.createElement('button');
+            handle.type = 'button';
+            handle.className = 'modify-resize-handle ' + edge;
+            handle.innerHTML = '<span></span>';
+            handle.title = 'Drag to adjust by 30 minutes';
+            handle.setAttribute('aria-label', edge === 'start' ? 'Adjust start time' : 'Adjust end time');
+            handle.addEventListener('pointerdown', function(event) {
+                if (event.button !== undefined && event.button !== 0) return;
+                event.preventDefault();
+                event.stopPropagation();
+                if (selectedModifyCell !== cell) {
+                    cell.click();
+                    return;
+                }
+                if (event.pointerId !== undefined && handle.setPointerCapture) {
+                    try { handle.setPointerCapture(event.pointerId); } catch (error) { /* Keep document tracking as fallback. */ }
+                }
+                const initial = modifyCellRange(cell);
+                if (!initial) return;
+                const original = { start: initial.start, end: initial.end };
+                const snapshots = new Map(Array.from(document.querySelectorAll('#scheduleBody .schedule-cell.filled[data-schedule-id]'))
+                    .filter(item => item.dataset.day === cell.dataset.day)
+                    .map(item => [item, modifyCellRange(item)])
+                    .filter(item => item[1]));
+                const pointerId = event.pointerId;
+                const move = function(moveEvent) {
+                    if (pointerId !== undefined && moveEvent.pointerId !== pointerId) return;
+                    if (moveEvent.cancelable) moveEvent.preventDefault();
+                    const minute = modifyMinuteAtY(cell, moveEvent.clientY);
+                    if (minute === null) return;
+                    const next = { start: edge === 'start' ? minute : original.start, end: edge === 'end' ? minute : original.end };
+                    if (next.end - next.start < 30) {
+                        block.classList.add('resize-conflict');
+                        return;
+                    }
+                    const plan = modifyBuildResizePlan(cell, next, original, edge, snapshots);
+                    if (!plan) {
+                        block.classList.add('resize-conflict');
+                        return;
+                    }
+                    block.classList.remove('resize-conflict');
+                    snapshots.forEach(function(range, plannedCell) {
+                        plannedCell.dataset.scheduleTime = modifyFormatRange(range.start, range.end);
+                    });
+                    plan.forEach(function(range, plannedCell) {
+                        plannedCell.dataset.scheduleTime = modifyFormatRange(range.start, range.end);
+                        const plannedBlock = document.querySelector('.modify-schedule-block[data-schedule-id="' + String(plannedCell.dataset.scheduleId || '').replace(/"/g, '\\"') + '"]');
+                    if (plannedBlock) positionModifyScheduleBlock(plannedBlock, plannedCell, range);
+                    });
+                    refreshModifyAdjustmentInput(cell.dataset.scheduleId || '');
+                    modifyFormTime.value = cell.dataset.scheduleTime;
+                };
+                const finish = function() {
+                    document.removeEventListener('pointermove', move);
+                    document.removeEventListener('pointerup', finish);
+                    document.removeEventListener('pointercancel', finish);
+                    renderModifyScheduleBlocks();
+                };
+                document.addEventListener('pointermove', move, { passive: false });
+                document.addEventListener('pointerup', finish, { once: true });
+                document.addEventListener('pointercancel', finish, { once: true });
+            });
+            block.appendChild(handle);
+        });
+        cell.classList.add('modify-block-source');
+        layer.appendChild(block);
+    });
+}
+
+window.addEventListener('resize', renderModifyScheduleBlocks);
 
 function buildModifyCell(
     schedules,
@@ -2834,9 +2130,7 @@ function buildModifyCell(
                     String(item.day || '')
                         .trim()
                         .toUpperCase() === day &&
-
-                    String(item.time || '')
-                        .trim() === time
+                    modifyScheduleStartsInSlot(item.time, time)
                 );
             }
         );
@@ -2857,8 +2151,11 @@ function buildModifyCell(
                     class="schedule-cell filled editable-cell"
                     data-day="${day}"
                     data-time="${escapeHtml(time)}"
+                    data-schedule-time="${escapeHtml(schedule.time || time)}"
+                    data-original-time="${escapeHtml(schedule.time || time)}"
                     data-schedule-id="${Number(schedule.id || 0)}"
                     data-faculty-subject-id="${escapeHtml(schedule.faculty_subject_id || '')}"
+                    data-shared-offering-ids="${escapeHtml((Array.isArray(schedule.merges) ? schedule.merges : []).filter(function(merge) { return merge.status === 'approved' && merge.share_type === 'same_faculty'; }).map(function(merge) { return merge.subject_id; }).filter(Boolean).join(','))}"
                     data-course="${escapeHtml(schedule.course_code || '')}"
                     data-subject="${escapeHtml(schedule.subject || '')}"
                     data-year="${escapeHtml(schedule.year_level || '')}"
@@ -2868,8 +2165,7 @@ function buildModifyCell(
                     data-semester="${escapeHtml(schedule.semester || '')}"
                     data-academic-year="${escapeHtml(schedule.academic_year || '')}"
                     data-color="${escapeHtml(schedule.color || '#eaf6ed')}"
-                    onclick="openAddModal(${room.id}, '${day}', '${time}')"
-                    title="Your department schedule — click to modify"
+                    title="Your college schedule — click to select, then right-click to edit"
                     style="background-color:${escapeHtml(schedule.color || '#eaf6ed')};"
                 >
 
@@ -2885,6 +2181,10 @@ function buildModifyCell(
                         ${escapeHtml(schedule.instructor || '')}
                     </div>
 
+                    <div class="schedule-time">
+                        Time: ${escapeHtml(modifyFormatScheduleTime(schedule.time || time))}
+                    </div>
+
                     <div class="schedule-year">
                         ${escapeHtml(schedule.year_level || '')}
                     </div>
@@ -2897,9 +2197,13 @@ function buildModifyCell(
 
                     ${
                         schedule.program
-                            ? `<div class="schedule-year">${escapeHtml(schedule.program)}</div>`
+                            ? `<div class="schedule-year">${escapeHtml(displayProgramCode(schedule.program_display || schedule.program))}</div>`
                             : ''
                     }
+
+                    ${renderMergedCourseDetails(schedule)}
+
+                    ${renderPendingMergeDetails(schedule, true)}
 
                     <span class="editable-label">
                         <i class="fa-solid fa-pen-to-square"></i>
@@ -2910,13 +2214,33 @@ function buildModifyCell(
             `;
         }
 
+        const hasOutgoingMergeRequest = (Array.isArray(schedule.merges) ? schedule.merges : []).some(function(merge) {
+            return String(merge.status || '').toLowerCase() === 'pending'
+                && Number(merge.department_id || merge.department?.id || 0) === currentDepartmentId;
+        });
+
         return `
             <td
                 class="schedule-cell filled locked-cell"
                 data-day="${day}"
                 data-time="${escapeHtml(time)}"
+                data-schedule-time="${escapeHtml(schedule.time || time)}"
+                data-original-time="${escapeHtml(schedule.time || time)}"
                 data-schedule-id="${Number(schedule.id || 0)}"
-                title="This schedule belongs to another department and is locked."
+                data-merge-schedule-id="${Number(schedule.id || 0)}"
+                data-merge-course-code="${escapeHtml(schedule.course_code || '')}"
+                data-merge-subject="${escapeHtml(schedule.subject || '')}"
+                data-merge-instructor="${escapeHtml(schedule.instructor || '')}"
+                data-merge-department="${escapeHtml(schedule.college?.name || '')}"
+                data-merge-program="${escapeHtml(schedule.program || '')}"
+                data-merge-building="${escapeHtml(room.building?.name || room.building || '')}"
+                data-merge-room="${escapeHtml(room.room_name || '')}"
+                data-merge-day="${day}"
+                data-merge-time="${escapeHtml(time)}"
+                data-merge-semester="${escapeHtml(schedule.semester || '')}"
+                data-merge-academic-year="${escapeHtml(schedule.academic_year || '')}"
+                data-merge-pending="${hasOutgoingMergeRequest ? '1' : '0'}"
+                title="This schedule belongs to another college and is locked."
                 style="background-color:${escapeHtml(schedule.color || '#eaf6ed')};"
             >
 
@@ -2932,6 +2256,10 @@ function buildModifyCell(
                     ${escapeHtml(schedule.instructor || '')}
                 </div>
 
+                <div class="schedule-time">
+                    Time: ${escapeHtml(modifyFormatScheduleTime(schedule.time || time))}
+                </div>
+
                 <div class="schedule-year">
                     ${escapeHtml(schedule.year_level || '')}
                 </div>
@@ -2944,13 +2272,17 @@ function buildModifyCell(
 
                 ${
                     schedule.program
-                        ? `<div class="schedule-year">${escapeHtml(schedule.program)}</div>`
+                        ? `<div class="schedule-year">${escapeHtml(displayProgramCode(schedule.program_display || schedule.program))}</div>`
                         : ''
                 }
 
+                    ${renderMergedCourseDetails(schedule)}
+
+                    ${renderPendingMergeDetails(schedule, false)}
+
                 <span class="locked">
                     <i class="fa-solid fa-lock"></i>
-                    Locked — Other Department
+                    Locked — Other College
                 </span>
 
             </td>
@@ -2975,8 +2307,7 @@ function buildModifyCell(
                 data-semester=""
                 data-academic-year=""
                 data-color="#ffffff"
-                onclick="openAddModal(${room.id}, '${day}', '${time}')"
-                title="Click to add a schedule"
+                title="Click to select this cell, then right-click to add a schedule"
             >
 
                 <span class="empty-cell">Empty</span>
@@ -3008,8 +2339,7 @@ function buildModifyCell(
                 data-semester=""
                 data-academic-year=""
                 data-color="#ffffff"
-                onclick="openAddModal(${room.id}, '${day}', '${time}')"
-                title="Permission allowed: click to add a schedule"
+                title="Click to select this cell, then right-click to add a schedule"
             >
 
                 <span class="empty-cell">Empty</span>
@@ -3071,6 +2401,7 @@ window.chairDepartmentId =
                 */
 
                 let selectedModifyCell = null;
+                let selectedMergeCell = null;
 
                  let modifyRoomMeta = {
                      semester: '',
@@ -3094,6 +2425,9 @@ window.chairDepartmentId =
 
                 const modifySubjectChoice =
                     document.getElementById('modifySubjectChoice');
+
+                const modifySharedAudiencePicker = document.getElementById('modifySharedAudiencePicker');
+                const modifySharedAudienceChoices = document.getElementById('modifySharedAudienceChoices');
 
                 const modifyClearScheduleId =
                     document.getElementById('modifyClearScheduleId');
@@ -3125,8 +2459,26 @@ window.chairDepartmentId =
                  const modifyColor =
                      document.getElementById('modifyColor');
 
+                const modifyColorControl =
+                    document.getElementById('modifyColorControl');
+
                 const modifyEditor =
                     document.getElementById('modifyEditor');
+
+                const modifyEntryOverlay =
+                    document.getElementById('modifyEntryOverlay');
+
+                const modifySheetToolbar =
+                    document.querySelector('.modify-sheet-toolbar');
+
+                function setModifyEntryOpen(isOpen)
+                {
+                    if (modifyEntryOverlay) modifyEntryOverlay.hidden = !isOpen;
+                    modifySheetToolbar?.classList.toggle('is-entry-open', isOpen);
+                }
+
+                const modifyEntryTarget =
+                    document.getElementById('modifyEntryTarget');
 
                 const modifyEditorStatus =
                     document.getElementById('modifyEditorStatus');
@@ -3136,6 +2488,75 @@ window.chairDepartmentId =
 
                 const modifyClearForm =
                     document.getElementById('modifyClearForm');
+
+                const modifyMergeClassButton =
+                    document.getElementById('modifyMergeClassButton');
+
+                const modifyMergeTargetLabel =
+                    document.getElementById('modifyMergeTargetLabel');
+
+                const modifyClearCellButton =
+                    document.getElementById('modifyClearCellButton');
+
+                modifyMergeClassButton?.addEventListener('click', function() {
+                    this._mergeTargetCell = selectedMergeCell;
+                });
+
+
+                function clearMergeClassTarget()
+                {
+                    if (selectedMergeCell) selectedMergeCell.classList.remove('is-selected-merge');
+                    selectedMergeCell = null;
+                    if (modifyMergeClassButton) {
+                        modifyMergeClassButton.disabled = true;
+                        modifyMergeClassButton.textContent = 'Merge Class';
+                        delete modifyMergeClassButton.dataset.mergePending;
+                        ['scheduleId','courseCode','subject','instructor','department','program','building','room','day','time','semester','academicYear'].forEach(function(key) {
+                            delete modifyMergeClassButton.dataset['merge' + key.charAt(0).toUpperCase() + key.slice(1)];
+                        });
+                    }
+                    if (modifyMergeTargetLabel) {
+                        modifyMergeTargetLabel.textContent = 'Select another college’s scheduled class to request a merge.';
+                    }
+                }
+
+
+                function setMergeClassTarget(cell)
+                {
+                    clearMergeClassTarget();
+                    if (!cell || !cell.dataset.mergeScheduleId || !modifyMergeClassButton) return;
+
+                    selectedMergeCell = cell;
+                    selectedMergeCell.classList.add('is-selected-merge');
+                    const fieldMap = {
+                        scheduleId: 'mergeScheduleId',
+                        courseCode: 'mergeCourseCode',
+                        subject: 'mergeSubject',
+                        instructor: 'mergeInstructor',
+                        department: 'mergeDepartment',
+                        program: 'mergeProgram',
+                        building: 'mergeBuilding',
+                        room: 'mergeRoom',
+                        day: 'mergeDay',
+                        time: 'mergeTime',
+                        semester: 'mergeSemester',
+                        academicYear: 'mergeAcademicYear'
+                    };
+                    Object.entries(fieldMap).forEach(function(entry) {
+                        modifyMergeClassButton.dataset[entry[1]] = cell.dataset[entry[1]] || '';
+                    });
+
+                    const isPending = cell.dataset.mergePending === '1';
+                    modifyMergeClassButton.disabled = isPending;
+                    modifyMergeClassButton.textContent = isPending ? 'Request Pending' : 'Merge Class';
+                    if (modifyMergeTargetLabel) {
+                        modifyMergeTargetLabel.textContent = [
+                            cell.dataset.mergeCourseCode,
+                            cell.dataset.mergeDay,
+                            cell.dataset.mergeTime
+                        ].filter(Boolean).join(' · ') + (isPending ? ' · request pending' : ' · selected');
+                    }
+                }
 
 
                 function setModifyStatus(message, type = '')
@@ -3174,6 +2595,25 @@ window.chairDepartmentId =
                     );
                 }
 
+                function renderModifySharedAudiences(primary)
+                {
+                    if (!modifySharedAudiencePicker || !modifySharedAudienceChoices) return;
+                    modifySharedAudienceChoices.replaceChildren();
+                    if (!primary) {
+                        modifySharedAudiencePicker.hidden = true;
+                        return;
+                    }
+
+                    const cohorts = Array.isArray(primary.shared_cohorts) ? primary.shared_cohorts : [];
+                    modifySharedAudiencePicker.hidden = cohorts.length === 0;
+                    cohorts.forEach(item => {
+                        const details = document.createElement('div');
+                        details.className = 'shared-audience-option';
+                        details.textContent = [item.program_code || item.program, item.major ? 'Major: ' + item.major : '', item.year_level, item.semester].filter(Boolean).join(' · ');
+                        modifySharedAudienceChoices.appendChild(details);
+                    });
+                }
+
 
                 function clearModifyEditor()
                 {
@@ -3184,6 +2624,12 @@ window.chairDepartmentId =
                     }
 
                     selectedModifyCell = null;
+                    setModifyEntryOpen(false);
+                    clearMergeClassTarget();
+                    if (modifyClearCellButton) modifyClearCellButton.disabled = true;
+                    if (modifyClearCellButton) modifyClearCellButton.hidden = true;
+                    if (modifyColorControl) modifyColorControl.hidden = true;
+                    if (modifyColor) modifyColor.disabled = true;
 
                     modifyFormRoomId.value = '';
                     modifyFormDay.value = '';
@@ -3201,10 +2647,10 @@ window.chairDepartmentId =
                     modifySemesterValue.value = '';
                     modifyAcademicYearValue.value = '';
                     modifyColor.value = '#ffffff';
+                    modifySharedAudiencePicker.hidden = true;
+                    modifySharedAudienceChoices.replaceChildren();
 
-                    setModifyStatus(
-                        'Select an editable cell from the timetable.'
-                    );
+                    setModifyStatus('Click a cell to select it, then right-click to enter a course.');
                 }
 
 
@@ -3224,8 +2670,9 @@ window.chairDepartmentId =
 
                     if (!modifyCourseCode.value.trim()) {
                         modifySubjectChoice.hidden = true;
+                        renderModifySharedAudiences(null);
                         setModifyStatus(
-                            'Enter a course code from Set Faculty.',
+                            'Enter a course code from Set Instructor.',
                             'warning'
                         );
                         return;
@@ -3233,8 +2680,9 @@ window.chairDepartmentId =
 
                     if (matches.length === 0) {
                         modifySubjectChoice.hidden = true;
+                        renderModifySharedAudiences(null);
                         setModifyStatus(
-                            'Course code was not found in the Faculty Setup entries.',
+                            'Course code was not found in the Instructor Setup entries.',
                             'error'
                         );
                         return;
@@ -3250,8 +2698,8 @@ window.chairDepartmentId =
                         modifySubjectChoice.hidden = false;
                         setModifyStatus(
                             yearLevels.length > 1
-                                ? 'This course code appears in multiple year levels. Choose the correct year level and faculty.'
-                                : 'Choose the correct program, major, and faculty assignment.',
+                                ? 'This course code appears in multiple year levels. Choose the correct year level and instructor.'
+                                : 'Choose the correct program, major, and instructor assignment.',
                             'warning'
                         );
                         return;
@@ -3280,6 +2728,8 @@ window.chairDepartmentId =
                     modifyProgram.value =
                         match.program || '';
 
+                    renderModifySharedAudiences(match);
+
                     setModifyStatus(
                         'Course loaded: ' +
                         match.subject +
@@ -3304,7 +2754,8 @@ window.chairDepartmentId =
                 function openAddModal(
     roomId,
     day,
-    time
+    time,
+    sourceCell = null
 )
 {
     if (!selectedRoom) {
@@ -3318,8 +2769,7 @@ window.chairDepartmentId =
         String(time).replace(/"/g, '\\"') +
         '"]';
 
-    const clickedCell =
-        document.querySelector(selector);
+    const clickedCell = sourceCell || document.querySelector(selector);
 
     if (!clickedCell) {
         return;
@@ -3334,7 +2784,12 @@ window.chairDepartmentId =
 
     modifyFormRoomId.value = roomId;
     modifyFormDay.value = day;
-    modifyFormTime.value = time;
+    const effectiveTime = clickedCell.dataset.scheduleTime || time;
+    modifyFormTime.value = effectiveTime;
+
+    if (modifyEntryTarget) {
+        modifyEntryTarget.textContent = [day, effectiveTime].filter(Boolean).join(' · ');
+    }
 
     modifySemesterValue.value =
         modifyRoomMeta.semester || '';
@@ -3346,6 +2801,7 @@ window.chairDepartmentId =
         selectedModifyCell.dataset.scheduleId || '';
 
     modifyFormScheduleId.value = scheduleId;
+    refreshModifyAdjustmentInput(scheduleId);
 
     if (scheduleId) {
 
@@ -3370,15 +2826,18 @@ window.chairDepartmentId =
         modifyProgram.value =
             selectedModifyCell.dataset.program || '';
 
+        const existingFacultySubject = modifyFacultySubjects.find(item => (item.assignment_ids || [item.id]).map(String).includes(String(modifyFacultySubjectId.value)));
+        renderModifySharedAudiences(existingFacultySubject);
+
         modifyColor.value =
             selectedModifyCell.dataset.color || '#ffffff';
 
         setModifyStatus(
-            'Your department schedule is selected: ' +
+            'Your college schedule is selected: ' +
             day +
             ' ' +
-            time +
-            '. You can modify it and click Save Cell.',
+            effectiveTime +
+            '. Update the course code, then choose Confirm Entry.',
             'success'
         );
 
@@ -3393,21 +2852,100 @@ window.chairDepartmentId =
         modifyInstructor.value = '';
         modifyMajor.value = '';
         modifyProgram.value = '';
+        renderModifySharedAudiences(null);
         modifyColor.value = '#ffffff';
 
         setModifyStatus(
             'Empty cell selected: ' +
             day +
             ' ' +
-            time +
-            '. Enter a course code and click Save Cell.',
+            effectiveTime +
+            '. Enter a course code, then choose Confirm Entry.',
             'warning'
         );
 
     }
 
-    modifyCourseCode.focus();
+    setModifyEntryOpen(true);
+    window.requestAnimationFrame(function() {
+        modifyCourseCode.focus();
+        modifyCourseCode.select();
+    });
                 }
+
+                const modifyScheduleBody = document.getElementById('scheduleBody');
+                modifyScheduleBody?.addEventListener('click', function(event) {
+                    const cell = event.target.closest('.schedule-cell');
+                    if (!cell) return;
+
+                    if (event.target.closest('[data-merge-request-button]')) return;
+
+                    if (cell.dataset.mergeScheduleId && cell.classList.contains('locked-cell')) {
+                        if (selectedModifyCell) selectedModifyCell.classList.remove('is-selected-edit');
+                        selectedModifyCell = null;
+                        setModifyEntryOpen(false);
+                        modifyClearCellButton.disabled = true;
+                        modifyClearCellButton.hidden = true;
+                        modifyColorControl.hidden = true;
+                        modifyColor.disabled = true;
+                        setMergeClassTarget(cell);
+                        setModifyStatus('Shared class selected. Use Merge Class at the top left to choose your course.');
+                        return;
+                    }
+
+                    if (!cell.classList.contains('editable-cell') || cell.classList.contains('locked-cell') || cell.classList.contains('reserved-cell')) {
+                        return;
+                    }
+
+                    if (selectedModifyCell === cell) {
+                        clearModifyEditor();
+                        return;
+                    }
+
+                    clearMergeClassTarget();
+                    if (selectedModifyCell) selectedModifyCell.classList.remove('is-selected-edit');
+                    if (!cell.dataset.scheduleId) prepareModifyEmptyCellTime(cell);
+                    selectedModifyCell = cell;
+                    selectedModifyCell.classList.add('is-selected-edit');
+                    setModifyEntryOpen(false);
+                    modifyClearCellButton.disabled = false;
+                    modifyClearCellButton.hidden = !Boolean(cell.dataset.scheduleId);
+                    modifyColorControl.hidden = false;
+                    modifyColor.disabled = false;
+                    modifyFormRoomId.value = selectedRoom ? selectedRoom.id : '';
+                    modifyFormDay.value = cell.dataset.day || '';
+                    modifyFormTime.value = cell.dataset.scheduleTime || cell.dataset.time || '';
+                    modifyFormScheduleId.value = cell.dataset.scheduleId || '';
+                    refreshModifyAdjustmentInput(cell.dataset.scheduleId || '');
+                    modifySemesterValue.value = modifyRoomMeta.semester || '';
+                    modifyAcademicYearValue.value = modifyRoomMeta.academic_year || '';
+                    modifyColor.value = cell.dataset.color || '#ffffff';
+                    setModifyStatus('Selected ' + (cell.dataset.day || '') + ' ' + (cell.dataset.scheduleTime || cell.dataset.time || '') + '. Right-click to open course entry.');
+                    renderModifyScheduleBlocks();
+                });
+
+                modifyScheduleBody?.addEventListener('contextmenu', function(event) {
+                    const cell = event.target.closest('.schedule-cell.editable-cell');
+                    if (!cell || cell.classList.contains('locked-cell') || cell.classList.contains('reserved-cell')) return;
+
+                    event.preventDefault();
+                    if (selectedModifyCell !== cell) {
+                        setModifyStatus('Click the cell once to select it, then right-click again to open course entry.', 'warning');
+                        return;
+                    }
+
+                    openAddModal(selectedRoom ? selectedRoom.id : '', cell.dataset.day || '', cell.dataset.time || '', cell);
+                });
+
+                document.getElementById('modifyEntryClose')?.addEventListener('click', function() {
+                    setModifyEntryOpen(false);
+                });
+
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape' && modifyEntryOverlay && !modifyEntryOverlay.hidden) {
+                        setModifyEntryOpen(false);
+                    }
+                });
 
 
                 modifyCellForm.addEventListener(
@@ -3451,7 +2989,7 @@ window.chairDepartmentId =
                             event.preventDefault();
 
                             setModifyStatus(
-                                'This course code is not in the Set Faculty entries.',
+                                'This course code is not in the Set Instructor entries.',
                                 'error'
                             );
 
@@ -3465,36 +3003,17 @@ window.chairDepartmentId =
                         if (!match) {
                             event.preventDefault();
                             setModifyStatus(
-                                'Choose the matching year level and faculty assignment first.',
+                                'Choose the matching year level and instructor assignment first.',
                                 'warning'
                             );
                             modifySubjectChoice.focus();
                             return;
                         }
 
-                        const confirmed =
-                            window.confirm(
-                                'Save this schedule to ' +
-                                modifyFormDay.value +
-                                ' ' +
-                                modifyFormTime.value +
-                                '?\n\nCourse: ' +
-                                match.course_code +
-                                '\nSubject: ' +
-                                (match.subject || '') +
-                                '\nFaculty: ' +
-                                (match.instructor || '')
-                            );
-
-                        if (!confirmed) {
-
+                        const proposedRange = modifyParseRange(modifyFormTime.value);
+                        if (proposedRange && modifyResizeHasConflict(selectedModifyCell, proposedRange.start, proposedRange.end)) {
                             event.preventDefault();
-
-                            setModifyStatus(
-                                'Save cancelled. The cell was not changed.',
-                                'warning'
-                            );
-
+                            setModifyStatus('This time overlaps another scheduled class. Choose the available half-hour or adjust the cell.', 'error');
                             return;
                         }
 
@@ -3537,7 +3056,7 @@ window.chairDepartmentId =
                     .getElementById('modifyClearCellButton')
                     .addEventListener(
                         'click',
-                        function()
+                        async function()
                         {
                             if (!selectedModifyCell) {
 
@@ -3554,11 +3073,11 @@ window.chairDepartmentId =
 
                             if (scheduleId) {
 
-                                if (
-                                    !confirm(
-                                        'Clear this saved schedule from the cell?'
-                                    )
-                                ) {
+                                const confirmed = await window.showSystemConfirmation(
+                                    'Are you sure you want to clear this saved schedule from the cell?',
+                                    'Clear schedule'
+                                );
+                                if (!confirmed) {
                                     return;
                                 }
 
@@ -3594,6 +3113,7 @@ window.chairDepartmentId =
 
                         selectedModifyCell.style.backgroundColor =
                             this.value;
+                        selectedModifyCell.dataset.color = this.value;
                     }
                 );
 
@@ -3631,4 +3151,4 @@ if (initialModifyRoomId) {
 
 </div>
 
- @include('footerheader.footer')
+

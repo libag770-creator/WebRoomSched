@@ -31,14 +31,6 @@ class Room extends Model
     'allow_other_departments' => 'boolean',
 ];
 
-    public function drafts()
-    {
-        return $this->hasMany(
-            ScheduleDraft::class,
-            'room_id'
-        );
-    }
-
     public function department()
     {
         return $this->belongsTo(

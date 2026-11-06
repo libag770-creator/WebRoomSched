@@ -12,6 +12,7 @@ class Program extends Model
         'code',
         'memorandum',
         'major',
+        'year_level',
     ];
 
     public function department()

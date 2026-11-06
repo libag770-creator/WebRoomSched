@@ -1,4 +1,141 @@
 @include('footerheader.header')
+
+<style>
+    /* Set schedule: a clear, branded department workspace with readable room cards. */
+    body.portal-shell.chair-portal { --chair-sidebar-width:252px; --chair-shell-gutter:28px; background:#e9eee8; }
+    body.portal-shell.chair-portal .wrapper { min-height:100vh; background:#e9eee8; }
+    body.portal-shell.chair-portal .main-layout { grid-template-columns:var(--chair-sidebar-width) minmax(0,1fr); align-items:stretch; min-height:100vh; }
+    body.portal-shell.chair-portal .main-layout > .chair-sidebar { position:sticky; top:0; align-self:start; width:var(--chair-sidebar-width); height:100vh; min-height:100vh; padding:25px 15px 18px; border:0; background:linear-gradient(165deg,#112f29 0%,#173b33 54%,#285342 100%); color:#f7f5eb; box-shadow:12px 0 32px rgba(20,47,37,.1); }
+    body.portal-shell.chair-portal .top-header { position:fixed; top:16px; right:var(--chair-shell-gutter); left:calc(var(--chair-sidebar-width) + var(--chair-shell-gutter)); z-index:1000; min-height:72px; padding:10px 15px 10px 22px; border:1px solid rgba(224,231,224,.96); border-radius:18px; background:rgba(255,255,255,.95); box-shadow:0 12px 34px rgba(31,57,43,.09); backdrop-filter:blur(18px); }
+    body.portal-shell.chair-portal .header-title small { color:#9a8450; font-size:11px; }
+    body.portal-shell.chair-portal .header-title h3 { color:#173b33; font-size:20px; }
+    body.portal-shell.chair-portal .header-action { color:#375448; }
+    body.portal-shell.chair-portal .sidebar-toggle { top:36px; left:calc(var(--chair-sidebar-width) - 15px); z-index:1200; border-color:rgba(216,193,140,.52); background:#f8f5eb; color:#224336; }
+    body.portal-shell.chair-portal.sidebar-collapsed { --chair-sidebar-width:76px; }
+    body.portal-shell.chair-portal.sidebar-collapsed .main-layout { grid-template-columns:76px minmax(0,1fr); }
+    body.portal-shell.chair-portal.sidebar-collapsed .main-layout > .chair-sidebar { width:76px; padding-right:10px; padding-left:10px; }
+    body.portal-shell.chair-portal.sidebar-collapsed .sidebar-toggle { left:61px; }
+    body.portal-shell.chair-portal .main-layout > .content.chair-set-schedule-view { min-height:100vh; padding:124px clamp(20px,3vw,42px) 42px; background:radial-gradient(ellipse at 90% 2%,rgba(214,194,143,.23),transparent 28%),linear-gradient(145deg,#eef2ec 0%,#f8f7f2 58%,#f1f0e8 100%); }
+
+    .chair-set-schedule-view .page-header { position:relative; display:flex; align-items:center; min-height:195px; margin:0 0 18px; padding:clamp(27px,4vw,42px); overflow:hidden; border:1px solid rgba(231,214,173,.22); border-radius:24px; background:radial-gradient(circle at 82% 20%,rgba(215,194,143,.18),transparent 23%),linear-gradient(118deg,#163b33 0%,#245543 58%,#37664d 100%); box-shadow:0 18px 40px rgba(28,65,48,.16); color:#fff; }
+    .chair-set-schedule-view .page-header::after { position:absolute; right:-48px; bottom:-165px; width:330px; height:330px; border:1px solid rgba(232,215,169,.25); border-radius:50%; box-shadow:0 0 0 26px rgba(232,215,169,.035),0 0 0 62px rgba(232,215,169,.025),0 0 0 101px rgba(232,215,169,.02); content:""; pointer-events:none; }
+    .chair-set-schedule-view .title-area { position:relative; z-index:1; display:flex; align-items:center; gap:17px; }
+    .chair-set-schedule-view .title-icon { display:grid; flex:0 0 52px; width:52px; height:52px; place-items:center; border:1px solid rgba(255,255,255,.24); border-radius:15px; background:rgba(255,255,255,.11); color:#e2c987; font-size:22px; }
+    .chair-set-schedule-view .title { margin:0 0 8px; color:#fff !important; font:800 clamp(34px,3.2vw,45px)/1.12 var(--wr-display); letter-spacing:-.045em; }
+    .chair-set-schedule-view .subtitle { color:#e1e8df; font-size:15px; font-weight:600; line-height:1.6; }
+    .chair-set-schedule-view .message { margin:0 0 15px; padding:14px 17px; border:1px solid; border-radius:12px; font-size:14px; font-weight:700; line-height:1.5; }
+    .chair-set-schedule-view .message.success { border-color:#b9d9bd; background:#edf7ee; color:#28603a; }
+    .chair-set-schedule-view .message.error { border-color:#edc8c2; background:#fff3f1; color:#8f3e36; }
+    .chair-set-schedule-view .active-term-panel { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:0 0 17px; padding:17px 19px !important; border:1px solid #dfe7dd !important; border-radius:15px !important; background:linear-gradient(110deg,#f5f7f1,#fff) !important; box-shadow:0 7px 22px rgba(31,57,43,.045); }
+    .chair-set-schedule-view .active-term-copy { display:grid; gap:5px; }
+    .chair-set-schedule-view .active-term-label { color:#68776d !important; font-size:11px !important; font-weight:850 !important; letter-spacing:.1em !important; }
+    .chair-set-schedule-view .active-term-name { color:#173b33 !important; font-size:19px !important; font-weight:850 !important; line-height:1.35; }
+    .chair-set-schedule-view .active-term-help { color:#5e6f64 !important; font-size:12px !important; font-weight:550; line-height:1.45; }
+    .chair-set-schedule-view .active-term-actions { display:flex; align-items:center; flex-wrap:wrap; gap:9px; }
+    .chair-set-schedule-view .term-select { min-height:43px !important; padding:0 12px !important; border:1px solid #d7e0d7 !important; border-radius:10px !important; color:#273f32 !important; font-size:13px !important; font-weight:650 !important; }
+    .chair-set-schedule-view .schedule-library-link { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 14px !important; border:1px solid #24543e; border-radius:10px !important; background:#24543e !important; color:#fff !important; font-size:13px !important; font-weight:800 !important; text-decoration:none; white-space:nowrap; }
+    .chair-set-schedule-view .schedule-library-link:hover { background:#173b33 !important; }
+    .chair-set-schedule-view .editor-mode-switch { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin:-3px 0 16px; padding:6px; border:1px solid #dfe7dd; border-radius:12px; background:#fff; }
+    .chair-set-schedule-view .editor-mode-link { display:inline-flex; min-height:40px; align-items:center; gap:8px; padding:0 14px; border-radius:8px; color:#53675a; font-size:13px; font-weight:800; text-decoration:none; }
+    .chair-set-schedule-view .editor-mode-link.active { background:#24543e; color:#fff; }
+    .chair-set-schedule-view .section { min-width:0; padding:21px; border:1px solid #dfe7dd; border-radius:18px; background:#fff; box-shadow:0 8px 24px rgba(31,57,43,.045); }
+    .chair-set-schedule-view .department-display { display:flex; align-items:center; gap:12px; margin:0 0 20px; padding:14px 16px; border:1px solid #e2e9e1; border-radius:13px; background:linear-gradient(110deg,#f5f8f3,#fff); }
+    .chair-set-schedule-view .department-icon { display:grid; flex:0 0 42px; width:42px; height:42px; place-items:center; border:1px solid #e2e9df; border-radius:13px; background:#edf3eb; color:#285940; font-size:17px; }
+    .chair-set-schedule-view .department-label { color:#68776d; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    .chair-set-schedule-view .department-name { margin-top:3px; color:#203d30; font-size:16px; font-weight:850; }
+    .chair-set-schedule-view .section-header { display:flex; align-items:flex-end; justify-content:space-between; gap:15px; margin:0 0 15px; }
+    .chair-set-schedule-view .section-title { display:flex; align-items:center; gap:9px; color:#173b33; font-size:21px; font-weight:850; letter-spacing:-.03em; }
+    .chair-set-schedule-view .section-title i { color:#35684a; font-size:17px; }
+    .chair-set-schedule-view .section-help { color:#5f7065; font-size:13px; font-weight:600; }
+    .chair-set-schedule-view .room-search-panel { display:grid; gap:7px; margin:0 0 16px; padding:14px; border:1px solid #e2e9e1; border-radius:13px; background:#f8faf7; }
+    .chair-set-schedule-view .room-search-panel label { color:#43594d; font-size:12px; font-weight:800; }
+    .chair-set-schedule-view .room-search-control { display:flex; min-height:46px; align-items:center; gap:10px; padding:0 12px; border:1px solid #d7e0d7; border-radius:10px; background:#fff; color:#65776a; }
+    .chair-set-schedule-view .room-search-control:focus-within { outline:3px solid rgba(49,104,76,.14); border-color:#648a70; }
+    .chair-set-schedule-view .room-search-control input { width:100%; min-width:0; border:0; outline:0; background:transparent; color:#273f32; font:600 14px/1.4 var(--wr-body); }
+    .chair-set-schedule-view .room-search-control input::placeholder { color:#89968c; font-weight:500; }
+    .chair-set-schedule-view .room-search-clear { display:grid; flex:0 0 30px; width:30px; height:30px; place-items:center; border:0; border-radius:8px; background:#eef3ed; color:#496052; cursor:pointer; }
+    .chair-set-schedule-view .room-search-clear[hidden],.chair-set-schedule-view .room-search-empty[hidden] { display:none !important; }
+    .chair-set-schedule-view .room-search-status { margin:0; color:#68776d; font-size:12px; font-weight:600; }
+    .chair-set-schedule-view .editor-mode-search { display:grid; flex:0 1 340px; gap:4px; margin:0 0 0 auto; padding:0; border:0; background:transparent; }
+    .chair-set-schedule-view .editor-mode-search label { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+    .chair-set-schedule-view .editor-mode-search .room-search-control { min-height:40px; }
+    .chair-set-schedule-view .building[hidden],.chair-set-schedule-view .room-card[hidden] { display:none !important; }
+    .chair-set-schedule-view .building-list { display:grid; gap:11px; }
+    .chair-set-schedule-view .building { overflow:hidden; border:1px solid #e0e8df; border-radius:14px; background:#fff; }
+    .chair-set-schedule-view .building-toggle { display:flex; align-items:center; justify-content:space-between; gap:15px; width:100%; min-height:73px; padding:13px 16px; border:0; background:#f8faf6; color:#294437; text-align:left; cursor:pointer; transition:background .15s ease; }
+    .chair-set-schedule-view .building-toggle:hover,.chair-set-schedule-view .building.open .building-toggle { background:#f0f6ee; }
+    .chair-set-schedule-view .building-left { display:flex; align-items:center; gap:12px; min-width:0; }
+    .chair-set-schedule-view .building-icon { display:grid; flex:0 0 40px; width:40px; height:40px; place-items:center; border:1px solid #e2e9df; border-radius:12px; background:#edf3eb; color:#285940; font-size:15px; }
+    .chair-set-schedule-view .building-info { min-width:0; }
+    .chair-set-schedule-view .building-name { color:#203d30; font-size:15px; font-weight:850; line-height:1.35; }
+    .chair-set-schedule-view .building-meta { margin-top:4px; color:#65746a; font-size:12px; font-weight:650; }
+    .chair-set-schedule-view .building-arrow { display:grid; flex:0 0 30px; width:30px; height:30px; place-items:center; border:1px solid #e1e8df; border-radius:9px; background:#fff; color:#61756a; transition:transform .15s ease; }
+    .chair-set-schedule-view .building.open .building-arrow { transform:rotate(180deg); }
+    .chair-set-schedule-view .rooms-container { display:none; padding:14px; border-top:1px solid #e7ece5; }
+    .chair-set-schedule-view .building.open .rooms-container { display:block; }
+    .chair-set-schedule-view .room-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .chair-set-schedule-view .room-card { display:flex; min-width:0; flex-direction:column; padding:15px; border:1px solid #e2e9e1; border-radius:14px; background:#fff; box-shadow:0 4px 14px rgba(31,57,43,.035); transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease; }
+    .chair-set-schedule-view .room-card:hover { transform:translateY(-2px); border-color:#adc5b0; box-shadow:0 10px 22px rgba(31,57,43,.08); }
+    .chair-set-schedule-view .room-top { display:flex; align-items:center; gap:11px; }
+    .chair-set-schedule-view .room-icon { display:grid; flex:0 0 40px; width:40px; height:40px; place-items:center; border:1px solid #e2e9df; border-radius:12px; background:#edf3eb; color:#285940; font-size:16px; }
+    .chair-set-schedule-view .room-name { color:#203d30; font-size:16px; font-weight:850; line-height:1.35; overflow-wrap:anywhere; }
+    .chair-set-schedule-view .room-label { margin-top:3px; color:#68776d; font-size:12px; font-weight:600; }
+    .chair-set-schedule-view .room-features { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0; }
+    .chair-set-schedule-view .room-feature { display:flex; align-items:flex-start; gap:7px; min-width:0; padding:8px; border:1px solid #e5ebe3; border-radius:10px; background:#f8faf6; color:#69766e; }
+    .chair-set-schedule-view .room-feature > i { margin-top:2px; color:#69836f; font-size:12px; }
+    .chair-set-schedule-view .room-feature > span { display:grid; gap:2px; min-width:0; }
+    .chair-set-schedule-view .room-feature strong { color:#43594d; font-size:10px; font-weight:800; }
+    .chair-set-schedule-view .room-feature > span > span { color:#52675a; font-size:11px; font-weight:650; line-height:1.35; overflow-wrap:anywhere; }
+    .chair-set-schedule-view .room-feature.feature-available { border-color:#d6e5d5; background:#f0f7ef; color:#35684a; }
+    .chair-set-schedule-view .room-feature.feature-unavailable { background:#f7f8f6; color:#7d8981; }
+    .chair-set-schedule-view .room-feature.room-purpose { grid-column:1/-1; }
+    .chair-set-schedule-view .btn.green { display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:42px; margin-top:auto; padding:0 13px; border:1px solid #24543e; border-radius:10px; background:#24543e; color:#fff; font-size:13px; font-weight:850; text-decoration:none; transition:transform .16s ease,background .16s ease; }
+    .chair-set-schedule-view .btn.green:hover { transform:translateY(-1px); background:#173b33; }
+    .chair-set-schedule-view .permission-box { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:11px; padding:10px 11px; border:1px solid #e5e9dc; border-radius:10px; background:#fbfbf7; }
+    .chair-set-schedule-view .permission-label { display:flex; align-items:flex-start; gap:8px; color:#4e6256; font-size:11px; font-weight:700; line-height:1.4; cursor:pointer; }
+    .chair-set-schedule-view .permission-label input { width:17px; height:17px; flex:0 0 17px; margin:0; accent-color:#285940; }
+    .chair-set-schedule-view .permission-status { display:inline-flex; align-items:center; justify-content:center; min-width:42px; min-height:25px; padding:0 8px; border-radius:99px; font-size:10px; font-weight:850; }
+    .chair-set-schedule-view .permission-status.status-on { background:#e8f3e8; color:#326447; }
+    .chair-set-schedule-view .permission-status.status-off { background:#f0f2ef; color:#69766e; }
+    .chair-set-schedule-view .empty { display:grid; justify-items:center; gap:8px; grid-column:1/-1; padding:25px; border:1px dashed #d7e1d7; border-radius:13px; background:#f8faf6; color:#637268; font-size:13px; font-weight:650; text-align:center; }
+    .chair-set-schedule-view .empty > i { color:#78917d; font-size:22px; }
+
+    @media(max-width:1100px) {
+        body.portal-shell.chair-portal { --chair-sidebar-width:226px; --chair-shell-gutter:22px; }
+        body.portal-shell.chair-portal.sidebar-collapsed { --chair-sidebar-width:76px; }
+        body.portal-shell.chair-portal .main-layout { grid-template-columns:var(--chair-sidebar-width) minmax(0,1fr); }
+        body.portal-shell.chair-portal .main-layout > .content.chair-set-schedule-view { padding-right:24px; padding-left:24px; }
+        .chair-set-schedule-view .room-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media(max-width:760px) {
+        body.portal-shell.chair-portal .top-header { position:sticky; top:0; right:auto; left:auto; min-height:64px; margin:0; padding:9px 12px 9px 54px; border:0; border-radius:0 0 15px 15px; box-shadow:0 5px 18px rgba(31,57,43,.08); }
+        body.portal-shell.chair-portal .header-title h3 { font-size:17px; }
+        body.portal-shell.chair-portal .wrapper,body.portal-shell.chair-portal .main-layout { min-height:calc(100vh - 64px); }
+        body.portal-shell.chair-portal .main-layout { display:block; }
+        body.portal-shell.chair-portal .main-layout > .chair-sidebar { position:fixed; top:0; bottom:0; left:0; z-index:1100; width:262px; height:100dvh; min-height:0; padding:20px 15px; transform:translateX(0); }
+        body.portal-shell.chair-portal.sidebar-collapsed .main-layout > .chair-sidebar { width:262px; transform:translateX(-110%); }
+        body.portal-shell.chair-portal .sidebar-backdrop { position:fixed; inset:0; z-index:1050; }
+        body.portal-shell.chair-portal .sidebar-toggle,body.portal-shell.chair-portal.sidebar-collapsed .sidebar-toggle { top:17px; left:14px; z-index:1200; }
+        body.portal-shell.chair-portal:not(.sidebar-collapsed) .sidebar-toggle { top:17px; left:270px; }
+        body.portal-shell.chair-portal .main-layout > .content.chair-set-schedule-view { min-height:calc(100vh - 64px); padding:22px 17px 32px; }
+        .chair-set-schedule-view .active-term-panel { align-items:flex-start; flex-direction:column; padding:15px !important; }
+        .chair-set-schedule-view .active-term-actions { width:100%; }
+        .chair-set-schedule-view .term-select { width:100%; min-width:0 !important; }
+        .chair-set-schedule-view .section-header { align-items:flex-start; flex-direction:column; }
+        .chair-set-schedule-view .editor-mode-switch .editor-mode-search { flex-basis:100%; margin:4px 0 0; }
+        .chair-set-schedule-view .room-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media(max-width:540px) {
+        .chair-set-schedule-view .page-header { min-height:0; padding:27px 22px; }
+        .chair-set-schedule-view .title-area { align-items:flex-start; gap:13px; }
+        .chair-set-schedule-view .title-icon { flex-basis:45px; width:45px; height:45px; font-size:20px; }
+        .chair-set-schedule-view .active-term-actions { align-items:stretch; flex-direction:column; }
+        .chair-set-schedule-view .schedule-library-link { width:100%; }
+        .chair-set-schedule-view .section { padding:16px; }
+        .chair-set-schedule-view .room-grid { grid-template-columns:minmax(0,1fr); }
+        .chair-set-schedule-view .room-features { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+</style>
 <div class="wrapper">
 
     
@@ -7,175 +144,8 @@
 
         @include('chair.sidebar')
 
-        <main class="content chair-set-schedule chair-workspace-redesign">
+        <main class="content chair-set-schedule chair-workspace-redesign chair-set-schedule-view">
 
-            <style>
-/* Soft blue neumorphism for the chair room and schedule workspace. */
-:root {
-    --chair-ink:#1e2d43;
-    --chair-text:#344b68;
-    --chair-muted:#52647b;
-    --chair-blue:#315f9b;
-    --chair-blue-deep:#284f83;
-    --chair-border:#dbe4ef;
-    --chair-shadow:8px 8px 18px #dfe5ed,-7px -7px 18px #ffffff,inset 1px 1px 0 rgba(255,255,255,.92);
-    --chair-inset:inset 4px 4px 9px #dfe5ed,inset -4px -4px 9px #ffffff;
-}
-.chair-set-schedule {
-    min-height:100%;
-    background:#f1f4f9 !important;
-    color:var(--chair-ink) !important;
-    font-size:16px;
-    line-height:1.55;
-}
-.chair-set-schedule * { box-sizing:border-box; }
-.chair-set-schedule .page { width:100%; max-width:1540px; margin:0 auto; padding:24px clamp(15px,2.2vw,32px) 44px; }
-.chair-set-schedule .page-header {
-    display:flex; align-items:center; justify-content:space-between; gap:20px;
-    min-height:156px; margin:0 0 23px; padding:clamp(23px,3vw,35px);
-    border:1px solid var(--chair-border); border-radius:23px;
-    background:linear-gradient(145deg,#fff,#eff3fa) !important;
-    box-shadow:10px 10px 22px #dce3ec,-8px -8px 20px #ffffff,inset 1px 1px 0 #fff !important;
-}
-.chair-set-schedule .title-area { display:flex; align-items:center; gap:19px; min-width:0; }
-.chair-set-schedule .title-icon {
-    display:flex; flex:0 0 62px; align-items:center; justify-content:center; width:62px; height:62px;
-    border:1px solid #d4dfed; border-radius:19px; background:#eaf0f8 !important; color:#315f9b !important;
-    font-size:25px; box-shadow:inset 4px 4px 9px #dce4ef,inset -4px -4px 9px #fff !important;
-}
-.chair-set-schedule .title { margin:0; color:#1d2b40 !important; font-size:clamp(31px,3vw,40px); font-weight:850; line-height:1.18; letter-spacing:-.025em; }
-.chair-set-schedule .subtitle { margin:8px 0 0; color:#52647b !important; font-size:17px; line-height:1.55; }
-.chair-set-schedule .section {
-    padding:clamp(18px,2.3vw,28px); border:1px solid var(--chair-border) !important; border-radius:21px;
-    background:linear-gradient(145deg,#fff,#f0f4fa) !important;
-    color:var(--chair-ink) !important;
-    box-shadow:9px 9px 20px #dfe5ed,-8px -8px 19px #fff,inset 1px 1px 0 #fff !important;
-}
-.chair-set-schedule .department-display {
-    display:flex; align-items:center; gap:15px; margin:0 0 24px; padding:16px 19px;
-    border:1px solid #d7e1ee; border-radius:17px; background:#eaf0f8 !important; box-shadow:var(--chair-inset);
-}
-.chair-set-schedule .department-icon {
-    display:flex; flex:0 0 50px; align-items:center; justify-content:center; width:50px; height:50px;
-    border:1px solid #d5e0ee; border-radius:16px; background:#edf2f9 !important; color:#315f9b !important;
-    font-size:20px; box-shadow:5px 5px 10px #d7dfeb,-5px -5px 10px #fff,inset 1px 1px 0 #fff;
-}
-.chair-set-schedule .department-label { margin-bottom:3px; color:#52647b !important; font-size:14px; font-weight:700; }
-.chair-set-schedule .department-name { color:#203650 !important; font-size:21px; font-weight:850; line-height:1.35; overflow-wrap:anywhere; }
-.chair-set-schedule .section-header { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin:0 0 16px; }
-.chair-set-schedule .section-title { display:flex; align-items:center; gap:11px; color:#1e3049 !important; font-size:22px; font-weight:850; line-height:1.35; }
-.chair-set-schedule .section-title i { color:#315f9b !important; }
-.chair-set-schedule .section-subtitle { margin:6px 0 0; color:#52647b !important; font-size:15px; }
-.chair-set-schedule .section-help { color:#52647b !important; font-size:14px; font-weight:650; }
-.chair-set-schedule .building-list { display:flex; flex-direction:column; gap:14px; }
-.chair-set-schedule .building {
-    overflow:hidden; border:1px solid #d8e1ed !important; border-radius:18px; background:linear-gradient(145deg,#f7f9fd,#edf2f9) !important;
-    box-shadow:6px 6px 14px #dce3ec,-6px -6px 14px #fff,inset 1px 1px 0 #fff !important;
-    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
-}
-.chair-set-schedule .building.open { border-color:#b9cbe2 !important; box-shadow:inset 4px 4px 9px #dfe5ed,inset -4px -4px 9px #fff !important; }
-.chair-set-schedule .building-toggle {
-    display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; min-height:78px; padding:15px 19px;
-    border:0; background:transparent !important; color:#203650 !important; text-align:left; cursor:pointer;
-    transition:background .18s ease,color .18s ease;
-}
-.chair-set-schedule .building-toggle:hover,.chair-set-schedule .building.open .building-toggle { background:#eaf0f8 !important; color:#244f88 !important; }
-.chair-set-schedule .building-left { display:flex; align-items:center; gap:14px; min-width:0; }
-.chair-set-schedule .building-icon {
-    display:flex; flex:0 0 46px; align-items:center; justify-content:center; width:46px; height:46px;
-    border:1px solid #d6e1ef; border-radius:15px; background:#e9eff8 !important; color:#315f9b !important;
-    font-size:18px; box-shadow:inset 3px 3px 7px #dce4ef,inset -3px -3px 7px #fff !important;
-}
-.chair-set-schedule .building-info { display:flex; flex-direction:column; gap:3px; min-width:0; }
-.chair-set-schedule .building-name { color:#203650 !important; font-size:18px; font-weight:800; line-height:1.35; overflow-wrap:anywhere; }
-.chair-set-schedule .building-meta { color:#52647b !important; font-size:14px; }
-.chair-set-schedule .building-arrow { display:flex; flex:0 0 36px; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid #d7e1ee; border-radius:13px; background:#edf2f9; color:#41638e !important; box-shadow:inset 2px 2px 5px #dfe5ed,inset -2px -2px 5px #fff; transition:transform .22s ease; }
-.chair-set-schedule .building.open .building-arrow { transform:rotate(180deg); }
-.chair-set-schedule .rooms-container { display:none; padding:17px; border-top:1px solid #dce4ef; background:#e9eef6 !important; }
-.chair-set-schedule .building.open .rooms-container { display:block; }
-.chair-set-schedule .room-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,285px),1fr)); gap:14px; }
-.chair-set-schedule .room-card {
-    min-width:0; padding:17px; border:1px solid #d6dfec !important; border-radius:18px;
-    background:linear-gradient(145deg,#f3f6fc,#e9eff8) !important; color:#263d59 !important;
-    box-shadow:7px 7px 15px #d2dbe8,-7px -7px 15px #fff,inset 1px 1px 0 #fff !important;
-    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
-}
-.chair-set-schedule .room-card:hover { transform:translateY(-2px); border-color:#b9cbe2 !important; box-shadow:9px 9px 18px #cdd7e5,-8px -8px 16px #fff,inset 1px 1px 0 #fff !important; }
-.chair-set-schedule .room-top { display:flex; align-items:center; gap:12px; min-height:48px; margin-bottom:15px; }
-.chair-set-schedule .room-icon { display:flex; flex:0 0 44px; align-items:center; justify-content:center; width:44px; height:44px; border:1px solid #d5e0ee; border-radius:15px; background:#e8eff9 !important; color:#315f9b !important; font-size:19px; box-shadow:inset 3px 3px 7px #dce4ef,inset -3px -3px 7px #fff !important; }
-.chair-set-schedule .room-icon i { color:#315f9b !important; opacity:1 !important; }
-.chair-set-schedule .room-name { color:#203650 !important; font-size:18px; font-weight:850; line-height:1.35; overflow-wrap:anywhere; }
-.chair-set-schedule .room-label { margin-top:3px; color:#52647b !important; font-size:14px; }
-.chair-set-schedule .room-features { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin:0 0 15px; }
-.chair-set-schedule .room-feature { display:flex; align-items:center; gap:9px; min-width:0; min-height:58px; padding:9px 10px; border:1px solid #d8e1ed; border-radius:13px; background:#eaf0f8 !important; color:#344b68 !important; box-shadow:inset 3px 3px 7px #dfe5ed,inset -3px -3px 7px #fff !important; }
-.chair-set-schedule .room-feature > i { flex:0 0 19px; color:#315f9b !important; text-align:center; font-size:16px; }
-.chair-set-schedule .room-feature > span { display:flex; flex-direction:column; gap:2px; min-width:0; }
-.chair-set-schedule .room-feature strong { color:#52647b !important; font-size:12px; font-weight:800; line-height:1.3; }
-.chair-set-schedule .room-feature > span > span { color:#233a56 !important; font-size:14px; font-weight:750; line-height:1.35; overflow-wrap:anywhere; }
-.chair-set-schedule .room-feature.feature-available { border-color:#cbded3; background:#eaf3ed !important; }
-.chair-set-schedule .room-feature.feature-available > i { color:#2e7250 !important; }
-.chair-set-schedule .room-feature.feature-unavailable { background:#e8edf4 !important; }
-.chair-set-schedule .room-feature.feature-unavailable > i { color:#64748b !important; }
-.chair-set-schedule .room-feature.room-purpose { grid-column:1/-1; }
-.chair-set-schedule .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; padding:11px 15px; border-radius:14px; font-size:15px; font-weight:800; line-height:1.35; text-align:center; text-decoration:none; box-shadow:5px 5px 11px #cbd4e1,-5px -5px 11px #fff,inset 1px 1px 0 rgba(255,255,255,.35) !important; transition:transform .18s ease,box-shadow .18s ease,background .18s ease; }
-.chair-set-schedule .btn:hover { transform:translateY(-1px); }
-.chair-set-schedule .btn:focus-visible,.chair-set-schedule button:focus-visible,.chair-set-schedule a:focus-visible,.chair-set-schedule input:focus-visible,.chair-set-schedule select:focus-visible { outline:3px solid rgba(49,95,155,.28); outline-offset:3px; }
-.chair-set-schedule .btn.green { width:100%; border:1px solid #315f9b !important; background:#315f9b !important; color:#fff !important; }
-.chair-set-schedule .btn.green:hover { background:#284f83 !important; color:#fff !important; }
-.chair-set-schedule .permission-box { margin-top:14px; padding:13px 14px; border:1px solid #d8e1ed; border-radius:14px; background:#e8eef7; box-shadow:var(--chair-inset); }
-.chair-set-schedule .permission-label { display:flex; align-items:flex-start; gap:10px; color:#344b68 !important; font-size:14px; font-weight:650; line-height:1.5; cursor:pointer; }
-.chair-set-schedule .permission-label input { flex:0 0 19px; width:19px; height:19px; margin:1px 0 0; accent-color:#315f9b; cursor:pointer; }
-.chair-set-schedule .permission-status { margin:7px 0 0 29px; font-size:13px; font-weight:800; }
-.chair-set-schedule .status-on { color:#246344 !important; }
-.chair-set-schedule .status-off { color:#52647b !important; }
-.chair-set-schedule .empty { padding:24px; border:1px dashed #c6d2e2; border-radius:16px; background:#e9eff8 !important; color:#52647b !important; text-align:center; font-size:16px; line-height:1.6; box-shadow:var(--chair-inset); }
-.chair-set-schedule .message { display:flex; align-items:center; gap:10px; margin:0 0 17px; padding:14px 17px; border-radius:14px; font-size:15px; font-weight:700; line-height:1.5; box-shadow:var(--chair-shadow); }
-.chair-set-schedule .message.success { border:1px solid #c5ddce; background:#eaf5ee !important; color:#205d3d !important; }
-.chair-set-schedule .message.error { border:1px solid #e5c5c4; background:#fff0ef !important; color:#8f302e !important; }
-.chair-set-schedule [style*="margin-bottom:18px"][style*="background:#eef8ef"],.chair-set-schedule [style*="margin-bottom:18px"][style*="background: #eef8ef"] { display:flex; gap:16px; padding:17px 19px !important; border:1px solid #d8e1ed !important; border-radius:17px !important; background:#eaf0f8 !important; box-shadow:var(--chair-inset); }
-.chair-set-schedule [style*="margin-bottom:18px"] > div:first-child > div:first-child { color:#52647b !important; font-size:13px !important; line-height:1.4; }
-.chair-set-schedule [style*="margin-bottom:18px"] > div:first-child > div:nth-child(2) { color:#244b7c !important; font-size:20px !important; line-height:1.4; }
-.chair-set-schedule [style*="margin-bottom:18px"] > div:first-child > div:nth-child(3) { color:#52647b !important; font-size:14px !important; line-height:1.5; }
-.chair-set-schedule select[aria-label="Choose academic term to activate"] { min-width:min(280px,100%); min-height:48px; padding:9px 13px !important; border:1px solid #cbd8e8 !important; border-radius:12px !important; background:#edf2f9 !important; color:#243850 !important; font-size:15px !important; box-shadow:var(--chair-inset); }
-.chair-set-schedule select option { background:#fff; color:#243850; }
-.chair-set-schedule a[href*="schedule-library"],.chair-set-schedule a[href*="schedule/library"] { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:10px 15px !important; border:1px solid #315f9b !important; border-radius:13px !important; background:#315f9b !important; color:#fff !important; font-size:15px !important; font-weight:800 !important; text-decoration:none; box-shadow:5px 5px 10px #cbd4e1,-5px -5px 10px #fff !important; }
-.chair-set-schedule a[href*="schedule-library"]:hover,.chair-set-schedule a[href*="schedule/library"]:hover { background:#284f83 !important; }
-@media(max-width:1050px) {
-    .chair-set-schedule .page { padding-left:18px; padding-right:18px; }
-    .chair-set-schedule .room-grid { grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr)); }
-}
-@media(max-width:760px) {
-    .chair-set-schedule .page { padding:17px 13px 30px; }
-    .chair-set-schedule .page-header { align-items:flex-start; padding:22px 20px; }
-    .chair-set-schedule .section-header { align-items:flex-start; flex-direction:column; gap:5px; }
-    .chair-set-schedule .section-help { font-size:14px; }
-    .chair-set-schedule .room-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-}
-@media(max-width:560px) {
-    .chair-set-schedule .page-header { min-height:0; padding:19px 16px; border-radius:19px; }
-    .chair-set-schedule .title-area { align-items:flex-start; gap:12px; }
-    .chair-set-schedule .title-icon { flex-basis:48px; width:48px; height:48px; border-radius:15px; font-size:20px; }
-    .chair-set-schedule .title { font-size:28px; }
-    .chair-set-schedule .subtitle { font-size:15px; }
-    .chair-set-schedule .section { padding:16px 13px; }
-    .chair-set-schedule .department-display { padding:13px; }
-    .chair-set-schedule .department-name { font-size:18px; }
-    .chair-set-schedule .section-title { font-size:19px; }
-    .chair-set-schedule .building-toggle { min-height:70px; padding:12px; }
-    .chair-set-schedule .building-name { font-size:16px; }
-    .chair-set-schedule .rooms-container { padding:12px; }
-    .chair-set-schedule .room-grid { grid-template-columns:1fr; }
-    .chair-set-schedule [style*="margin-bottom:18px"][style*="background:#eef8ef"],.chair-set-schedule [style*="margin-bottom:18px"][style*="background: #eef8ef"] { align-items:stretch; flex-direction:column; }
-    .chair-set-schedule [style*="margin-bottom:18px"] > div:nth-child(2),.chair-set-schedule [style*="margin-bottom:18px"] form { width:100%; }
-    .chair-set-schedule [style*="margin-bottom:18px"] form { display:flex !important; flex-direction:column; align-items:stretch !important; }
-    .chair-set-schedule select[aria-label="Choose academic term to activate"] { width:100%; min-width:0; }
-    .chair-set-schedule a[href*="schedule-library"],.chair-set-schedule a[href*="schedule/library"] { width:100%; margin-top:9px; }
-}
-@media(prefers-reduced-motion:reduce) {
-    .chair-set-schedule *, .chair-set-schedule *::before, .chair-set-schedule *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; }
-}
-</style>
-            <link rel="stylesheet" href="{{ asset('css/chair-workspace.css') }}">
 
 
 
@@ -196,7 +166,7 @@
             </h1>
 
             <div class="subtitle">
-                Manage classroom schedules for your department.
+                Manage classroom schedules for your college.
             </div>
 
         </div>
@@ -204,6 +174,21 @@
     </div>
 
 </div>
+
+<nav class="editor-mode-switch" aria-label="Schedule editor mode">
+    <a class="editor-mode-link active" aria-current="page" href="{{ route('chair.setschedule') }}"><i class="fa-solid fa-building"></i> Schedule editor</a>
+    <a class="editor-mode-link" href="{{ route('chair.modifyschedule', ['term_id' => $activeTerm->id]) }}"><i class="fa-solid fa-arrow-right-arrow-left"></i> Cross-scheduling</a>
+    <a class="editor-mode-link" href="{{ route('chair.roomavailability', ['term_id' => $activeTerm->id]) }}"><i class="fa-solid fa-table-cells-large"></i> All-room availability</a>
+    <div class="room-search-panel editor-mode-search">
+        <label for="setScheduleRoomSearch">Find a room</label>
+        <div class="room-search-control">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input id="setScheduleRoomSearch" type="search" autocomplete="off" aria-label="Find a room" placeholder="Search rooms in your college">
+            <button type="button" id="clearSetScheduleRoomSearch" class="room-search-clear" aria-label="Clear room search" hidden><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+        </div>
+        <p class="room-search-status" id="setScheduleRoomSearchStatus" role="status" aria-live="polite">Search rooms across your college.</p>
+    </div>
+</nav>
 
                 {{-- SUCCESS MESSAGE --}}
 
@@ -242,7 +227,7 @@
                      ACTIVE / VIEW ACADEMIC TERM
                 ============================================================== --}}
 
-                <div
+                <div class="active-term-panel"
                     style="
                         margin-bottom:18px;
                         padding:14px 16px;
@@ -261,9 +246,9 @@
                          CURRENT TERM INFORMATION
                     ====================================================== --}}
 
-                    <div>
+                    <div class="active-term-copy">
 
-                        <div
+                        <div class="active-term-label"
                             style="
                                 font-size:11px;
                                 color:#667085;
@@ -276,7 +261,7 @@
                         </div>
 
 
-                        <div
+                        <div class="active-term-name"
                             style="
                                 font-size:18px;
                                 color:#176b3a;
@@ -289,7 +274,7 @@
                         </div>
 
 
-                        <div
+                        <div class="active-term-help"
                             style="
                                 font-size:11px;
                                 color:#667085;
@@ -306,7 +291,7 @@
                          TERM SELECTOR
                     ====================================================== --}}
 
-                    <div
+                    <div class="active-term-actions"
                         style="
                             display:flex;
                             gap:8px;
@@ -316,8 +301,8 @@
                     >
 
                         <form
-                            method="GET"
-                            action="{{ route('chair.setschedule') }}"
+                            method="POST"
+                            action="{{ route('chair.academic.terms.activate-selected') }}"
                             style="
                                 display:flex;
                                 gap:7px;
@@ -325,12 +310,16 @@
                             "
                         >
 
+                            @csrf
+
+                            <input type="hidden" name="return_to" value="setschedule">
+
                             <select
+                                class="term-select"
                                 name="term_id"
+                                required
                                 aria-label="Choose academic term to activate"
-                                onchange="
-                                    this.form.submit();
-                                "
+                                onchange="if (this.value) this.form.requestSubmit();"
                                 style="
                                     padding:9px 11px;
                                     border:1px solid #2e7d32;
@@ -345,7 +334,7 @@
                                 "
                             >
 
-                                <option value="">
+                                <option value="" disabled>
                                     Choose term to activate...
                                 </option>
 
@@ -375,6 +364,10 @@
 
                             </select>
 
+                            <button type="submit" class="schedule-library-link" style="border:0;cursor:pointer;">
+                                Activate Term
+                            </button>
+
                         </form>
 
 
@@ -382,6 +375,7 @@
 
                         <a
                             href="{{ route('chair.schedule.library') }}"
+                            class="schedule-library-link"
                             style="
                                 padding:9px 12px;
                                 border-radius:7px;
@@ -420,7 +414,7 @@
     <div>
 
         <div class="department-label">
-            Your Department
+            Your College
         </div>
 
         <div class="department-name">
@@ -452,6 +446,11 @@
         Click a building to view its rooms
     </div>
 
+</div>
+
+<div class="empty room-search-empty" id="setScheduleRoomSearchEmpty" hidden>
+    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+    <span>No rooms match your search.</span>
 </div>
 
 
@@ -626,7 +625,7 @@
                                     >
 
                                     <span>
-                                        Allow other departments
+                                        Allow other colleges
                                         to add to empty slots
                                     </span>
 
@@ -690,7 +689,7 @@
             <div style="margin-top:6px;">
 
                 No buildings are assigned
-                to your department.
+                to your college.
 
             </div>
 
@@ -802,6 +801,69 @@
     building.classList.toggle('open');
 }
 
+const setScheduleRoomSearch = document.getElementById('setScheduleRoomSearch');
+const clearSetScheduleRoomSearch = document.getElementById('clearSetScheduleRoomSearch');
+const setScheduleRoomSearchStatus = document.getElementById('setScheduleRoomSearchStatus');
+const setScheduleRoomSearchEmpty = document.getElementById('setScheduleRoomSearchEmpty');
+let roomSearchBuildingState = null;
+
+function filterSetScheduleRooms()
+{
+    const query = String(setScheduleRoomSearch?.value || '').trim().toLocaleLowerCase();
+    const buildings = Array.from(document.querySelectorAll('.chair-set-schedule-view .building-list .building'));
+    let matchedRooms = 0;
+    let totalRooms = 0;
+
+    if (query && roomSearchBuildingState === null) {
+        roomSearchBuildingState = new Map(buildings.map(building => [building, building.classList.contains('open')]));
+    }
+
+    buildings.forEach(function(building) {
+        const buildingName = building.querySelector('.building-name')?.textContent || '';
+        const roomCards = Array.from(building.querySelectorAll('.room-card'));
+        let matchesInBuilding = 0;
+
+        roomCards.forEach(function(roomCard) {
+            totalRooms++;
+            const searchText = [
+                buildingName,
+                roomCard.querySelector('.room-name')?.textContent || '',
+                roomCard.querySelector('.room-features')?.textContent || '',
+            ].join(' ').toLocaleLowerCase();
+            const matches = !query || searchText.includes(query);
+            roomCard.hidden = !matches;
+            if (matches) {
+                matchesInBuilding++;
+                matchedRooms++;
+            }
+        });
+
+        building.hidden = Boolean(query) && matchesInBuilding === 0;
+        if (query && matchesInBuilding > 0) building.classList.add('open');
+        if (!query && roomSearchBuildingState) {
+            building.classList.toggle('open', roomSearchBuildingState.get(building) === true);
+        }
+    });
+
+    if (!query) roomSearchBuildingState = null;
+    if (clearSetScheduleRoomSearch) clearSetScheduleRoomSearch.hidden = !query;
+    if (setScheduleRoomSearchEmpty) setScheduleRoomSearchEmpty.hidden = !query || matchedRooms > 0;
+    if (setScheduleRoomSearchStatus) {
+        setScheduleRoomSearchStatus.textContent = query
+            ? `${matchedRooms} ${matchedRooms === 1 ? 'room' : 'rooms'} found.`
+            : `${totalRooms} ${totalRooms === 1 ? 'room' : 'rooms'} available in your department.`;
+    }
+}
+
+setScheduleRoomSearch?.addEventListener('input', filterSetScheduleRooms);
+clearSetScheduleRoomSearch?.addEventListener('click', function() {
+    if (!setScheduleRoomSearch) return;
+    setScheduleRoomSearch.value = '';
+    filterSetScheduleRooms();
+    setScheduleRoomSearch.focus();
+});
+filterSetScheduleRooms();
+
                 
             </script>
 
@@ -813,4 +875,4 @@
 
 </div>
 
-@include('footerheader.footer')
+

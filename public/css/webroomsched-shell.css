@@ -1,0 +1,194 @@
+/* Shared WebRoomSched portal shell: header, navigation rail, and page canvas. */
+body.portal-shell {
+    --portal-sidebar-width: 252px;
+    --portal-shell-gutter: 28px;
+    min-width: 320px;
+    min-height: 100vh;
+    background: #e9eee8;
+}
+.portal-shell .wrapper { width: 100%; min-height: 100vh; background: #e9eee8; }
+.portal-shell .main-layout {
+    display: grid;
+    grid-template-columns: var(--portal-sidebar-width) minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 100vh;
+    width: 100%;
+    margin: 0;
+}
+
+/* Keep the utility header inside the content column. */
+.portal-shell .top-header {
+    position: fixed;
+    top: 16px;
+    right: var(--portal-shell-gutter);
+    left: calc(var(--portal-sidebar-width) + var(--portal-shell-gutter));
+    z-index: 1000;
+    min-height: 72px;
+    padding: 10px 15px 10px 22px;
+    border: 1px solid rgba(224, 231, 224, .96);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .95);
+    box-shadow: 0 12px 34px rgba(31, 57, 43, .09);
+    backdrop-filter: blur(18px);
+}
+.portal-shell .header-title small { color: #9a8450; font-size: 10px; }
+.portal-shell .header-title h3 { color: #173b33; font-size: 20px; }
+.portal-shell .header-action { color: #375448; }
+.portal-shell .header-action:hover { background: #f1f4ed; }
+
+/* Full-height forest rail shared by the admin, chair, and faculty portals. */
+.portal-shell .main-layout > .sidebar {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    width: var(--portal-sidebar-width);
+    height: 100vh;
+    min-height: 100vh;
+    padding: 25px 15px 18px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 0;
+    background: linear-gradient(165deg, #112f29 0%, #173b33 54%, #285342 100%);
+    color: #f7f5eb;
+    box-shadow: 12px 0 32px rgba(20, 47, 37, .1);
+    scrollbar-width: thin;
+    scrollbar-color: #496a59 transparent;
+}
+.portal-shell .portal-brand-mark {
+    background: #d8c18c;
+    color: #173b33;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
+}
+.portal-shell .portal-brand-copy strong { color: #fffdf5; }
+.portal-shell .portal-brand-copy small { color: #bdc9bd; }
+.portal-shell .faculty-sidebar-section { color: #c3b27f; }
+.portal-shell .sidebar-menu a { color: #d1ddd3; }
+.portal-shell .sidebar-menu a:hover {
+    border-color: rgba(255, 255, 255, .09);
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+}
+.portal-shell .sidebar-menu li.active > a,
+.portal-shell .sidebar-menu a[aria-current="page"] {
+    border-color: rgba(220, 199, 143, .26);
+    background: rgba(220, 199, 143, .13);
+    color: #fff9e8;
+}
+.portal-shell .sidebar-menu li.active > a::before,
+.portal-shell .sidebar-menu a[aria-current="page"]::before { background: #d8c18c; }
+.portal-shell .faculty-nav-icon { color: #b5c5b9; }
+.portal-shell .sidebar-menu li.active .faculty-nav-icon,
+.portal-shell .sidebar-menu a[aria-current="page"] .faculty-nav-icon { color: #e2ca8d; }
+.portal-shell .faculty-sidebar-footer { border-color: rgba(255, 255, 255, .16); }
+.portal-shell .faculty-sidebar-footer strong { color: #f3f2e9; }
+.portal-shell .faculty-sidebar-footer span:not(.faculty-footer-indicator) { color: #b9c7bc; }
+
+/* Give every portal page room beneath the inset header. */
+.portal-shell .main-layout > .content,
+.portal-shell .main-layout > .main-content {
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    margin: 0;
+    padding: 124px clamp(20px, 3vw, 42px) 42px;
+    background: radial-gradient(ellipse at 90% 2%, rgba(214, 194, 143, .23), transparent 28%), linear-gradient(145deg, #eef2ec 0%, #f8f7f2 58%, #f1f0e8 100%);
+}
+.portal-shell .sidebar-toggle {
+    top: 36px;
+    left: calc(var(--portal-sidebar-width) - 15px);
+    z-index: 1200;
+    border-color: rgba(216, 193, 140, .52);
+    background: #f8f5eb;
+    color: #224336;
+}
+.portal-shell .sidebar-toggle:hover { background: #173b33; color: #fff; }
+
+/* The collapsed desktop rail keeps the header and content aligned with it. */
+.portal-shell.sidebar-collapsed { --portal-sidebar-width: 76px; }
+.portal-shell.sidebar-collapsed .main-layout { grid-template-columns: 76px minmax(0, 1fr); }
+.portal-shell.sidebar-collapsed .main-layout > .sidebar { width: 76px; padding-right: 10px; padding-left: 10px; }
+.portal-shell.sidebar-collapsed .sidebar-toggle { left: 61px; }
+
+@media (max-width: 1100px) {
+    body.portal-shell { --portal-sidebar-width: 226px; --portal-shell-gutter: 22px; }
+    .portal-shell.sidebar-collapsed { --portal-sidebar-width: 76px; }
+    .portal-shell .main-layout { grid-template-columns: var(--portal-sidebar-width) minmax(0, 1fr); }
+    .portal-shell .main-layout > .content,
+    .portal-shell .main-layout > .main-content { padding-right: 24px; padding-left: 24px; }
+}
+@media (max-width: 760px) {
+    body.portal-shell { --portal-sidebar-width: 0px; --portal-shell-gutter: 12px; }
+    .portal-shell .top-header {
+        position: sticky;
+        top: 0;
+        right: auto;
+        left: auto;
+        min-height: 64px;
+        margin: 0;
+        padding: 9px 12px 9px 54px;
+        border: 0;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 5px 18px rgba(31, 57, 43, .08);
+    }
+    .portal-shell .header-title small { font-size: 9px; }
+    .portal-shell .header-title h3 { font-size: 17px; }
+    .portal-shell .wrapper,
+    .portal-shell .main-layout { min-height: calc(100vh - 64px); }
+    .portal-shell .main-layout { display: block; }
+    .portal-shell .main-layout > .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1100;
+        width: 262px;
+        height: 100dvh;
+        min-height: 0;
+        padding: 20px 15px;
+        transform: translateX(0);
+    }
+    .portal-shell.sidebar-collapsed .main-layout > .sidebar { width: 262px; transform: translateX(-110%); }
+    .portal-shell .sidebar-backdrop { position: fixed; inset: 0; z-index: 1050; }
+    .portal-shell .sidebar-toggle,
+    .portal-shell.sidebar-collapsed .sidebar-toggle { top: 17px; left: 14px; z-index: 1200; }
+    .portal-shell:not(.sidebar-collapsed) .sidebar-toggle { top: 17px; left: 270px; }
+    .portal-shell .main-layout > .content,
+    .portal-shell .main-layout > .main-content { min-height: calc(100vh - 64px); padding: 22px 16px 32px; }
+}
+
+/* Center the sidebar collapse control on the rail edge on desktop. */
+@media (min-width: 761px) {
+    .portal-shell .sidebar-toggle {
+        top: 50% !important;
+        transform: translateY(-50%);
+    }
+}
+
+/* Keep the mobile menu control near the top of the screen. */
+@media (max-width: 760px) {
+    .portal-shell .sidebar-toggle,
+    .portal-shell.sidebar-collapsed .sidebar-toggle {
+        top: 17px !important;
+        transform: none;
+    }
+}
+
+/* Align the shared desktop header flush with the viewport and sidebar. */
+@media (min-width: 761px) {
+    .portal-shell .top-header {
+        top: 0 !important;
+        right: 0 !important;
+        left: var(--portal-sidebar-width) !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+}
+
+/* Keep the header square on narrow screens as well. */
+@media (max-width: 760px) {
+    .portal-shell .top-header {
+        border-radius: 0 !important;
+    }
+}

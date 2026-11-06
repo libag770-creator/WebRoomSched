@@ -9,11 +9,11 @@ use App\Models\Reservation;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Models\User;
 use App\Models\Department;
 use App\Models\FacultySubject;
 use App\Models\Building;
-use App\Models\ScheduleDraft;
 use App\Models\RoomSwapRequest;
 use App\Models\ScheduleMerge;
 use App\Models\AcademicTerm;
@@ -21,7 +21,12 @@ use App\Models\Program;
 use App\Models\Subject;
 use App\Models\ScheduleTimeSlot;
 use App\Models\RoomScheduleTimeSlot;
+use App\Models\ScheduleCellMerge;
+use App\Models\ScheduleOverride;
 use App\Models\RoomReassignment;
+use App\Notifications\ScheduleMergeNotification;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ChairController extends Controller
 {
@@ -80,12 +85,17 @@ class ChairController extends Controller
 |
 */
 
-$mergeRequests = ScheduleMerge::with([
+$mergeRelations = [
     'schedule.room',
     'schedule.department',
-    'facultySubject',
+    'facultySubject.subjectCatalog.program.department',
+    'subject.program.department',
     'department',
-])
+    'requester',
+    'approver',
+];
+
+$mergeRequests = ScheduleMerge::with($mergeRelations)
 ->whereIn('status', [
     'pending',
     'approved'
@@ -102,7 +112,17 @@ $mergeRequests = ScheduleMerge::with([
     }
 )
 ->latest()
-->get();
+->get()
+->unique(fn ($merge) => $merge->request_group_id ?: 'merge-' . $merge->id)
+->values();
+
+$sentMergeRequests = ScheduleMerge::with($mergeRelations)
+    ->where('department_id', Auth::user()->department_id)
+    ->whereIn('status', ['pending', 'approved', 'rejected'])
+    ->latest()
+    ->get()
+    ->unique(fn ($merge) => $merge->request_group_id ?: 'merge-' . $merge->id)
+    ->values();
     /*
     |--------------------------------------------------------------------------
     | DASHBOARD VIEW
@@ -114,625 +134,69 @@ $mergeRequests = ScheduleMerge::with([
     compact(
         'departments',
         'swapRequests',
-        'mergeRequests'
+        'mergeRequests',
+        'sentMergeRequests'
     )
 );
 }
-public function drafts(Request $request)
+
+public function requests()
 {
     if (!Auth::check() || Auth::user()->role !== 'chair') {
         abort(403, 'Unauthorized.');
     }
 
-    $activeTerm = $this->resolveAcademicTerm($request);
-    $chair = Auth::user();
-
-    $drafts = $this->termDraftQuery(
-        ScheduleDraft::with(['room', 'creator'])
-            ->where('created_by', $chair->id),
-        $activeTerm
-    )
-    ->orderByDesc('created_at')
-    ->get();
-
-    return view('chair.drafts', compact('drafts', 'activeTerm'));
-}
-public function saveDraft( Request $request)
-{
-    if (!Auth::check() || Auth::user()->role !== 'chair') {
-        abort(403, 'Unauthorized.');
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CURRENT CHAIR
-    |--------------------------------------------------------------------------
-    */
-
-    $chair = Auth::user();
-    $activeTerm = $this->resolveAcademicTerm($request);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | VALIDATE
-    |--------------------------------------------------------------------------
-    */
-
-    $request->validate([
-        'room_id' =>
-            'required|exists:rooms,id',
-
-        'schedule' =>
-            'required|array',
-
-        'time_slots' =>
-            'nullable|array',
-
-            'room_time_slots' =>
-    'nullable|array',
-
-'room_time_slots.*.day' =>
-    'required|string|max:20',
-
-'room_time_slots.*.time' =>
-    'required|string|max:50',
-
-'room_time_slots.*.row_position' =>
-    'required|integer',
-
-        'time_slots.*.day' =>
-            'required|string|max:20',
-
-        'time_slots.*.time' =>
-            'required|string|max:50',
-
-        'time_slots.*.row_position' =>
-            'required|integer',
-
-        'schedule.*.day' =>
-            'required|string|max:20',
-
-        'schedule.*.time' =>
-            'required|string|max:50',
-
-            'schedule.*.row_position' =>
-    'required|integer',
-
-        'schedule.*.course_code' =>
-            'required|string|max:50',
-
-        'schedule.*.faculty_subject_id' =>
-            'required|integer|exists:faculty_subjects,id',
-
-        'schedule.*.subject' =>
-            'required|string|max:255',
-
-        'schedule.*.year_level' =>
-            'required|string|max:50',
-
-        'schedule.*.instructor' =>
-            'required|string|max:255',
-
-        'schedule.*.major' =>
-    'nullable|string|max:50',
-
-        'schedule.*.program' =>
-            'required|string|max:100',
-
-        'schedule.*.color' =>
-            'nullable|string|max:20',
-    ]);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | GET ROOM
-    |--------------------------------------------------------------------------
-    */
-
-    $room = Room::findOrFail(
-        $request->room_id
-    );
-
-    /*
-    |--------------------------------------------------------------------------
-    | SYNCHRONIZE OFFICIAL TIME SLOTS
-    |--------------------------------------------------------------------------
-    |
-    | Time rows remain valid timetable slots even when they are empty.
-    | This keeps the Chair timetable connected to Faculty time search.
-    |
-    */
-    foreach ($request->input('time_slots', []) as $timeSlotData) {
-        $this->syncScheduleTimeSlot(
-            $activeTerm,
-            strtoupper(trim($timeSlotData['day'] ?? '')),
-            trim($timeSlotData['time'] ?? ''),
-            isset($timeSlotData['row_position'])
-                ? (int) $timeSlotData['row_position']
-                : null
-        );
-    }
-
-    RoomScheduleTimeSlot::where(
-    'room_id',
-    $room->id
-)
-    ->where(
-        'academic_term_id',
-        $activeTerm->id
-    )
-    ->delete();
-
-
-foreach (
-    $request->input('room_time_slots', [])
-    as $roomTimeSlotData
-) {
-
-    $day = strtoupper(
-        trim(
-            $roomTimeSlotData['day'] ?? ''
-        )
-    );
-
-    $time = trim(
-        $roomTimeSlotData['time'] ?? ''
-    );
-
-    $rowPosition = isset(
-        $roomTimeSlotData['row_position']
-    )
-        ? (int) $roomTimeSlotData['row_position']
-        : 0;
-
-    if (
-        $day === ''
-        ||
-        $time === ''
-    ) {
-        continue;
-    }
-
-    $parts = preg_split(
-        '/\s*-\s*/',
-        $time,
-        2
-    );
-
-    if (
-        count($parts) !== 2
-    ) {
-        continue;
-    }
-
-    $startTime = $this->normalizeScheduleClock(
-        trim($parts[0])
-    );
-
-    $endTime = $this->normalizeScheduleClock(
-        trim($parts[1])
-    );
-
-    if (
-        $startTime === null
-        ||
-        $endTime === null
-        ||
-        $endTime <= $startTime
-    ) {
-        continue;
-    }
-
-    RoomScheduleTimeSlot::create([
-        'room_id' =>
-            $room->id,
-
-        'academic_term_id' =>
-            $activeTerm->id,
-
-        'day' =>
-            $day,
-
-        'start_time' =>
-            $startTime,
-
-        'end_time' =>
-            $endTime,
-
-        'row_position' =>
-            $rowPosition,
-
-        'is_active' =>
-            true,
-    ]);
-}
-
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | IMPORTANT:
-    | THE CHAIR CAN ONLY SAVE COURSES FROM THEIR OWN DEPARTMENT
-    |--------------------------------------------------------------------------
-    */
-
-    foreach (
-        $request->schedule as $data
-    ) {
-
-        $courseCode =
-            strtoupper(
-                trim(
-                    $data['course_code']
-                )
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | FIND COURSE ASSIGNMENT
-        |--------------------------------------------------------------------------
-        */
-
-        $facultySubject =
-            FacultySubject::with('faculty')
-                ->where(
-                    'course_code',
-                    $courseCode
-                )
-                ->whereHas(
-                    'faculty',
-                    function ($query) use ($chair) {
-
-                        $query
-                            ->where(
-                                'role',
-                                'faculty'
-                            )
-                            ->where(
-                                'department_id',
-                                $chair->department_id
-                            );
-
-                    }
-                )
-                ->first();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | INVALID COURSE
-        |--------------------------------------------------------------------------
-        */
-
-        if (!$facultySubject) {
-
-            return back()
-                ->with(
-                    'error',
-                    'Course code "' .
-                    $courseCode .
-                    '" is not assigned to a faculty member in your department.'
-                )
-                ->withInput();
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | CHECK THE ROOM/TIME/DAY
-        |--------------------------------------------------------------------------
-        */
-
-        $day =
-            strtoupper(
-                trim(
-                    $data['day']
-                )
-            );
-
-
-        $time =
-            trim(
-                $data['time']
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | CHECK EXISTING PUBLISHED SCHEDULE
-        |
-        | A draft must never overwrite another department's
-        | published schedule.
-        |--------------------------------------------------------------------------
-        */
-
-        $existingSchedule =
-            Schedule::where(
-                'room_id',
-                $room->id
-            )
-            ->where(
-                'day',
-                $day
-            )
-            ->where(
-                'time',
-                $time
-            )
-            ->where(
-                'academic_term_id',
-                $activeTerm->id
-            )
-            ->first();
-
-
-        if (
-            $existingSchedule &&
-            (int) $existingSchedule->department_id !==
-            (int) $chair->department_id
-        ) {
-
-            return back()
-                ->with(
-                    'error',
-                    'The selected time slot belongs to another department and cannot be overwritten.'
-                )
-                ->withInput();
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY SCHEDULE CONFLICT CHECK FOR DRAFT
-    |--------------------------------------------------------------------------
-    |
-    | Drafts are checked against published schedules as well as other
-    | entries in the same draft request. This prevents a conflicting
-    | faculty timetable from being prepared and later published.
-    |
-    */
-    $pendingFacultySchedules = [];
-
-    foreach ($request->input('schedule', []) as $data) {
-        $courseCode = strtoupper(trim($data['course_code'] ?? ''));
-
-        $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
-            ->find($data['faculty_subject_id'] ?? null);
-
-        if ($facultySubject && (
-            strtoupper(trim($facultySubject->course_code)) !== $courseCode
-            || !$this->chairCanManageFacultySubject($facultySubject, $chair)
-        )) {
-            $facultySubject = null;
-        }
-
-        if (!$facultySubject) {
-            continue;
-        }
-
-        $day = strtoupper(trim($data['day'] ?? ''));
-        $time = trim($data['time'] ?? '');
-
-        $facultyConflict = $this->findFacultyScheduleConflict(
-            (int) $facultySubject->faculty_id,
-            $day,
-            $time,
-            $activeTerm->id
-        );
-
-        if ($facultyConflict) {
-            return back()
-                ->with(
-                    'error',
-                    'Schedule conflict: this faculty/instructor already has a schedule on '
-                    . $this->formatScheduleConflictMessage($facultyConflict)
-                    . '. A faculty member cannot have overlapping schedules in different rooms.'
-                )
-                ->withInput();
-        }
-
-        $pendingConflict = $this->findPendingFacultyScheduleConflict(
-            (int) $facultySubject->faculty_id,
-            $day,
-            $time,
-            $pendingFacultySchedules
-        );
-
-        if ($pendingConflict) {
-            return back()
-                ->with(
-                    'error',
-                    'Schedule conflict: this faculty/instructor is assigned to more than one room during the overlapping time '
-                    . $this->formatScheduleTimeForMessage($day, $time)
-                    . '.'
-                )
-                ->withInput();
-        }
-
-        $pendingFacultySchedules[] = [
-            'faculty_id' => (int) $facultySubject->faculty_id,
-            'day' => $day,
-            'time' => $time,
-        ];
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | REMOVE OLD DRAFT FOR THIS ROOM
-    |
-    | This makes "Update Draft" replace the old version
-    | instead of creating duplicates.
-    |--------------------------------------------------------------------------
-    */
-
-    ScheduleDraft::where('room_id', $room->id)
-        ->where('created_by', $chair->id)
-        ->where('academic_term_id', $activeTerm->id)
-        ->delete();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SAVE NEW DRAFT
-    |--------------------------------------------------------------------------
-    */
-
-    foreach (
-        $request->schedule as $data
-    ) {
-
-        $courseCode =
-            strtoupper(
-                trim(
-                    $data['course_code']
-                )
-            );
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | LOOK UP COURSE AGAIN
-        |
-        | We do not trust the browser's faculty_id,
-        | subject or year_level.
-        |--------------------------------------------------------------------------
-        */
-
-        $facultySubject =
-            FacultySubject::with('faculty')
-                ->where(
-                    'course_code',
-                    $courseCode
-                )
-                ->whereHas(
-                    'faculty',
-                    function ($query) use ($chair) {
-
-                        $query
-                            ->where(
-                                'role',
-                                'faculty'
-                            )
-                            ->where(
-                                'department_id',
-                                $chair->department_id
-                            );
-
-                    }
-                )
-                ->first();
-
-
-        if (!$facultySubject) {
-            continue;
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | CREATE DRAFT
-        |--------------------------------------------------------------------------
-        */
-
-        ScheduleDraft::create([
-
-            'room_id' =>
-                $room->id,
-
-            'faculty_id' =>
-                $facultySubject->faculty_id,
-
-            'department_id' =>
-                $chair->department_id,
-
-            'academic_term_id' =>
-                $activeTerm->id,
-
-            'semester' =>
-                $activeTerm->semester,
-
-            'academic_year' =>
-                $activeTerm->academic_year,
-
-            'created_by' =>
-                $chair->id,
-
-            'day' =>
-                strtoupper(
-                    trim(
-                        $data['day']
-                    )
-                ),
-
-            'time' =>
-    trim(
-        $data['time']
-    ),
-
-'row_position' =>
-    isset($data['row_position'])
-        ? (int) $data['row_position']
-        : null,
-
-'course_code' =>
-    $facultySubject->course_code,
-
-'faculty_subject_id' =>
-    $facultySubject->id,
-
-
-            'subject' =>
-                $facultySubject->subject,
-
-            'year_level' =>
-                $facultySubject->year_level,
-
-                'major' =>
-    $facultySubject->major,
-
-            'program' =>
-    $facultySubject->program,
-
-            'subject_type' => $facultySubject->subject_type
-                ?: (preg_match('/\.1\s*$/', trim($courseCode)) === 1 ? 'Lab' : 'Lec'),
-
-            'instructor' =>
-                $facultySubject->faculty->name,
-
-            'color' =>
-                $data['color']
-                ?? '#ffffff',
-
-        ]);
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SUCCESS
-    |--------------------------------------------------------------------------
-    */
-
-    return redirect()
-        ->route(
-            'chair.drafts'
-        )
-        ->with(
-            'success',
-            'Schedule draft saved successfully.'
-        );
+    $this->expireReservations();
+
+    $swapRequests = RoomSwapRequest::with([
+        'requester',
+        'targetUser',
+        'requesterRoom',
+        'targetRoom',
+        'requesterSchedule',
+        'targetSchedule',
+    ])->latest()->get();
+
+    $mergeRelations = [
+        'schedule.room',
+        'schedule.department',
+        'facultySubject.subjectCatalog.program.department',
+        'subject.program.department',
+        'department',
+        'requester',
+        'approver',
+    ];
+
+    $mergeRequests = ScheduleMerge::with($mergeRelations)
+        ->whereIn('status', ['pending', 'approved'])
+        ->whereHas('schedule', function ($query) {
+            $query->where('department_id', Auth::user()->department_id);
+        })
+        ->latest()
+        ->get()
+        ->unique(fn ($merge) => $merge->request_group_id ?: 'merge-' . $merge->id)
+        ->values();
+
+    $sentMergeRequests = ScheduleMerge::with($mergeRelations)
+        ->where('department_id', Auth::user()->department_id)
+        ->whereIn('status', ['pending', 'approved', 'rejected'])
+        ->latest()
+        ->get()
+        ->unique(fn ($merge) => $merge->request_group_id ?: 'merge-' . $merge->id)
+        ->values();
+
+    return view('chair.requests', compact('swapRequests', 'mergeRequests', 'sentMergeRequests'));
 }
 
     // Open the schedule editor for a room
 public function index(Request $request, $roomId)
 {
-    if (!$this->isChairUser()) {
+    $user = Auth::user();
+    $isPublishedScheduleView = ($request->boolean('readonly') || $request->route('readonly'))
+        && $user
+        && in_array($user->role, ['admin', 'faculty'], true);
+
+    if (!$this->isChairUser() && !$isPublishedScheduleView) {
         abort(403, 'Unauthorized.');
     }
 
@@ -756,7 +220,7 @@ public function index(Request $request, $roomId)
     |--------------------------------------------------------------------------
     */
 
-    $chair = Auth::user();
+    $chair = $user;
 
     /*
     |--------------------------------------------------------------------------
@@ -771,17 +235,32 @@ public function index(Request $request, $roomId)
         $roomId
     );
 
+    $isCrossScheduling = !$isPublishedScheduleView && $request->query('mode') === 'cross';
+    $isOtherDepartmentRoom = (int) $room->department_id !== (int) $chair->department_id;
+
+    $roomMatchesEditorMode = $isCrossScheduling
+        ? $isOtherDepartmentRoom
+        : !$isOtherDepartmentRoom;
+
+    if (!$isPublishedScheduleView && !$roomMatchesEditorMode) {
+        abort(403, 'Choose a room from the matching schedule editor.');
+    }
+
+    $isCrossRoomReadOnly = $isCrossScheduling && !$room->allow_other_departments;
+
     /*
     |--------------------------------------------------------------------------
     | FACULTY SUBJECTS
     |--------------------------------------------------------------------------
     */
 
-    $facultySubjects =
+    $facultySubjects = $isPublishedScheduleView ? collect() :
         FacultySubject::with([
             'faculty.department',
             'subjectCatalog.program',
+            'sharedCohorts.program',
         ])
+        ->whereHas('faculty', fn ($query) => $query->active())
         ->orderBy(
             'course_code'
         )
@@ -801,13 +280,11 @@ public function index(Request $request, $roomId)
             'merges' => function ($query) {
 
                 $query
-                    ->where(
-                        'status',
-                        'approved'
-                    )
+                    ->whereIn('status', ['approved', 'pending'])
                     ->with([
                         'department',
-                        'facultySubject'
+                        'subject.program.department',
+                        'facultySubject.subjectCatalog.program.department',
                     ]);
 
             }
@@ -889,6 +366,33 @@ public function index(Request $request, $roomId)
         )
         ->get();
 
+    $publishedScheduleOverrides = collect();
+    if ($isPublishedScheduleView) {
+        $roomScheduleIds = $schedules->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $publishedScheduleOverrides = ScheduleOverride::with(['room', 'schedule.room'])
+            ->where('status', 'active')
+            ->whereDate('override_date', '>=', Carbon::today()->toDateString())
+            ->where('expires_at', '>', now())
+            ->where(function ($query) use ($room, $roomScheduleIds) {
+                $query->where('room_id', $room->id);
+                if ($roomScheduleIds) {
+                    $query->orWhereIn('schedule_id', $roomScheduleIds);
+                }
+            })
+            ->orderBy('override_date')
+            ->orderBy('start_time')
+            ->get()
+            ->filter(function (ScheduleOverride $override) use ($room, $roomScheduleIds) {
+                if ($override->room_id) {
+                    return (int) $override->room_id === (int) $room->id
+                        && (!$override->schedule_id || in_array((int) $override->schedule_id, $roomScheduleIds, true));
+                }
+                return $override->schedule_id
+                    && in_array((int) $override->schedule_id, $roomScheduleIds, true);
+            })
+            ->values();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | ACTIVE TERM VALUES
@@ -901,8 +405,6 @@ public function index(Request $request, $roomId)
     $academicYear =
         $activeTerm->academic_year;
 
-    $isEditingDraft = false;
-
     $timeSlots = ScheduleTimeSlot::where(
         'academic_term_id',
         $activeTerm->id
@@ -912,17 +414,46 @@ public function index(Request $request, $roomId)
         ->orderBy('start_time')
         ->get();
 
+    $roomTimeSlots = RoomScheduleTimeSlot::where('room_id', $room->id)
+        ->where('academic_term_id', $activeTerm->id)
+        ->where('is_active', true)
+        ->orderBy('row_position')
+        ->orderBy('start_time')
+        ->get();
+
+    $hasRoomRowDeletionMarker = RoomScheduleTimeSlot::where('room_id', $room->id)
+        ->where('academic_term_id', $activeTerm->id)
+        ->where('day', 'ROW_DELETE')
+        ->exists();
+
+    $manualCellMerges = ScheduleCellMerge::where('room_id', $room->id)
+        ->where('academic_term_id', $activeTerm->id)
+        ->orderBy('id')
+        ->get(['axis', 'cells'])
+        ->map(fn ($merge) => [
+            'axis' => $merge->axis,
+            'cells' => $merge->cells,
+        ])
+        ->values()
+        ->all();
+
     return view(
         'chair.excel',
         compact(
             'room',
             'facultySubjects',
             'schedules',
-                'semester',
+            'semester',
             'academicYear',
+            'publishedScheduleOverrides',
             'activeTerm',
-            'isEditingDraft',
-            'timeSlots'
+            'timeSlots',
+            'roomTimeSlots',
+            'hasRoomRowDeletionMarker',
+            'manualCellMerges',
+            'isCrossScheduling',
+            'isCrossRoomReadOnly',
+            'isPublishedScheduleView'
         )
     );
 }
@@ -937,7 +468,8 @@ public function setFaculty(Request $request)
     $department = Department::with([
         'users' => function ($query) {
             $query->where('role', 'faculty')
-                ->with(['facultySubjects.subjectCatalog.program'])
+                ->active()
+                ->with(['facultySubjects.subjectCatalog.program', 'facultySubjects.sharedCohorts.program'])
                 ->orderBy('name');
         }
     ])->findOrFail($chair->department_id);
@@ -951,7 +483,8 @@ public function setFaculty(Request $request)
 
     $importedFaculty = User::whereIn('id', $importedFacultyIds)
         ->where('role', 'faculty')
-        ->with(['department', 'facultySubjects.subjectCatalog.program'])
+        ->active()
+        ->with(['department', 'facultySubjects.subjectCatalog.program', 'facultySubjects.sharedCohorts.program'])
         ->orderBy('name')
         ->get();
 
@@ -981,6 +514,7 @@ public function setFaculty(Request $request)
     });
 
     $availableFaculty = User::where('role', 'faculty')
+        ->active()
         ->whereNotNull('department_id')
         ->where('department_id', '!=', $chair->department_id)
         ->whereNotIn('id', $importedFacultyIds)
@@ -1019,6 +553,7 @@ public function importFaculty(Request $request)
 
     $faculty = User::where('id', $validated['faculty_id'])
         ->where('role', 'faculty')
+        ->active()
         ->whereNotNull('department_id')
         ->where('department_id', '!=', $chair->department_id)
         ->firstOrFail();
@@ -1030,7 +565,7 @@ public function importFaculty(Request $request)
 
     if ($alreadyImported) {
         return redirect()->route('chair.setFaculty')
-            ->with('error', 'This faculty member has already been imported.');
+            ->with('error', 'This instructor has already been imported.');
     }
 
     DB::table('department_faculty_imports')->insert([
@@ -1042,7 +577,7 @@ public function importFaculty(Request $request)
     ]);
 
     return redirect()->route('chair.setFaculty')
-        ->with('success', $faculty->name . ' was added to your imported faculty list.');
+        ->with('success', $faculty->name . ' was added to your imported instructors list.');
 }
 
 public function removeImportedFaculty($facultyId)
@@ -1074,13 +609,13 @@ public function removeImportedFaculty($facultyId)
 
     if (!$deleted) {
         return redirect()->route('chair.setFaculty')
-            ->with('error', 'The imported faculty relationship was not found.');
+            ->with('error', 'The imported instructors relationship was not found.');
     }
 
     return redirect()->route('chair.setFaculty')
         ->with(
             'success',
-            'Imported faculty removed. The faculty account and home department were not changed.'
+            'Imported instructors removed. The instructor account and home college were not changed.'
         );
 }
 
@@ -1101,29 +636,9 @@ public function setschedule(Request $request)
     $chair = Auth::user();
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | GET SELECTED / ACTIVE TERM
-    |--------------------------------------------------------------------------
-    |
-    | When term_id is supplied by the dropdown,
-    | getActiveAcademicTerm() will:
-    |
-    | 1. Find that term
-    | 2. Make it active
-    | 3. Deactivate the previous term
-    | 4. Save it in the session
-    |
-    */
-
-    $termId = $request->query('term_id');
-
-
-    $activeTerm = $this->getActiveAcademicTerm(
-        $termId !== null && $termId !== ''
-            ? (int) $termId
-            : null
-    );
+    // The dropdown submits an explicit activation request. This page always
+    // opens on the globally active term saved in the database.
+    $activeTerm = $this->getActiveAcademicTerm();
 
 
     /*
@@ -1241,7 +756,7 @@ public function setschedule(Request $request)
 
         abort(
             404,
-            'Department not found.'
+            'College not found.'
         );
 
     }
@@ -1255,6 +770,28 @@ public function setschedule(Request $request)
 
     $buildings =
         $department->buildings;
+
+    $availabilityRooms = $buildings
+        ->flatMap(function ($building) use ($department) {
+            return $building->rooms->map(function ($room) use ($building, $department) {
+                return [
+                    'id' => (int) $room->id,
+                    'room_name' => $room->room_name,
+                    'building_name' => $building->name,
+                    'department_name' => $department->name,
+                    'is_current_department' => true,
+                    'allow_other_departments' => (bool) $room->allow_other_departments,
+                    'schedules' => $room->schedules->map(fn ($schedule) => [
+                        'course_code' => $schedule->course_code,
+                        'subject' => $schedule->subject,
+                        'day' => strtoupper(trim((string) $schedule->day)),
+                        'time' => $schedule->time,
+                    ])->values()->all(),
+                ];
+            });
+        })
+        ->values()
+        ->all();
 
 
     /*
@@ -1270,9 +807,59 @@ public function setschedule(Request $request)
             'buildings',
             'activeTerm',
             'availableTerms',
-            'timeSlots'
+            'timeSlots',
+            'availabilityRooms'
         )
     );
+}
+
+public function roomAvailability(Request $request)
+{
+    if (!$this->isChairUser()) {
+        abort(403, 'Unauthorized.');
+    }
+
+    $chair = Auth::user();
+    $activeTerm = $this->getActiveAcademicTerm(
+        $request->query('term_id') ? (int) $request->query('term_id') : null
+    );
+
+    $departments = Department::with([
+        'buildings.rooms' => function ($query) use ($activeTerm) {
+            $query->with(['schedules' => function ($scheduleQuery) use ($activeTerm) {
+                $scheduleQuery
+                    ->where('academic_term_id', $activeTerm->id)
+                    ->orderBy('day')
+                    ->orderBy('time');
+            }]);
+        },
+    ])->orderBy('name')->get();
+
+    $availabilityRooms = $departments
+        ->flatMap(function ($department) use ($chair) {
+            return $department->buildings->flatMap(function ($building) use ($department, $chair) {
+                return $building->rooms->map(function ($room) use ($building, $department, $chair) {
+                    return [
+                        'id' => (int) $room->id,
+                        'room_name' => $room->room_name,
+                        'building_name' => $building->name,
+                        'department_name' => $department->name,
+                        'is_current_department' => (int) $department->id === (int) $chair->department_id,
+                        'allow_other_departments' => (bool) $room->allow_other_departments,
+                        'schedules' => $room->schedules->map(fn ($schedule) => [
+                            'course_code' => $schedule->course_code,
+                            'subject' => $schedule->subject,
+                            'day' => strtoupper(trim((string) $schedule->day)),
+                            'time' => $schedule->time,
+                        ])->values()->all(),
+                    ];
+                });
+            });
+        })
+        ->values()
+        ->all();
+
+    return view('chair.roomavailability', compact('chair', 'activeTerm', 'availabilityRooms'));
 }
 
 public function updateRoomPermission(Request $request, $room)
@@ -1291,7 +878,7 @@ public function updateRoomPermission(Request $request, $room)
     ) {
         return response()->json([
             'success' => false,
-            'message' => 'You can only manage rooms in your department.'
+            'message' => 'You can only manage rooms in your college.'
         ], 403);
     }
 
@@ -1319,10 +906,221 @@ if (!$room->save()) {
 
         'message' =>
             $allowed
-                ? 'Other departments can now add schedules to empty slots.'
-                : 'Other departments can no longer add schedules to empty slots.'
+                ? 'Other colleges can now add schedules to empty slots.'
+                : 'Other colleges can no longer add schedules to empty slots.'
     ]);
 }
+public function checkScheduleFacultyConflict(Request $request)
+{
+    if (!$this->isChairUser()) {
+        abort(403, 'Unauthorized.');
+    }
+
+    $validated = $request->validate([
+        'room_id' => ['required', 'integer', 'exists:rooms,id'],
+        'term_id' => ['required', 'integer', 'exists:academic_terms,id'],
+        'faculty_subject_id' => ['required', 'integer', 'exists:faculty_subjects,id'],
+        'course_code' => ['required', 'string', 'max:50'],
+        'slots' => ['required', 'array', 'min:1', 'max:100'],
+        'slots.*.day' => ['required', 'string', 'in:MON,TUE,WED,THU,FRI,SAT'],
+        'slots.*.time' => ['required', 'string', 'max:64'],
+        'slots.*.schedule_id' => ['nullable', 'integer', 'min:1'],
+        'allow_same_course_conflict' => ['nullable', 'boolean'],
+    ]);
+
+    $allowSameCourseConflict = (bool) ($validated['allow_same_course_conflict'] ?? false);
+
+    $chair = Auth::user();
+    $room = Room::findOrFail($validated['room_id']);
+    if ((int) $room->department_id !== (int) $chair->department_id && !$room->allow_other_departments) {
+        return response()->json([
+            'message' => 'This college does not allow other colleges to add schedules to this room.',
+        ], 403);
+    }
+
+    $facultySubject = FacultySubject::with('faculty')
+        ->whereHas('faculty', fn ($query) => $query->active())
+        ->findOrFail($validated['faculty_subject_id']);
+    if (
+        strtoupper(trim($facultySubject->course_code)) !== strtoupper(trim($validated['course_code']))
+        || !$this->chairCanManageFacultySubject($facultySubject, $chair)
+        || !$facultySubject->faculty
+    ) {
+        return response()->json([
+            'message' => 'This course code is not assigned to a instructor you can schedule.',
+        ], 422);
+    }
+
+    $term = $this->getActiveAcademicTerm((int) $validated['term_id']);
+    $requestedScheduleIds = collect($validated['slots'])
+        ->pluck('schedule_id')
+        ->filter()
+        ->map(fn ($id) => (int) $id)
+        ->unique()
+        ->values();
+
+    // Ignore only records from the current room and term that the selected
+    // cells are replacing. All other rooms remain part of the conflict check.
+    $ignoredScheduleIds = Schedule::whereIn('id', $requestedScheduleIds)
+        ->where('room_id', $room->id)
+        ->where('department_id', $chair->department_id)
+        ->where('academic_term_id', $term->id)
+        ->pluck('id')
+        ->map(fn ($id) => (int) $id)
+        ->all();
+
+    $pendingSlots = [];
+    foreach ($validated['slots'] as $slot) {
+        $day = strtoupper(trim($slot['day']));
+        $time = trim($slot['time']);
+        if (!$this->scheduleTimeRangeToMinutes($time)) {
+            return response()->json([
+                'message' => 'The selected cell has an invalid time range. Refresh the schedule and try again.',
+            ], 422);
+        }
+
+        $conflict = $this->findFacultyScheduleConflictForCourse(
+            (int) $facultySubject->faculty_id,
+            $day,
+            $time,
+            $term->id,
+            $facultySubject->course_code,
+            $ignoredScheduleIds,
+            $allowSameCourseConflict,
+            (int) $room->id
+        );
+
+        if ($conflict) {
+            $sameCourseCode = strtoupper(trim((string) $conflict->course_code))
+                === strtoupper(trim((string) $facultySubject->course_code));
+            if ($allowSameCourseConflict && $sameCourseCode) {
+                $pendingSlots[] = [
+                    'faculty_id' => (int) $facultySubject->faculty_id,
+                    'day' => $day,
+                    'time' => $time,
+                ];
+                continue;
+            }
+
+            $dayName = [
+                'MON' => 'Monday', 'TUE' => 'Tuesday', 'WED' => 'Wednesday',
+                'THU' => 'Thursday', 'FRI' => 'Friday', 'SAT' => 'Saturday',
+            ][$day] ?? $day;
+            $roomName = $conflict->room?->room_name;
+            $canOverrideSameCourse = $sameCourseCode
+                && (int) $conflict->room_id !== (int) $room->id;
+            $conflictMessage = 'This instructor is already assigned on ' . $dayName
+                . ' from ' . $conflict->time
+                . ($roomName ? ' in Room ' . $roomName : ' in another room');
+            $conflictMessage .= $canOverrideSameCourse
+                ? '. The existing course code is ' . $conflict->course_code . '.'
+                : '. Choose a different time or instructor assignment.';
+
+            return response()->json([
+                'conflict' => true,
+                'message' => $conflictMessage,
+                'conflict_schedule' => [
+                    'day' => $dayName,
+                    'time' => $conflict->time,
+                    'room' => $roomName,
+                    'course_code' => $conflict->course_code,
+                    'room_id' => (int) $conflict->room_id,
+                ],
+                'can_override_same_course' => $canOverrideSameCourse,
+            ]);
+        }
+
+        $pendingConflict = $this->findPendingFacultyScheduleConflict(
+            (int) $facultySubject->faculty_id,
+            $day,
+            $time,
+            $pendingSlots
+        );
+
+        if ($pendingConflict) {
+            $dayName = [
+                'MON' => 'Monday', 'TUE' => 'Tuesday', 'WED' => 'Wednesday',
+                'THU' => 'Thursday', 'FRI' => 'Friday', 'SAT' => 'Saturday',
+            ][$day] ?? $day;
+
+            return response()->json([
+                'conflict' => true,
+                'message' => 'This instructor assignment overlaps another selected cell on ' . $dayName
+                    . ' at ' . $time . '. Select non-overlapping cells before confirming.',
+            ]);
+        }
+
+        $pendingSlots[] = [
+            'faculty_id' => (int) $facultySubject->faculty_id,
+            'day' => $day,
+            'time' => $time,
+        ];
+    }
+
+    return response()->json(['conflict' => false]);
+}
+
+public function clearScheduleCells(Request $request)
+{
+    if (!$this->isChairUser()) {
+        abort(403, 'Unauthorized.');
+    }
+
+    $validated = $request->validate([
+        'room_id' => ['required', 'integer', 'exists:rooms,id'],
+        'term_id' => ['required', 'integer', 'exists:academic_terms,id'],
+        'schedule_ids' => ['required', 'array', 'min:1', 'max:100'],
+        'schedule_ids.*' => ['required', 'integer', 'distinct', 'exists:schedules,id'],
+    ]);
+
+    $chair = Auth::user();
+    $room = Room::findOrFail($validated['room_id']);
+    if ((int) $room->department_id !== (int) $chair->department_id && !$room->allow_other_departments) {
+        return response()->json([
+            'message' => 'This college does not allow other colleges to add schedules to this room.',
+        ], 403);
+    }
+
+    $scheduleIds = collect($validated['schedule_ids'])
+        ->map(fn ($id) => (int) $id)
+        ->unique()
+        ->values();
+
+    $schedules = Schedule::whereIn('id', $scheduleIds)
+        ->where('room_id', $room->id)
+        ->where('department_id', $chair->department_id)
+        ->where('academic_term_id', $validated['term_id'])
+        ->get();
+
+    if ($schedules->count() !== $scheduleIds->count()) {
+        return response()->json([
+            'message' => 'One or more selected schedules are no longer editable. Refresh the spreadsheet and try again.',
+        ], 422);
+    }
+
+    DB::transaction(function () use ($schedules) {
+        $studentUpdates = app(\App\Services\StudentScheduleUpdateService::class);
+
+        foreach ($schedules as $schedule) {
+            $studentUpdates->recordForSchedule(
+                $schedule,
+                'schedule_removed',
+                'Class removed from the timetable',
+                trim(($schedule->course_code ?: 'Class') . ' — ' . ($schedule->subject ?: ''))
+                    . ' was removed from ' . $schedule->day . ' ' . $schedule->time . '.'
+            );
+
+            $schedule->forceDelete();
+        }
+    });
+
+    return response()->json([
+        'success' => true,
+        'deleted' => $schedules->count(),
+        'message' => 'Selected schedule entries were deleted.',
+    ]);
+}
+
  public function saveSchedule(Request $request)
 {
     if (!$this->isChairUser()) {
@@ -1366,8 +1164,11 @@ if (!$room->save()) {
         'academic_year' =>
             'nullable|string|max:100',
 
+        'delete_time_rows' =>
+            'nullable|boolean',
+
         'schedule' =>
-            'required|array',
+            'nullable|array',
 
         'time_slots' =>
             'nullable|array',
@@ -1399,6 +1200,9 @@ if (!$room->save()) {
         'schedule.*.time' =>
             'required|string|max:50',
 
+        'schedule.*.base_time' =>
+            'nullable|string|max:50',
+
         'schedule.*.row_position' =>
             'required|integer',
 
@@ -1422,7 +1226,33 @@ if (!$room->save()) {
 
         'schedule.*.subject_type' =>
             'nullable|string|max:50',
+
+        'manual_merges' =>
+            'nullable|array|max:100',
+
+        'manual_merges.*.axis' =>
+            'required|in:horizontal,vertical',
+
+        'manual_merges.*.cells' =>
+            'required|array|min:2|max:100',
+
+        'manual_merges.*.cells.*.day' =>
+            'required|in:MON,WED,FRI,TUE,THU,SAT',
+
+        'manual_merges.*.cells.*.side' =>
+            'required|in:left,right,sat',
+
+        'manual_merges.*.cells.*.time' =>
+            'nullable|string|max:64',
+
+        'manual_merges.*.cells.*.row_position' =>
+            'nullable|integer|min:0',
     ]);
+
+    $manualCellMerges = $this->normalizeManualScheduleCellMerges(
+        $request->input('manual_merges', []),
+        $request->input('room_time_slots', [])
+    );
 
     /*
     |--------------------------------------------------------------------------
@@ -1434,6 +1264,20 @@ if (!$room->save()) {
         Room::findOrFail(
             $request->room_id
         );
+
+    if ((int) $room->department_id !== (int) $chair->department_id && !$room->allow_other_departments) {
+        abort(403, 'This room is view-only until its college allows cross-college scheduling.');
+    }
+
+    $roomScheduleConflict = $this->findSubmittedRoomScheduleConflict(
+        $request->input('schedule', [])
+    );
+
+    if ($roomScheduleConflict) {
+        return back()
+            ->with('error', $roomScheduleConflict['message'])
+            ->withInput();
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -1465,6 +1309,12 @@ if (!$room->save()) {
     |
     */
 
+    $preserveDeletedRows = $request->boolean('delete_time_rows')
+        || RoomScheduleTimeSlot::where('room_id', $room->id)
+            ->where('academic_term_id', $activeTerm->id)
+            ->where('day', 'ROW_DELETE')
+            ->exists();
+
     RoomScheduleTimeSlot::where('room_id', $room->id)
         ->where('academic_term_id', $activeTerm->id)
         ->delete();
@@ -1495,8 +1345,7 @@ if (!$room->save()) {
             continue;
         }
 
-        $startTime = $this->normalizeScheduleClock(trim($parts[0]));
-        $endTime = $this->normalizeScheduleClock(trim($parts[1]));
+        [$startTime, $endTime] = $this->normalizeScheduleRangeClocks(trim($parts[0]), trim($parts[1]));
 
         if (
             $startTime === null ||
@@ -1528,6 +1377,18 @@ if (!$room->save()) {
 
     foreach ($uniqueRoomTimeSlots as $slotData) {
         RoomScheduleTimeSlot::create($slotData);
+    }
+
+    if ($preserveDeletedRows) {
+        RoomScheduleTimeSlot::create([
+            'room_id' => $room->id,
+            'academic_term_id' => $activeTerm->id,
+            'day' => 'ROW_DELETE',
+            'start_time' => '00:00:00',
+            'end_time' => '00:01:00',
+            'row_position' => -1,
+            'is_active' => false,
+        ]);
     }
 
 
@@ -1564,7 +1425,7 @@ if (!$room->save()) {
 
             if (
                 $hour >= 1 &&
-                $hour <= 5
+                $hour <= 6
             ) {
                 $hour += 12;
             }
@@ -1619,6 +1480,16 @@ if (!$room->save()) {
             $timeToMinutes(
                 $slotParts[1] ?? ''
             );
+
+        if ($slotStart !== null && $slotEnd !== null && $slotEnd <= $slotStart) {
+            $slotEndLabel = trim((string) ($slotParts[1] ?? ''));
+            if (!preg_match('/\b(?:AM|PM)\s*$/i', $slotEndLabel)
+                && preg_match('/^(\d{1,2})/', $slotEndLabel, $endHourMatch)
+                && (int) $endHourMatch[1] >= 1
+                && (int) $endHourMatch[1] <= 11) {
+                $slotEnd += 12 * 60;
+            }
+        }
 
         if (
             !$slotDay ||
@@ -1743,7 +1614,7 @@ if (!$room->save()) {
                 $reservationConflict
                     ->user?->name
                     ??
-                    'Faculty';
+                    'Instructor';
 
             return back()
                 ->with(
@@ -1798,6 +1669,13 @@ if (!$room->save()) {
         ->filter()
         ->values();
 
+    $submittedScheduleIds = collect($request->input('schedule', []))
+        ->pluck('schedule_id')
+        ->filter()
+        ->map(fn ($id) => (int) $id)
+        ->values();
+    $studentScheduleEvents = [];
+
     /*
     |--------------------------------------------------------------------------
     | FACULTY SCHEDULE CONFLICT CHECK
@@ -1814,6 +1692,7 @@ if (!$room->save()) {
         $courseCode = strtoupper(trim($data['course_code'] ?? ''));
 
         $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+            ->whereHas('faculty', fn ($query) => $query->active())
             ->find($data['faculty_subject_id'] ?? null);
 
         if ($facultySubject && (
@@ -1829,25 +1708,24 @@ if (!$room->save()) {
 
         $day = strtoupper(trim($data['day'] ?? ''));
         $time = trim($data['time'] ?? '');
-        $ignoreScheduleId = !empty($data['schedule_id'])
-            ? (int) $data['schedule_id']
-            : null;
-
-        $facultyConflict = $this->findFacultyScheduleConflict(
+        $facultyConflict = $this->findFacultyScheduleConflictForCourse(
             (int) $facultySubject->faculty_id,
             $day,
             $time,
             $academicTermId,
-            $ignoreScheduleId
+            $courseCode,
+            $submittedScheduleIds->all(),
+            true,
+            (int) $room->id
         );
 
         if ($facultyConflict) {
             return back()
                 ->with(
                     'error',
-                    'Schedule conflict: this faculty/instructor already has a schedule on '
+                    'Schedule conflict: this instructor/instructor already has a schedule on '
                     . $this->formatScheduleConflictMessage($facultyConflict)
-                    . '. A faculty member cannot have overlapping schedules in different rooms.'
+                    . '. A instructor cannot have overlapping schedules in different rooms.'
                 )
                 ->withInput();
         }
@@ -1864,7 +1742,7 @@ if (!$room->save()) {
             return back()
                 ->with(
                     'error',
-                    'Schedule conflict: this faculty/instructor is assigned to more than one room during the overlapping time '
+                    'Schedule conflict: this instructor/instructor is assigned to more than one room during the overlapping time '
                     . $this->formatScheduleTimeForMessage($day, $time)
                     . '.'
                 )
@@ -1901,8 +1779,14 @@ if (!$room->save()) {
         function (
             $existingSchedule
         ) use (
-            $submittedSlots
+            $submittedSlots,
+            $submittedScheduleIds,
+            &$studentScheduleEvents
         ) {
+
+            if ($submittedScheduleIds->contains((int) $existingSchedule->id)) {
+                return;
+            }
 
             $slotKey =
                 strtoupper(
@@ -1921,7 +1805,11 @@ if (!$room->save()) {
                     $slotKey
                 )
             ) {
-                $existingSchedule->delete();
+                $studentScheduleEvents[] = [
+                    'event' => 'removed',
+                    'schedule' => clone $existingSchedule,
+                ];
+                $existingSchedule->forceDelete();
             }
         }
     );
@@ -1933,7 +1821,7 @@ if (!$room->save()) {
     */
 
     foreach (
-        $request->schedule as $data
+        $request->input('schedule', []) as $data
     ) {
 
         $courseCode =
@@ -1950,6 +1838,7 @@ if (!$room->save()) {
         */
 
         $facultySubject = FacultySubject::with('faculty')
+            ->whereHas('faculty', fn ($query) => $query->active())
             ->find($data['faculty_subject_id'] ?? null);
 
         if ($facultySubject && (
@@ -1966,7 +1855,7 @@ if (!$room->save()) {
                     'error',
                     'Course code "'
                     . $courseCode
-                    . '" is not assigned to any faculty in your department.'
+                    . '" is not assigned to any instructor in your college.'
                 )
                 ->withInput();
         }
@@ -1989,12 +1878,12 @@ if (!$room->save()) {
                 $data['time']
             );
 
-        // Keep the official searchable time-slot table synchronized with
-        // every time row used by the Chair schedule for this academic term.
+        // Keep official search slots aligned with the underlying hourly row;
+        // the schedule's own `time` value may now end or start on a half hour.
         $this->syncScheduleTimeSlot(
             $activeTerm,
             $day,
-            $time,
+            trim($data['base_time'] ?? $time),
             isset($data['row_position'])
                 ? (int) $data['row_position']
                 : null
@@ -2048,6 +1937,10 @@ if (!$room->save()) {
                     (int) $data['row_position']
                 )
                 ->where(
+                    'time',
+                    $time
+                )
+                ->where(
                     'academic_term_id',
                     $academicTermId
                 )
@@ -2069,7 +1962,7 @@ if (!$room->save()) {
             return back()
                 ->with(
                     'error',
-                    'This schedule belongs to another department and cannot be changed.'
+                    'This schedule belongs to another college and cannot be changed.'
                 )
                 ->withInput();
         }
@@ -2146,10 +2039,45 @@ if (!$room->save()) {
         */
 
         if ($existing) {
-
+            $previousSchedule = clone $existing;
+            $previousSharedAudiences = $existing->merges()
+                ->where('share_type', 'same_faculty')
+                ->where('status', 'approved')
+                ->with('subject.program')
+                ->get()
+                ->map(function ($merge) {
+                    $subject = $merge->subject;
+                    return [
+                        'id' => (int) $merge->subject_id,
+                        'department_id' => (int) ($subject?->program?->department_id ?? $merge->department_id),
+                        'program' => trim((string) ($subject?->program?->name ?? '')),
+                        'year_level' => trim((string) ($subject?->year_level ?? '')),
+                    ];
+                });
+            $cohortChanged = (int) $existing->department_id !== (int) $chair->department_id
+                || trim((string) $existing->program) !== trim((string) $scheduleData['program'])
+                || trim((string) $existing->year_level) !== trim((string) $scheduleData['year_level']);
             $existing->update(
                 $scheduleData
             );
+            $this->syncSameFacultyScheduleAudiences($existing, $facultySubject, $chair);
+            $currentSharedIds = $facultySubject->sharedCohorts()->pluck('subjects.id')->map(fn ($id) => (int) $id)->all();
+            $removedSharedAudiences = $previousSharedAudiences
+                ->reject(fn ($audience) => in_array($audience['id'], $currentSharedIds, true))
+                ->all();
+
+            $importantFields = ['room_id', 'faculty_id', 'day', 'time', 'course_code', 'subject', 'program', 'year_level', 'major', 'instructor'];
+            $hasStudentFacingChange = collect($importantFields)->contains(
+                fn ($field) => (string) $previousSchedule->getAttribute($field) !== (string) $existing->getAttribute($field)
+            );
+            if ($hasStudentFacingChange || $previousSharedAudiences->pluck('id')->map(fn ($id) => (int) $id)->sort()->values()->all() !== collect($currentSharedIds)->sort()->values()->all()) {
+                $studentScheduleEvents[] = [
+                    'event' => 'updated',
+                    'previous' => $cohortChanged ? $previousSchedule : null,
+                    'schedule' => $existing->fresh(),
+                    'removed_shared_audiences' => $removedSharedAudiences,
+                ];
+            }
 
             continue;
         }
@@ -2160,7 +2088,7 @@ if (!$room->save()) {
         |--------------------------------------------------------------------------
         */
 
-        Schedule::create(
+        $createdSchedule = Schedule::create(
             array_merge(
                 $scheduleData,
                 [
@@ -2175,7 +2103,80 @@ if (!$room->save()) {
                 ]
             )
         );
+        $this->syncSameFacultyScheduleAudiences($createdSchedule, $facultySubject, $chair);
+        $studentScheduleEvents[] = [
+            'event' => 'created',
+            'schedule' => $createdSchedule,
+        ];
     }
+
+    $studentUpdateService = app(\App\Services\StudentScheduleUpdateService::class);
+    foreach ($studentScheduleEvents as $studentEvent) {
+        $changedSchedule = $studentEvent['schedule'];
+        if ($studentEvent['event'] === 'removed') {
+            $studentUpdateService->recordForSchedule(
+                $changedSchedule,
+                'schedule_removed',
+                'Class removed from the timetable',
+                trim(($changedSchedule->course_code ?: 'Class') . ' — ' . ($changedSchedule->subject ?: ''))
+                    . ' was removed from ' . $changedSchedule->day . ' ' . $changedSchedule->time . '.'
+            );
+            continue;
+        }
+
+        if (!empty($studentEvent['previous'])) {
+            $previous = $studentEvent['previous'];
+            $studentUpdateService->recordForSchedule(
+                $previous,
+                'schedule_updated',
+                'Class schedule changed',
+                trim(($previous->course_code ?: 'Class') . ' — ' . ($previous->subject ?: ''))
+                    . ' has an updated timetable. Check the current class schedule for the latest details.'
+            );
+        }
+
+        $created = $studentEvent['event'] === 'created';
+        $studentUpdateService->recordForSchedule(
+            $changedSchedule,
+            $created ? 'schedule_published' : 'schedule_updated',
+            $created ? 'New class schedule published' : 'Class schedule updated',
+            trim(($changedSchedule->course_code ?: 'Class') . ' — ' . ($changedSchedule->subject ?: ''))
+                . ' is scheduled for ' . $changedSchedule->day . ' ' . $changedSchedule->time
+                . ($studentUpdateService->roomNameFor($changedSchedule) ? ' in ' . $studentUpdateService->roomNameFor($changedSchedule) : '') . '.'
+        );
+        foreach ($studentEvent['removed_shared_audiences'] ?? [] as $audience) {
+            if ($audience['department_id'] === (int) $changedSchedule->department_id
+                && mb_strtolower($audience['program']) === mb_strtolower(trim((string) $changedSchedule->program))
+                && mb_strtolower($audience['year_level']) === mb_strtolower(trim((string) $changedSchedule->year_level))) {
+                continue;
+            }
+            $studentUpdateService->recordForAudience(
+                $changedSchedule,
+                $audience['department_id'],
+                $audience['program'],
+                $audience['year_level'],
+                'schedule_updated',
+                'Shared class audience changed',
+                trim(($changedSchedule->course_code ?: 'Class') . ' — ' . ($changedSchedule->subject ?: ''))
+                    . ' is no longer shared with your program for ' . $changedSchedule->day . ' ' . $changedSchedule->time . '.'
+            );
+        }
+    }
+
+    DB::transaction(function () use ($room, $academicTermId, $manualCellMerges) {
+        ScheduleCellMerge::where('room_id', $room->id)
+            ->where('academic_term_id', $academicTermId)
+            ->delete();
+
+        foreach ($manualCellMerges as $merge) {
+            ScheduleCellMerge::create([
+                'room_id' => $room->id,
+                'academic_term_id' => $academicTermId,
+                'axis' => $merge['axis'],
+                'cells' => $merge['cells'],
+            ]);
+        }
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -2184,23 +2185,281 @@ if (!$room->save()) {
     */
 
     return redirect()
-        ->route(
-            'chair.setschedule',
-            [
-                'term_id' =>
-                    $activeTerm->id,
-            ]
-        )
+        ->route('chair.excel', array_filter([
+            'room' => $room->id,
+            'term_id' => $activeTerm->id,
+            'mode' => $request->input('editor_mode') === 'cross' ? 'cross' : null,
+        ]))
         ->with(
             'success',
             'Schedule uploaded successfully.'
         );
 }
+
+private function syncSameFacultyScheduleAudiences(Schedule $schedule, FacultySubject $facultySubject, User $chair): void
+{
+    $cohorts = $facultySubject->sharedCohorts()->with('program')->get();
+    $legacyCohorts = FacultySubject::with('subjectCatalog.program')
+        ->where('faculty_id', $facultySubject->faculty_id)
+        ->whereRaw('UPPER(course_code) = ?', [strtoupper(trim((string) $facultySubject->course_code))])
+        ->where('id', '!=', $facultySubject->id)
+        ->get()
+        ->filter(function (FacultySubject $assignment) use ($chair, $facultySubject) {
+            return $assignment->subjectCatalog
+                && (int) $assignment->subjectCatalog->program?->department_id === (int) $chair->department_id
+                && mb_strtolower(trim((string) $assignment->subject)) === mb_strtolower(trim((string) $facultySubject->subject));
+        })
+        ->map(fn (FacultySubject $assignment) => $assignment->subjectCatalog);
+    $cohorts = $cohorts->concat($legacyCohorts)->unique('id')->values();
+    $cohortIds = $cohorts->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+    $existing = $schedule->merges()
+        ->where('share_type', 'same_faculty')
+        ->get();
+
+    foreach ($existing as $merge) {
+        if (!in_array((int) $merge->subject_id, $cohortIds, true)) {
+            $merge->delete();
+        }
+    }
+
+    foreach ($cohorts as $cohort) {
+        if ((int) $cohort->id === (int) $facultySubject->subject_id) continue;
+
+        $merge = $schedule->merges()
+            ->where('share_type', 'same_faculty')
+            ->where('subject_id', $cohort->id)
+            ->first();
+
+        if ($merge) {
+            if ($merge->status !== 'approved') {
+                $merge->update([
+                    'status' => 'approved',
+                    'approved_by' => $chair->id,
+                    'approved_at' => now(),
+                ]);
+            }
+            continue;
+        }
+
+        ScheduleMerge::create([
+            'schedule_id' => $schedule->id,
+            'department_id' => $cohort->program?->department_id ?? $chair->department_id,
+            'requested_by' => $chair->id,
+            'faculty_subject_id' => $facultySubject->id,
+            'subject_id' => $cohort->id,
+            'status' => 'approved',
+            'share_type' => 'same_faculty',
+            'approved_by' => $chair->id,
+            'approved_at' => now(),
+        ]);
+    }
+}
+
+private function publishFacultySubjectCohortChanges(FacultySubject $facultySubject, User $chair): void
+{
+    $activeTermId = AcademicTerm::where('is_active', true)->value('id');
+    if (!$activeTermId) return;
+
+    $schedules = Schedule::where('faculty_subject_id', $facultySubject->id)
+        ->where('academic_term_id', $activeTermId)
+        ->get();
+    $updates = app(\App\Services\StudentScheduleUpdateService::class);
+
+    foreach ($schedules as $schedule) {
+        $this->syncSameFacultyScheduleAudiences($schedule, $facultySubject, $chair);
+        $schedule->refresh();
+        $updates->recordForSchedule(
+            $schedule,
+            'schedule_updated',
+            'Class schedule now serves additional groups',
+            trim(($schedule->course_code ?: 'Class') . ' — ' . ($schedule->subject ?: ''))
+                . ' is also available to additional program or major groups for ' . $schedule->day . ' ' . $schedule->time . '.'
+        );
+    }
+}
+
+private function normalizeManualScheduleCellMerges(array $merges, array $roomTimeSlots = []): array
+{
+    $normalized = [];
+    $occupiedCells = [];
+    $roomRowsByDayAndTime = [];
+    foreach ($roomTimeSlots as $slot) {
+        $slotDay = strtoupper(trim((string) ($slot['day'] ?? '')));
+        $slotTime = trim((string) ($slot['time'] ?? ''));
+        $slotPosition = $slot['row_position'] ?? null;
+        if ($slotDay === '' || $slotTime === '' || !is_numeric($slotPosition)) {
+            continue;
+        }
+
+        $slotParts = preg_split('/\s*[-–—]\s*/u', $slotTime, 2);
+        if (count($slotParts) !== 2) {
+            continue;
+        }
+        [$slotStart, $slotEnd] = $this->normalizeScheduleRangeClocks(trim($slotParts[0]), trim($slotParts[1]));
+        if ($slotStart === null || $slotEnd === null || $slotEnd <= $slotStart) {
+            continue;
+        }
+
+        $timeKey = $slotStart . '|' . $slotEnd;
+        $roomRowsByDayAndTime[$slotDay][$timeKey] = (int) $slotPosition;
+    }
+
+    $dayColumns = [
+        'left' => ['MON', 'WED', 'FRI'],
+        'right' => ['TUE', 'THU'],
+        'sat' => ['SAT'],
+    ];
+
+    foreach ($merges as $merge) {
+        $axis = $merge['axis'] ?? null;
+        $cells = collect($merge['cells'] ?? [])
+            ->map(fn ($cell) => [
+                'day' => strtoupper(trim((string) ($cell['day'] ?? ''))),
+                'side' => strtolower(trim((string) ($cell['side'] ?? ''))),
+                'time' => trim((string) ($cell['time'] ?? '')),
+                'row_position' => isset($cell['row_position']) && is_numeric($cell['row_position'])
+                    ? (int) $cell['row_position']
+                    : null,
+            ])
+            ->values()
+            ->all();
+
+        if (!in_array($axis, ['horizontal', 'vertical'], true) || count($cells) < 2) {
+            throw ValidationException::withMessages([
+                'manual_merges' => 'One of the saved cell merges is incomplete. Please merge the cells again and publish.',
+            ]);
+        }
+
+        // The timetable column is determined by the day. Normalize it here
+        // so a stale or blank DOM side value cannot invalidate an otherwise
+        // valid merge coordinate.
+        foreach ($cells as $cellIndex => $cell) {
+            foreach ($dayColumns as $side => $days) {
+                if (in_array($cell['day'], $days, true)) {
+                    $cells[$cellIndex]['side'] = $side;
+                    break;
+                }
+            }
+        }
+
+        $keys = [];
+        foreach ($cells as $cellIndex => $cell) {
+            if (($cell['row_position'] === null || $cell['row_position'] < 0) && $cell['time'] !== '') {
+                $timeParts = preg_split('/\s*[-–—]\s*/u', $cell['time'], 2);
+                if (count($timeParts) === 2) {
+                    [$start, $end] = $this->normalizeScheduleRangeClocks(trim($timeParts[0]), trim($timeParts[1]));
+                    $timeKey = $start && $end ? $start . '|' . $end : null;
+                    $matchedPosition = $timeKey === null
+                        ? null
+                        : ($roomRowsByDayAndTime[$cell['day']][$timeKey] ?? null);
+                    if ($matchedPosition !== null) {
+                        $cell['row_position'] = $matchedPosition;
+                        $cells[$cellIndex]['row_position'] = $matchedPosition;
+                    }
+                }
+            }
+
+            if ($cell['row_position'] === null || $cell['row_position'] < 0) {
+                $knownIndex = null;
+                $knownPosition = null;
+                foreach ($cells as $siblingIndex => $sibling) {
+                    if ($sibling['row_position'] !== null && $sibling['row_position'] >= 0) {
+                        $knownIndex = $siblingIndex;
+                        $knownPosition = $sibling['row_position'];
+                        break;
+                    }
+                }
+
+                if ($knownIndex !== null && $knownPosition !== null) {
+                    $inferredPosition = $axis === 'horizontal'
+                        ? $knownPosition
+                        : $knownPosition + ($cellIndex - $knownIndex);
+                    if ($inferredPosition >= 0) {
+                        $cell['row_position'] = $inferredPosition;
+                        $cells[$cellIndex]['row_position'] = $inferredPosition;
+                    }
+                }
+            }
+
+            $validDaySide = in_array($cell['day'], $dayColumns[$cell['side']] ?? [], true);
+            if (!$validDaySide || $cell['row_position'] === null || $cell['row_position'] < 0) {
+                throw ValidationException::withMessages([
+                    'manual_merges' => 'A merged cell could not be matched to its time row. Please merge the cells again and publish.',
+                ]);
+            }
+
+            $key = implode('|', [$cell['day'], $cell['side'], $cell['row_position']]);
+            if (isset($occupiedCells[$key]) || in_array($key, $keys, true)) {
+                throw ValidationException::withMessages([
+                    'manual_merges' => 'Two saved merges overlap. Please correct the merged cells and publish again.',
+                ]);
+            }
+
+            $keys[] = $key;
+        }
+
+        if ($axis === 'horizontal') {
+            $sides = array_unique(array_column($cells, 'side'));
+            $rows = array_unique(array_column($cells, 'row_position'));
+            $side = $cells[0]['side'];
+            $columnPositions = collect($cells)
+                ->map(fn ($cell) => array_search($cell['day'], $dayColumns[$side] ?? [], true))
+                ->sort()
+                ->values()
+                ->all();
+
+            if (
+                count($sides) !== 1
+                || count($rows) !== 1
+                || in_array(false, $columnPositions, true)
+                || collect($columnPositions)->unique()->count() !== count($cells)
+                || collect($columnPositions)->last() - collect($columnPositions)->first() + 1 !== count($cells)
+            ) {
+                throw ValidationException::withMessages([
+                    'manual_merges' => 'A horizontal merge must contain adjacent cells in one timetable row.',
+                ]);
+            }
+        } else {
+            $days = array_unique(array_column($cells, 'day'));
+            $sides = array_unique(array_column($cells, 'side'));
+            $rowPositions = collect($cells)
+                ->pluck('row_position')
+                ->unique()
+                ->sort()
+                ->values();
+
+            if (
+                count($days) !== 1
+                || count($sides) !== 1
+                || $rowPositions->count() !== count($cells)
+                || $rowPositions->last() - $rowPositions->first() + 1 !== count($cells)
+            ) {
+                throw ValidationException::withMessages([
+                    'manual_merges' => 'A vertical merge must contain adjacent cells in one timetable column.',
+                ]);
+            }
+        }
+
+        foreach ($keys as $key) {
+            $occupiedCells[$key] = true;
+        }
+
+        $normalized[] = [
+            'axis' => $axis,
+            'cells' => $cells,
+        ];
+    }
+
+    return $normalized;
+}
+
 public function viewSchedule(Room $room)
 {
     $this->expireReservations();
+    RoomSwapRequest::expireElapsedTemporarySwaps();
 
-    $activeTerm = $this->resolveAcademicTerm(request());
+    $activeTerm = $this->resolveAcademicTerm();
 
     $room->load([
         'department',
@@ -2429,28 +2688,37 @@ $schedules = $schedules
 
     $merges = ScheduleMerge::with([
         'department',
-        'facultySubject',
+        'subject.program.department',
+        'facultySubject.subjectCatalog.program.department',
     ])
         ->whereIn('schedule_id', $schedules->pluck('id'))
         ->where('status', 'approved')
         ->get();
 
     $mergedPrograms = [];
+    $mergedCourses = [];
 
     foreach ($merges as $merge) {
-        if (!$merge->facultySubject) {
-            continue;
+        $subject = $merge->subject ?? $merge->facultySubject?->subjectCatalog;
+        $program = $subject?->program?->code
+            ?? $merge->facultySubject?->subjectCatalog?->program?->code
+            ?? $merge->facultySubject?->program;
+        if ($program) {
+            $mergedPrograms[$merge->schedule_id] ??= [];
+            if (!in_array($program, $mergedPrograms[$merge->schedule_id], true)) {
+                $mergedPrograms[$merge->schedule_id][] = $program;
+            }
         }
 
-        $program = trim((string) $merge->facultySubject->program);
-        if ($program === '') {
-            continue;
-        }
-
-        $mergedPrograms[$merge->schedule_id] ??= [];
-
-        if (!in_array($program, $mergedPrograms[$merge->schedule_id], true)) {
-            $mergedPrograms[$merge->schedule_id][] = $program;
+        if ($subject) {
+            $mergedCourses[$merge->schedule_id] ??= [];
+            $mergedCourses[$merge->schedule_id][] = [
+                'course_code' => $subject->course_code ?? $merge->facultySubject?->course_code,
+                'course_title' => $subject->course_title ?? $merge->facultySubject?->subject,
+                'program' => $program,
+                'major' => $subject->program?->major ?? $merge->facultySubject?->major,
+                'share_type' => $merge->share_type ?? 'merge',
+            ];
         }
     }
 
@@ -2459,10 +2727,13 @@ $schedules = $schedules
         'targetRoom',
     ])
         ->where('status', 'approved')
+        ->where('swap_type', 'temporary')
         ->where(function ($query) use ($schedules) {
             $query->whereIn('requester_schedule_id', $schedules->pluck('id'))
                 ->orWhereIn('target_schedule_id', $schedules->pluck('id'));
         })
+        ->whereHas('requesterSchedule', fn ($query) => $query->where('academic_term_id', $activeTerm->id))
+        ->whereHas('targetSchedule', fn ($query) => $query->where('academic_term_id', $activeTerm->id))
         ->get()
         ->filter(function ($swap) {
             try {
@@ -2489,6 +2760,7 @@ $schedules = $schedules
 
     foreach ($activeRoomSwaps as $swap) {
         $swapData = [
+            'swap_type' => 'temporary',
             'active' => true,
             'swap_id' => $swap->id,
             'swap_date' => $swap->swap_date
@@ -2527,8 +2799,10 @@ $schedules = $schedules
     $temporaryReservations = Reservation::with([
         'user',
         'facultySubject',
+        'subject.program',
     ])
         ->where('room_id', $room->id)
+        ->where('academic_term_id', $activeTerm->id)
         ->where('status', 'Reserved')
         ->whereDate('date', Carbon::today()->format('Y-m-d'))
         ->get()
@@ -2551,13 +2825,27 @@ $schedules = $schedules
         })
         ->values();
 
-    $scheduleData = $schedules->map(function ($schedule) use ($mergedPrograms, $roomSwapsBySchedule) {
+    $schedules->loadMissing('facultySubject.subjectCatalog.program');
+    $programCodesByName = Program::query()
+        ->whereIn('name', $schedules->pluck('program')->filter()->unique()->values())
+        ->pluck('code', 'name')
+        ->all();
+    $programCodeForSchedule = static function ($schedule) use ($programCodesByName) {
+        $code = trim((string) ($schedule->facultySubject?->subjectCatalog?->program?->code ?? ''));
+        if ($code !== '') return $code;
+        $label = trim((string) ($schedule->program ?? ''));
+        if (preg_match('/\(([^()]*)\)\s*$/u', $label, $matches) === 1) return trim($matches[1]);
+        return trim((string) ($programCodesByName[$label] ?? $label));
+    };
+
+    $scheduleData = $schedules->map(function ($schedule) use ($mergedPrograms, $mergedCourses, $roomSwapsBySchedule, $programCodeForSchedule) {
         return [
             'id' => $schedule->id,
             'course_code' => $schedule->course_code,
             'subject' => $schedule->subject,
             'subject_type' => $schedule->subject_type,
             'program' => $schedule->program,
+            'program_code' => $programCodeForSchedule($schedule),
             'major' => $schedule->major,
             'day' => strtoupper(trim((string) $schedule->day)),
             'time' => trim((string) $schedule->time),
@@ -2567,6 +2855,7 @@ $schedules = $schedules
             'instructor' => $schedule->instructor,
             'color' => $schedule->color ?? '#ffffff',
             'merged_programs' => $mergedPrograms[$schedule->id] ?? [],
+            'merged_courses' => $mergedCourses[$schedule->id] ?? [],
             'room_swap' => $roomSwapsBySchedule[$schedule->id] ?? null,
         ];
     })->values();
@@ -2587,9 +2876,9 @@ $schedules = $schedules
                 ? Carbon::parse($reservation->end_time)->format('H:i')
                 : null,
             'purpose' => $reservation->purpose ?? 'Room Reservation',
-            'user_name' => $reservation->user?->name ?? 'Faculty',
-            'course_code' => $reservation->facultySubject?->course_code,
-            'subject' => $reservation->facultySubject?->subject,
+            'user_name' => $reservation->user?->name ?? 'Instructor',
+            'course_code' => $reservation->subject?->course_code ?? $reservation->facultySubject?->course_code,
+            'subject' => $reservation->subject?->course_title ?? $reservation->facultySubject?->subject,
         ];
     })->values();
 
@@ -2608,7 +2897,7 @@ $schedules = $schedules
                 'id' => $room->id,
                 'room_name' => $room->room_name,
                 'building' => $buildingName,
-                'department' => $room->department?->name ?? 'Department',
+                'department' => $room->department?->name ?? 'College',
             ],
             'schedules' => $scheduleData,
             'reservations' => $reservationData,
@@ -2671,7 +2960,7 @@ public function facultySchedules(Request $request)
 
             return [
                 'id' => $departmentId,
-                'name' => $department?->name ?? 'Department',
+                'name' => $department?->name ?? 'College',
                 'rooms' => $departmentRooms,
                 'buildings' => $buildings,
             ];
@@ -2694,9 +2983,19 @@ public function deleteSchedule(Room $room)
 
     $activeTerm = $this->resolveAcademicTerm(request());
 
-    Schedule::where('room_id', $room->id)
+    $roomSchedules = Schedule::where('room_id', $room->id)
         ->where('academic_term_id', $activeTerm->id)
-        ->delete();
+        ->get();
+    foreach ($roomSchedules as $schedule) {
+        app(\App\Services\StudentScheduleUpdateService::class)->recordForSchedule(
+            $schedule,
+            'schedule_removed',
+            'Class removed from the timetable',
+            trim(($schedule->course_code ?: 'Class') . ' — ' . ($schedule->subject ?: ''))
+                . ' was removed from ' . $schedule->day . ' ' . $schedule->time . '.'
+        );
+        $schedule->delete();
+    }
 
     return redirect()
         ->route('chair.setschedule')
@@ -2751,7 +3050,7 @@ public function reserveRoom(Request $request, Room $room)
     if (!$facultySubject) {
         return back()->with(
             'error',
-            'The selected subject is not assigned to your faculty account.'
+            'The selected subject is not assigned to your instructor account.'
         );
     }
 
@@ -2974,10 +3273,11 @@ public function reserveRoom(Request $request, Room $room)
     |--------------------------------------------------------------------------
     */
 
-    Reservation::create([
+    $createdReservation = Reservation::create([
         'room_id' => $room->id,
         'user_id' => $faculty->id,
         'schedule_id' => $scheduleId,
+        'academic_term_id' => $activeTerm->id,
         'faculty_subject_id' => $facultySubject->id,
         'date' => $date->format('Y-m-d'),
         'day' => $day,
@@ -2987,6 +3287,46 @@ public function reserveRoom(Request $request, Room $room)
         'purpose' => $room->purpose ?? 'Room Reservation',
         'status' => 'Reserved',
     ]);
+
+    $startClock = Carbon::parse($startTime)->format('H:i');
+    $endClock = Carbon::parse($endTime)->format('H:i');
+    $studentUpdates = app(\App\Services\StudentScheduleUpdateService::class);
+    $reservationSchedules = Schedule::with('room')
+        ->where('academic_term_id', $activeTerm->id)
+        ->when($scheduleId, fn ($query) => $query->whereKey($scheduleId))
+        ->where('faculty_subject_id', $facultySubject->id)
+        ->where('faculty_id', $faculty->id)
+        ->get()
+        ->filter(fn (Schedule $scheduledClass) => $studentUpdates->overlapsScheduledMeeting(
+            $scheduledClass,
+            $date->format('Y-m-d'),
+            $startClock,
+            $endClock
+        ));
+
+    foreach ($reservationSchedules as $scheduledClass) {
+        $studentUpdates->recordForSchedule(
+            $scheduledClass,
+            'dated_room_reservation',
+            'One-day room assignment',
+            trim(($scheduledClass->course_code ?: 'Class') . ' — ' . ($scheduledClass->subject ?: ''))
+                . ' has a room reservation in ' . ($room->room_name ?: 'another room')
+                . ' on ' . $date->format('F j, Y') . ' from ' . $startClock . ' to ' . $endClock . '.',
+            [
+                'room_change' => [
+                    'type' => 'reservation',
+                    'date' => $date->format('Y-m-d'),
+                    'start_time' => $startClock,
+                    'end_time' => $endClock,
+                    'scheduled_room' => $studentUpdates->roomNameFor($scheduledClass),
+                    'new_room' => $room->room_name,
+                    'reservation_id' => (int) $createdReservation->id,
+                ],
+            ],
+            Carbon::parse($date->format('Y-m-d') . ' ' . $startClock),
+            Carbon::parse($date->format('Y-m-d') . ' ' . $endClock)
+        );
+    }
 
     return redirect()
         ->route('faculty.vacant', [
@@ -3423,6 +3763,7 @@ public function facultySubjects($faculty)
 
 $faculty = User::where('id', $faculty)
     ->where('role', 'faculty')
+    ->active()
     ->where(function ($query) use ($chair) {
         $query->where('department_id', $chair->department_id)
             ->orWhereExists(function ($importQuery) use ($chair) {
@@ -3478,10 +3819,13 @@ public function storeFacultySubject(Request $request)
         'faculty_id' => 'required|exists:users,id',
         'subject_id' => 'required|integer|exists:subjects,id',
         'course_code' => 'required|string|max:50',
+        'cohort_subject_ids' => 'nullable|array|max:40',
+        'cohort_subject_ids.*' => 'integer|distinct|exists:subjects,id',
     ]);
 
    $faculty = User::where('id', $request->faculty_id)
     ->where('role', 'faculty')
+    ->active()
     ->where(function ($query) use ($chair) {
         $query->where('department_id', $chair->department_id)
             ->orWhereExists(function ($importQuery) use ($chair) {
@@ -3508,17 +3852,66 @@ public function storeFacultySubject(Request $request)
         return back()->withInput()->with('error', 'The course code changed. Enter it again and select the matching subject.');
     }
 
-    $exists = FacultySubject::where('faculty_id', $faculty->id)
-        ->where('subject_id', $subjectEntry->id)
-        ->exists();
-
-    if ($exists) {
-        return redirect()
-            ->route('chair.setFaculty', ['faculty' => $faculty->id])
-            ->with('error', 'This course code is already assigned to this faculty member.');
+    $selectedCohortIds = collect($request->input('cohort_subject_ids', []))
+        ->map(fn ($id) => (int) $id)
+        ->push((int) $subjectEntry->id)
+        ->unique()
+        ->values();
+    $cohortSubjects = Subject::with('program')
+        ->whereIn('id', $selectedCohortIds)
+        ->get();
+    $invalidCohort = $cohortSubjects->count() !== $selectedCohortIds->count()
+        || $cohortSubjects->contains(function (Subject $subject) use ($chair, $subjectEntry) {
+            return (int) $subject->program?->department_id !== (int) $chair->department_id
+                || strtoupper(trim((string) $subject->course_code)) !== strtoupper(trim((string) $subjectEntry->course_code))
+                || mb_strtolower(trim((string) $subject->course_title)) !== mb_strtolower(trim((string) $subjectEntry->course_title));
+        });
+    if ($invalidCohort) {
+        return back()->withInput()->with('error', 'Choose only entries with the same course code and title from your department.');
     }
 
-    FacultySubject::create([
+    $existingAssignment = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+        ->where('faculty_id', $faculty->id)
+        ->whereRaw('UPPER(course_code) = ?', [$courseCode])
+        ->get()
+        ->first(fn (FacultySubject $assignment) => $this->chairCanManageFacultySubject($assignment, $chair));
+
+    // Fold any older per-major assignments for this same faculty/course into
+    // the selected assignment's saved cohort list without deleting their rows.
+    $legacyCohortIds = FacultySubject::with('subjectCatalog.program')
+        ->where('faculty_id', $faculty->id)
+        ->whereRaw('UPPER(course_code) = ?', [$courseCode])
+        ->get()
+        ->filter(function (FacultySubject $assignment) use ($chair, $subjectEntry) {
+            return $assignment->subjectCatalog
+                && (int) $assignment->subjectCatalog->program?->department_id === (int) $chair->department_id
+                && mb_strtolower(trim((string) $assignment->subject)) === mb_strtolower(trim((string) $subjectEntry->course_title));
+        })
+        ->pluck('subject_id')
+        ->filter()
+        ->map(fn ($id) => (int) $id);
+    $selectedCohortIds = $selectedCohortIds->merge($legacyCohortIds)->unique()->values();
+
+    if ($existingAssignment) {
+        if (mb_strtolower(trim((string) $existingAssignment->subject)) !== mb_strtolower(trim((string) $subjectEntry->course_title))) {
+            return redirect()
+                ->route('chair.setFaculty', ['faculty' => $faculty->id])
+                ->withFragment('faculty-add-subject')
+                ->with('error', 'This instructor already has this course code with a different title. Use Merge Class for equivalent courses with different titles.');
+        }
+
+        $existingAssignment->sharedCohorts()->syncWithoutDetaching(
+            $selectedCohortIds->reject(fn ($id) => (int) $id === (int) $existingAssignment->subject_id)->all()
+        );
+        $this->publishFacultySubjectCohortChanges($existingAssignment, $chair);
+
+        return redirect()
+            ->route('chair.setFaculty', ['faculty' => $faculty->id])
+            ->withFragment('faculty-add-subject')
+            ->with('success', 'The selected program and major groups were added to the existing instructor course assignment.');
+    }
+
+    $facultySubject = FacultySubject::create([
         'faculty_id' => $faculty->id,
         'subject_id' => $subjectEntry->id,
         'course_code' => $courseCode,
@@ -3529,8 +3922,13 @@ public function storeFacultySubject(Request $request)
         'subject_type' => Subject::typeFromCourseCode($subjectEntry->course_code),
     ]);
 
+    $facultySubject->sharedCohorts()->sync(
+        $selectedCohortIds->reject(fn ($id) => (int) $id === (int) $subjectEntry->id)->all()
+    );
+
     return redirect()
         ->route('chair.setFaculty', ['faculty' => $faculty->id])
+        ->withFragment('faculty-add-subject')
         ->with('success', 'Subject assigned successfully.');
 }
 
@@ -3550,9 +3948,11 @@ public function updateFacultySubject(Request $request, $id)
         'program' => 'nullable|string|max:100',
     ]);
 
-    $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])->findOrFail($id);
+    $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+        ->whereHas('faculty', fn ($query) => $query->active())
+        ->findOrFail($id);
     if (!$this->chairCanManageFacultySubject($facultySubject, $chair)) {
-        abort(403, 'You cannot edit this original department subject.');
+        abort(403, 'You cannot edit this original college subject.');
     }
 
     // Get the faculty member using the existing subject assignment.
@@ -3613,7 +4013,7 @@ public function updateFacultySubject(Request $request, $id)
     if ($duplicate) {
         return redirect()
             ->route('chair.setFaculty', ['faculty' => $faculty->id])
-            ->with('error', 'This course code is already assigned to this faculty member.');
+            ->with('error', 'This course code is already assigned to this instructor.');
     }
 
     $facultySubject->update([
@@ -3639,9 +4039,11 @@ public function deleteFacultySubject($id)
 
     $chair = Auth::user();
 
-    $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])->findOrFail($id);
+    $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+        ->whereHas('faculty', fn ($query) => $query->active())
+        ->findOrFail($id);
     if (!$this->chairCanManageFacultySubject($facultySubject, $chair)) {
-        abort(403, 'You cannot remove this original department subject.');
+        abort(403, 'You cannot remove this original college subject.');
     }
 
     $faculty = User::where('id', $facultySubject->faculty_id)
@@ -3668,409 +4070,6 @@ public function deleteFacultySubject($id)
     return redirect()
         ->route('chair.setFaculty', ['faculty' => $faculty->id])
         ->with('success', 'Subject removed successfully.');
-}
-
-public function editDraft($roomId)
-{
-    if (!Auth::check() || Auth::user()->role !== 'chair') {
-        abort(403, 'Unauthorized.');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | CURRENT CHAIR
-    |--------------------------------------------------------------------------
-    */
-
-    $chair = Auth::user();
-    $activeTerm = $this->resolveAcademicTerm(request());
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | GET ROOM
-    |--------------------------------------------------------------------------
-    */
-
-    $room = Room::with([
-        'department',
-        'building'
-    ])->findOrFail($roomId);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | GET CURRENT CHAIR'S DRAFT FOR THIS ROOM
-    |--------------------------------------------------------------------------
-    */
-
-    $drafts = $this->termDraftQuery(
-        ScheduleDraft::where('room_id', $room->id)
-            ->where('created_by', $chair->id),
-        $activeTerm
-    )->orderBy('id')->get();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | NO DRAFT FOUND
-    |--------------------------------------------------------------------------
-    */
-
-    if ($drafts->isEmpty()) {
-
-        return redirect()
-            ->route('chair.drafts')
-            ->with(
-                'error',
-                'No draft was found for this room.'
-            );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | GET SEMESTER / ACADEMIC YEAR FROM DRAFT
-    |--------------------------------------------------------------------------
-    |
-    | All entries in the same draft should normally have the
-    | same semester and academic year.
-    |
-    */
-
-    $semester =
-        $drafts->first()->semester ?? '';
-
-    $academicYear =
-        $drafts->first()->academic_year ?? '';
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | GET FACULTY SUBJECTS
-    |--------------------------------------------------------------------------
-    |
-    | Only subjects assigned to faculty belonging to the
-    | logged-in Chair's department.
-    |
-    */
-
-    $facultySubjects =
-        FacultySubject::with([
-            'faculty.department',
-            'subjectCatalog.program',
-        ])
-        ->orderBy(
-            'course_code'
-        )
-        ->get()
-        ->filter(fn ($subject) => $this->chairCanManageFacultySubject($subject, $chair))
-        ->values();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | DRAFT EDIT MODE
-    |--------------------------------------------------------------------------
-    */
-
-    $isEditingDraft = true;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | OPEN EXCEL EDITOR
-    |--------------------------------------------------------------------------
-    */
-
-    return view(
-        'chair.excel',
-        compact(
-            'room',
-            'facultySubjects',
-            'drafts',
-            'semester',
-            'academicYear',
-            'isEditingDraft',
-            'activeTerm'
-        )
-    );
-}
-
-public function publishDraft(Request $request, $roomId)
-{
-    if (!Auth::check() || Auth::user()->role !== 'chair') {
-        abort(403, 'Unauthorized.');
-    }
-
-    $chair = Auth::user();
-    $activeTerm = $this->resolveAcademicTerm($request);
-
-    /*
-    |--------------------------------------------------------------------------
-    | GET ROOM
-    |--------------------------------------------------------------------------
-    */
-
-    $room = Room::findOrFail($roomId);
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | GET CURRENT CHAIR'S DRAFT
-    |--------------------------------------------------------------------------
-    */
-
-    $drafts = $this->termDraftQuery(
-        ScheduleDraft::where('room_id', $room->id)
-            ->where('created_by', $chair->id),
-        $activeTerm
-    )->orderBy('id')->get();
-
-    if ($drafts->isEmpty()) {
-        return redirect()
-            ->route('chair.drafts')
-            ->with(
-                'error',
-                'No draft was found for this room.'
-            );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CHECK OVERRIDE
-    |--------------------------------------------------------------------------
-    */
-
-    $override =
-        $request->boolean('override');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CHECK WHETHER ROOM ALREADY HAS A PUBLISHED SCHEDULE
-    |--------------------------------------------------------------------------
-    */
-
-    $existingSchedules =
-        Schedule::where('room_id', $room->id)
-            ->where('academic_term_id', $activeTerm->id)
-            ->get();
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | ROOM ALREADY HAS A SCHEDULE
-    |--------------------------------------------------------------------------
-    |
-    | Do not replace anything unless the user explicitly
-    | confirmed Override & Publish.
-    |
-    */
-
-    if (
-        $existingSchedules->isNotEmpty()
-        && !$override
-    ) {
-
-        return redirect()
-            ->route(
-                'chair.drafts.edit',
-                $room->id
-            )
-            ->with(
-                'schedule_conflict',
-                true
-            );
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | FACULTY CONFLICT CHECK BEFORE PUBLISH
-    |--------------------------------------------------------------------------
-    |
-    | Publishing a draft must obey the same faculty conflict rule as
-    | direct scheduling. Existing schedules in this same room are ignored
-    | because they will be replaced during publish. Schedules in other
-    | rooms remain blocking conflicts.
-    |
-    */
-    $ignoredScheduleIds = $existingSchedules->pluck('id')->all();
-    $pendingFacultySchedules = [];
-
-    foreach ($drafts as $draft) {
-        $facultyConflict = $this->findFacultyScheduleConflict(
-            (int) $draft->faculty_id,
-            strtoupper(trim((string) $draft->day)),
-            trim((string) $draft->time),
-            $activeTerm->id,
-            $ignoredScheduleIds
-        );
-
-        if ($facultyConflict) {
-            return redirect()
-                ->route('chair.drafts.edit', $room->id)
-                ->with(
-                    'error',
-                    'Cannot publish this draft. The faculty/instructor already has a schedule on '
-                    . $this->formatScheduleConflictMessage($facultyConflict)
-                    . '. A faculty member cannot have overlapping schedules in different rooms.'
-                );
-        }
-
-        $pendingConflict = $this->findPendingFacultyScheduleConflict(
-            (int) $draft->faculty_id,
-            strtoupper(trim((string) $draft->day)),
-            trim((string) $draft->time),
-            $pendingFacultySchedules
-        );
-
-        if ($pendingConflict) {
-            return redirect()
-                ->route('chair.drafts.edit', $room->id)
-                ->with(
-                    'error',
-                    'Cannot publish this draft. The same faculty/instructor has overlapping schedules in multiple rooms.'
-                );
-        }
-
-        $pendingFacultySchedules[] = [
-            'faculty_id' => (int) $draft->faculty_id,
-            'day' => strtoupper(trim((string) $draft->day)),
-            'time' => trim((string) $draft->time),
-        ];
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | PUBLISH
-    |--------------------------------------------------------------------------
-    */
-
-    DB::transaction(
-        function () use (
-            $room,
-            $chair,
-            $drafts,
-            $activeTerm
-        ) {
-
-            /*
-            |--------------------------------------------------------------------------
-            | REMOVE EXISTING PUBLISHED SCHEDULE
-            |--------------------------------------------------------------------------
-            */
-
-            Schedule::where('room_id', $room->id)
-                ->where('academic_term_id', $activeTerm->id)
-                ->delete();
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | CREATE PUBLISHED SCHEDULES FROM DRAFT
-            |--------------------------------------------------------------------------
-            */
-
-            foreach ($drafts as $draft) {
-
-                Schedule::create([
-
-                    'room_id' =>
-                        $room->id,
-
-                    'faculty_id' =>
-                        $draft->faculty_id,
-
-                    'faculty_subject_id' =>
-                        $draft->faculty_subject_id,
-
-                    'department_id' =>
-                        $draft->department_id
-                        ?? $chair->department_id,
-
-                    'academic_term_id' =>
-                        $activeTerm->id,
-
-                    'day' =>
-                        strtoupper(
-                            trim($draft->day)
-                        ),
-
-                    'time' =>
-                        trim($draft->time),
-
-                    'row_position' =>
-                        $draft->row_position,
-
-                    'semester' =>
-                        $draft->semester,
-
-                    'academic_year' =>
-                        $draft->academic_year,
-
-                    'course_code' =>
-                        $draft->course_code,
-
-
-                    'subject' =>
-                        $draft->subject,
-
-                    'year_level' =>
-                        $draft->year_level,
-
-                    'major' =>
-                        $draft->major,
-
-                    'program' =>
-                        $draft->program,
-
-                    'subject_type' =>
-                        $draft->subject_type,
-
-                    'instructor' =>
-                        $draft->instructor,
-
-                    'color' =>
-                        $draft->color
-                        ?? '#ffffff',
-                ]);
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | DELETE DRAFT
-            |--------------------------------------------------------------------------
-            */
-
-            ScheduleDraft::where(
-                'room_id',
-                $room->id
-            )
-            ->where('created_by', $chair->id)
-            ->where('academic_term_id', $activeTerm->id)
-            ->delete();
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | SUCCESS
-    |--------------------------------------------------------------------------
-    */
-
-    return redirect()
-        ->route('chair.drafts')
-        ->with(
-            'success',
-            'Draft published successfully. The previous schedule in Room '
-            . $room->room_name
-            . ' was replaced.'
-        );
 }
 
 public function modifySchedule(Request $request)
@@ -4129,6 +4128,17 @@ public function modifySchedule(Request $request)
                                     'academic_term_id',
                                     $activeTerm->id
                                 )
+                                ->with([
+                                    'department',
+                                    'merges' => function ($mergeQuery) {
+                                        $mergeQuery
+                                            ->whereIn('status', ['approved', 'pending'])
+                                            ->with([
+                                                'subject.program.department',
+                                                'facultySubject.subjectCatalog.program.department',
+                                            ]);
+                                    },
+                                ])
                                 ->orderBy(
                                     'day'
                                 )
@@ -4142,10 +4152,33 @@ public function modifySchedule(Request $request)
             },
 
         ])
-        ->orderBy(
-            'name'
-        )
+        ->where('id', '!=', (int) $chair->department_id)
+        ->orderBy('name')
         ->get();
+
+    $availabilityRooms = $departments
+        ->flatMap(function ($department) {
+            return $department->buildings->flatMap(function ($building) use ($department) {
+                return $building->rooms->map(function ($room) use ($building, $department) {
+                    return [
+                        'id' => (int) $room->id,
+                        'room_name' => $room->room_name,
+                        'building_name' => $building->name,
+                        'department_name' => $department->name,
+                        'is_current_department' => false,
+                        'allow_other_departments' => (bool) $room->allow_other_departments,
+                        'schedules' => $room->schedules->map(fn ($schedule) => [
+                            'course_code' => $schedule->course_code,
+                            'subject' => $schedule->subject,
+                            'day' => strtoupper(trim((string) $schedule->day)),
+                            'time' => $schedule->time,
+                        ])->values()->all(),
+                    ];
+                });
+            });
+        })
+        ->values()
+        ->all();
 
     /*
     |--------------------------------------------------------------------------
@@ -4157,7 +4190,9 @@ public function modifySchedule(Request $request)
         FacultySubject::with([
             'faculty.department',
             'subjectCatalog.program',
+            'sharedCohorts.program',
         ])
+        ->whereHas('faculty', fn ($query) => $query->active())
         ->orderBy(
             'course_code'
         )
@@ -4171,7 +4206,8 @@ public function modifySchedule(Request $request)
             'departments',
             'chair',
             'facultySubjects',
-            'activeTerm'
+            'activeTerm',
+            'availabilityRooms'
         )
     );
 }
@@ -4214,10 +4250,17 @@ public function clearModifiedSchedule(Request $request)
     if ((int) $schedule->department_id !== (int) $chair->department_id) {
         return back()->with(
             'error',
-            'This schedule belongs to another department and cannot be cleared.'
+            'This schedule belongs to another college and cannot be cleared.'
         );
     }
 
+    app(\App\Services\StudentScheduleUpdateService::class)->recordForSchedule(
+        $schedule,
+        'schedule_removed',
+        'Class removed from the timetable',
+        trim(($schedule->course_code ?: 'Class') . ' — ' . ($schedule->subject ?: ''))
+            . ' was removed from ' . $schedule->day . ' ' . $schedule->time . '.'
+    );
     $schedule->delete();
 
     return redirect()
@@ -4245,6 +4288,7 @@ public function storeModifiedSchedule(Request $request)
         'major' => 'nullable|string|max:50',
         'program' => 'required|string|max:100',
         'color' => 'nullable|string|max:20',
+        'adjustments' => 'nullable|string|max:20000',
     ]);
 
     $room = Room::findOrFail($request->room_id);
@@ -4267,8 +4311,154 @@ public function storeModifiedSchedule(Request $request)
 
         if ((int) $currentSchedule->department_id !== (int) $chair->department_id) {
             return back()
-                ->with('error', 'This schedule belongs to another department and cannot be modified.')
+                ->with('error', 'This schedule belongs to another college and cannot be modified.')
                 ->withInput();
+        }
+    }
+
+    $adjustmentRows = json_decode((string) $request->input('adjustments', '[]'), true);
+    if (!is_array($adjustmentRows)) {
+        return back()->with('error', 'The adjacent schedule adjustments were not valid. Please try the resize again.')->withInput();
+    }
+    $adjustmentRows = collect($adjustmentRows)->filter(fn ($row) => is_array($row)
+        && !empty($row['schedule_id']) && isset($row['day'], $row['time']))->values();
+    $adjustmentIds = $adjustmentRows->pluck('schedule_id')->map(fn ($id) => (int) $id)->unique()->values();
+    $adjustedSchedules = $adjustmentIds->isEmpty()
+        ? collect()
+        : Schedule::whereIn('id', $adjustmentIds)
+            ->where('academic_term_id', $activeTerm->id)
+            ->where('room_id', $room->id)
+            ->where('department_id', $chair->department_id)
+            ->get()
+            ->keyBy('id');
+
+    if ($adjustedSchedules->count() !== $adjustmentIds->count()) {
+        return back()->with('error', 'Only your college’s adjacent schedules in this room can move automatically.')->withInput();
+    }
+    if ($currentSchedule && $adjustmentIds->contains((int) $currentSchedule->id)) {
+        return back()->with('error', 'The selected class cannot also be listed as an adjacent adjustment.')->withInput();
+    }
+
+    $adjustmentTimes = [];
+    $adjustmentDays = [];
+    foreach ($adjustmentRows as $adjustment) {
+        $scheduleId = (int) $adjustment['schedule_id'];
+        $adjustmentTime = trim((string) $adjustment['time']);
+        $adjustmentDay = strtoupper(trim((string) $adjustment['day']));
+        if (!$adjustedSchedules->has($scheduleId)
+            || strtoupper(trim((string) $adjustedSchedules[$scheduleId]->day)) !== $adjustmentDay
+            || !$this->scheduleTimeRangeToMinutes($adjustmentTime)) {
+            return back()->with('error', 'An adjacent schedule has an invalid time range. Please resize again.')->withInput();
+        }
+        $adjustmentTimes[$scheduleId] = $adjustmentTime;
+        $adjustmentDays[$scheduleId] = $adjustmentDay;
+    }
+
+    if ($adjustmentIds->isNotEmpty()) {
+        if ($currentSchedule) {
+            $previousRange = $this->scheduleTimeRangeToMinutes($currentSchedule->time);
+            $resizedRange = $this->scheduleTimeRangeToMinutes($time);
+            $changedStart = $previousRange && $resizedRange && $previousRange['start'] !== $resizedRange['start'];
+            $changedEnd = $previousRange && $resizedRange && $previousRange['end'] !== $resizedRange['end'];
+            if (!$previousRange || !$resizedRange || $changedStart === $changedEnd) {
+                return back()->with('error', 'The adjacent adjustment does not match a single resized class edge.')->withInput();
+            }
+            foreach ($adjustedSchedules as $adjustedSchedule) {
+                $previousNeighborRange = $this->scheduleTimeRangeToMinutes($adjustedSchedule->time);
+                $resizedNeighborRange = $this->scheduleTimeRangeToMinutes($adjustmentTimes[$adjustedSchedule->id]);
+                $isAdjacentResize = $previousNeighborRange && $resizedNeighborRange && (
+                    ($changedEnd
+                        && $previousNeighborRange['start'] === $previousRange['end']
+                        && $resizedNeighborRange['start'] === $resizedRange['end']
+                        && $resizedNeighborRange['end'] === $previousNeighborRange['end'])
+                    || ($changedStart
+                        && $previousNeighborRange['end'] === $previousRange['start']
+                        && $resizedNeighborRange['end'] === $resizedRange['start']
+                        && $resizedNeighborRange['start'] === $previousNeighborRange['start'])
+                );
+                if (!$isAdjacentResize) {
+                    return back()->with('error', 'Only the class directly beside the resized edge can be adjusted automatically.')->withInput();
+                }
+            }
+        } else {
+            $hasAdjacentResizePair = false;
+            $entries = $adjustedSchedules->values();
+            for ($leftIndex = 0; $leftIndex < $entries->count(); $leftIndex++) {
+                for ($rightIndex = $leftIndex + 1; $rightIndex < $entries->count(); $rightIndex++) {
+                    $left = $entries[$leftIndex];
+                    $right = $entries[$rightIndex];
+                    if ($adjustmentDays[$left->id] !== $adjustmentDays[$right->id]) continue;
+                    $leftBefore = $this->scheduleTimeRangeToMinutes($left->time);
+                    $rightBefore = $this->scheduleTimeRangeToMinutes($right->time);
+                    $leftAfter = $this->scheduleTimeRangeToMinutes($adjustmentTimes[$left->id]);
+                    $rightAfter = $this->scheduleTimeRangeToMinutes($adjustmentTimes[$right->id]);
+                    if (!$leftBefore || !$rightBefore || !$leftAfter || !$rightAfter) continue;
+                    $leftThenRight = $leftBefore['end'] === $rightBefore['start']
+                        && $leftAfter['start'] === $leftBefore['start']
+                        && $leftAfter['end'] === $rightAfter['start']
+                        && $rightAfter['end'] === $rightBefore['end'];
+                    $rightThenLeft = $rightBefore['end'] === $leftBefore['start']
+                        && $rightAfter['start'] === $rightBefore['start']
+                        && $rightAfter['end'] === $leftAfter['start']
+                        && $leftAfter['end'] === $leftBefore['end'];
+                    if ($leftThenRight || $rightThenLeft) {
+                        $hasAdjacentResizePair = true;
+                        break 2;
+                    }
+                }
+            }
+            if (!$hasAdjacentResizePair) {
+                return back()->with('error', 'The automatic updates must come from one adjacent schedule resize.')->withInput();
+            }
+        }
+    }
+
+    $ignoredRoomScheduleIds = $adjustmentIds->all();
+    if ($currentSchedule) {
+        $ignoredRoomScheduleIds[] = (int) $currentSchedule->id;
+    }
+
+    $proposedRoomRanges = [[
+        'day' => $day,
+        'time' => $time,
+        'range' => $this->scheduleTimeRangeToMinutes($time),
+    ]];
+    foreach ($adjustedSchedules as $adjustedSchedule) {
+        $adjustedTime = $adjustmentTimes[$adjustedSchedule->id] ?? $adjustedSchedule->time;
+        $proposedRoomRanges[] = [
+            'day' => $adjustmentDays[$adjustedSchedule->id],
+            'time' => $adjustedTime,
+            'range' => $this->scheduleTimeRangeToMinutes($adjustedTime),
+        ];
+    }
+    foreach ($proposedRoomRanges as $index => $candidate) {
+        if (!$candidate['range']) {
+            return back()->with('error', 'A resized schedule has an invalid time range.')->withInput();
+        }
+        foreach (array_slice($proposedRoomRanges, $index + 1) as $other) {
+            if ($candidate['day'] === $other['day']
+                && $candidate['range']['start'] < $other['range']['end']
+                && $candidate['range']['end'] > $other['range']['start']) {
+                return back()->with('error', 'The automatic adjustment would make two schedules overlap.')->withInput();
+            }
+        }
+    }
+
+    $affectedDays = collect([$day])->merge(array_values($adjustmentDays))->unique()->values();
+    $otherRoomSchedules = Schedule::where('room_id', $room->id)
+        ->where('academic_term_id', $activeTerm->id)
+        ->whereIn('day', $affectedDays)
+        ->when($ignoredRoomScheduleIds, fn ($query) => $query->whereNotIn('id', $ignoredRoomScheduleIds))
+        ->get();
+    foreach ($otherRoomSchedules as $otherRoomSchedule) {
+        $otherRange = $this->scheduleTimeRangeToMinutes($otherRoomSchedule->time);
+        if (!$otherRange) continue;
+        foreach ($proposedRoomRanges as $candidate) {
+            if (strtoupper(trim((string) $otherRoomSchedule->day)) === $candidate['day']
+                && $candidate['range']['start'] < $otherRange['end']
+                && $candidate['range']['end'] > $otherRange['start']) {
+                return back()->with('error', 'The automatic adjustment would overlap another class in this room.')->withInput();
+            }
         }
     }
 
@@ -4277,6 +4467,7 @@ public function storeModifiedSchedule(Request $request)
         ->where('day', $day)
         ->where('time', $time)
         ->where('academic_term_id', $activeTerm->id)
+        ->when($adjustmentIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $adjustmentIds->all()))
         ->when($currentSchedule, function ($query) use ($currentSchedule) {
             $query->where('id', '!=', $currentSchedule->id);
         })
@@ -4285,7 +4476,7 @@ public function storeModifiedSchedule(Request $request)
     if ($existingSchedule) {
         if ((int) $existingSchedule->department_id !== (int) $chair->department_id) {
             return back()
-                ->with('error', 'This schedule belongs to another department and cannot be modified.')
+                ->with('error', 'This schedule belongs to another college and cannot be modified.')
                 ->withInput();
         }
 
@@ -4298,7 +4489,7 @@ public function storeModifiedSchedule(Request $request)
     if ((int) $room->department_id !== (int) $chair->department_id) {
         if (!$room->allow_other_departments) {
             return back()
-                ->with('error', 'This department does not allow other departments to add schedules to this room.')
+                ->with('error', 'This college does not allow other colleges to add schedules to this room.')
                 ->withInput();
         }
     }
@@ -4307,6 +4498,7 @@ public function storeModifiedSchedule(Request $request)
     $courseCode = strtoupper(trim($request->course_code));
 
     $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
+        ->whereHas('faculty', fn ($query) => $query->active())
         ->find($request->faculty_subject_id);
 
     if ($facultySubject && (
@@ -4318,13 +4510,13 @@ public function storeModifiedSchedule(Request $request)
 
     if (!$facultySubject) {
         return back()
-            ->with('error', 'This course code is not assigned to a faculty member in your department.')
+            ->with('error', 'This course code is not assigned to a instructor in your college.')
             ->withInput();
     }
 
     if (!$facultySubject->faculty) {
         return back()
-            ->with('error', 'The faculty member assigned to this course could not be found.')
+            ->with('error', 'The instructor assigned to this course could not be found.')
             ->withInput();
     }
 
@@ -4333,21 +4525,57 @@ public function storeModifiedSchedule(Request $request)
     | FACULTY SCHEDULE CONFLICT CHECK
     |--------------------------------------------------------------------------
     */
-    $facultyConflict = $this->findFacultyScheduleConflict(
-        (int) $facultySubject->faculty_id,
-        $day,
-        $time,
-        $activeTerm->id,
-        $currentSchedule?->id
-    );
+    $ignoredFacultyScheduleIds = $adjustmentIds->all();
+    if ($currentSchedule) {
+        $ignoredFacultyScheduleIds[] = (int) $currentSchedule->id;
+    }
+    $ignoredFacultyScheduleIds = array_values(array_unique($ignoredFacultyScheduleIds));
+
+    $proposedFacultySchedules = [[
+        'faculty_id' => (int) $facultySubject->faculty_id,
+        'day' => $day,
+        'time' => $time,
+    ]];
+    foreach ($adjustedSchedules as $adjustedSchedule) {
+        $proposedFacultySchedules[] = [
+            'faculty_id' => (int) $adjustedSchedule->faculty_id,
+            'day' => $adjustmentDays[$adjustedSchedule->id],
+            'time' => $adjustmentTimes[$adjustedSchedule->id] ?? $adjustedSchedule->time,
+        ];
+    }
+
+    $pendingAdjustedFacultySchedules = [];
+    foreach ($proposedFacultySchedules as $proposal) {
+        $facultyConflict = $this->findFacultyScheduleConflict(
+            (int) $proposal['faculty_id'],
+            (string) $proposal['day'],
+            (string) $proposal['time'],
+            $activeTerm->id,
+            $ignoredFacultyScheduleIds
+        );
+        if (!$facultyConflict) {
+            $facultyConflict = $this->findPendingFacultyScheduleConflict(
+                (int) $proposal['faculty_id'],
+                (string) $proposal['day'],
+                (string) $proposal['time'],
+                $pendingAdjustedFacultySchedules
+            );
+        }
+        if ($facultyConflict) {
+            return back()
+                ->with('error', 'The automatic time adjustment conflicts with another class assigned to ' . ($facultyConflict instanceof Schedule ? $facultyConflict->instructor : 'the instructor') . '.')
+                ->withInput();
+        }
+        $pendingAdjustedFacultySchedules[] = $proposal;
+    }
 
     if ($facultyConflict) {
         return back()
             ->with(
                 'error',
-                'Schedule conflict: this faculty/instructor already has a schedule on '
+                'Schedule conflict: this instructor/instructor already has a schedule on '
                 . $this->formatScheduleConflictMessage($facultyConflict)
-                . '. A faculty member cannot have overlapping schedules in different rooms.'
+                . '. A instructor cannot have overlapping schedules in different rooms.'
             )
             ->withInput();
     }
@@ -4374,15 +4602,103 @@ public function storeModifiedSchedule(Request $request)
         'color' => $request->color ?: '#ffffff',
     ];
 
+    $applyAdjacentScheduleUpdates = function () use ($adjustedSchedules, $adjustmentTimes) {
+        $studentUpdates = app(\App\Services\StudentScheduleUpdateService::class);
+        foreach ($adjustedSchedules as $adjustedSchedule) {
+            $newTime = $adjustmentTimes[$adjustedSchedule->id] ?? null;
+            if (!$newTime || $newTime === $adjustedSchedule->time) continue;
+            $adjustedSchedule->update(['time' => $newTime]);
+            $updated = $adjustedSchedule->fresh();
+            $studentUpdates->recordForSchedule(
+                $updated,
+                'schedule_updated',
+                'Class schedule time adjusted',
+                trim(($updated->course_code ?: 'Class') . ' — ' . ($updated->subject ?: ''))
+                    . ' was moved to ' . $updated->day . ' ' . $updated->time
+                    . ' because an adjacent class time was adjusted.'
+            );
+        }
+    };
+
     if ($currentSchedule) {
+        $previousSchedule = clone $currentSchedule;
+        $previousSharedAudiences = $currentSchedule->merges()
+            ->where('share_type', 'same_faculty')
+            ->where('status', 'approved')
+            ->with('subject.program')
+            ->get()
+            ->map(function ($merge) {
+                $subject = $merge->subject;
+                return [
+                    'id' => (int) $merge->subject_id,
+                    'department_id' => (int) ($subject?->program?->department_id ?? $merge->department_id),
+                    'program' => trim((string) ($subject?->program?->name ?? '')),
+                    'year_level' => trim((string) ($subject?->year_level ?? '')),
+                ];
+            });
+        $cohortChanged = (int) $previousSchedule->department_id !== (int) $scheduleData['department_id']
+            || trim((string) $previousSchedule->program) !== trim((string) $scheduleData['program'])
+            || trim((string) $previousSchedule->year_level) !== trim((string) $scheduleData['year_level']);
         $currentSchedule->update($scheduleData);
+        $this->syncSameFacultyScheduleAudiences($currentSchedule, $facultySubject, $chair);
+        $sharedOfferingIds = $facultySubject->sharedCohorts()->pluck('subjects.id')->map(fn ($id) => (int) $id)->all();
+        $studentUpdates = app(\App\Services\StudentScheduleUpdateService::class);
+        if ($cohortChanged) {
+            $studentUpdates->recordForSchedule(
+                $previousSchedule,
+                'schedule_updated',
+                'Class schedule changed',
+                trim(($previousSchedule->course_code ?: 'Class') . ' — ' . ($previousSchedule->subject ?: ''))
+                    . ' was updated. Check the current class schedule for the latest details.'
+            );
+        }
+        $studentUpdates->recordForSchedule(
+            $currentSchedule->fresh(),
+            'schedule_updated',
+            'Class schedule updated',
+            trim(($currentSchedule->course_code ?: 'Class') . ' — ' . ($currentSchedule->subject ?: ''))
+                . ' is scheduled for ' . $currentSchedule->day . ' ' . $currentSchedule->time
+                . ($studentUpdates->roomNameFor($currentSchedule) ? ' in ' . $studentUpdates->roomNameFor($currentSchedule) : '') . '.'
+        );
+
+        foreach ($previousSharedAudiences->reject(fn ($audience) => in_array($audience['id'], $sharedOfferingIds, true)) as $audience) {
+            if ($audience['department_id'] === (int) $currentSchedule->department_id
+                && mb_strtolower($audience['program']) === mb_strtolower(trim((string) $currentSchedule->program))
+                && mb_strtolower($audience['year_level']) === mb_strtolower(trim((string) $currentSchedule->year_level))) {
+                continue;
+            }
+            $studentUpdates->recordForAudience(
+                $currentSchedule->fresh(),
+                $audience['department_id'],
+                $audience['program'],
+                $audience['year_level'],
+                'schedule_updated',
+                'Shared class audience changed',
+                trim(($currentSchedule->course_code ?: 'Class') . ' — ' . ($currentSchedule->subject ?: ''))
+                    . ' is no longer shared with your program for ' . $currentSchedule->day . ' ' . $currentSchedule->time . '.'
+            );
+        }
+
+        $applyAdjacentScheduleUpdates();
 
         return redirect()
             ->route('chair.modifyschedule', ['term_id' => $activeTerm->id])
             ->with('success', 'Your schedule was updated successfully.');
     }
 
-    Schedule::create($scheduleData);
+    $createdSchedule = Schedule::create($scheduleData);
+    $this->syncSameFacultyScheduleAudiences($createdSchedule, $facultySubject, $chair);
+    $studentUpdates = app(\App\Services\StudentScheduleUpdateService::class);
+    $studentUpdates->recordForSchedule(
+        $createdSchedule,
+        'schedule_published',
+        'New class schedule published',
+        trim(($createdSchedule->course_code ?: 'Class') . ' — ' . ($createdSchedule->subject ?: ''))
+            . ' is scheduled for ' . $createdSchedule->day . ' ' . $createdSchedule->time
+            . ($studentUpdates->roomNameFor($createdSchedule) ? ' in ' . $studentUpdates->roomNameFor($createdSchedule) : '') . '.'
+    );
+
+    $applyAdjacentScheduleUpdates();
 
     return redirect()
         ->route('chair.modifyschedule', ['term_id' => $activeTerm->id])
@@ -4427,6 +4743,8 @@ public function searchMergeClasses(Request $request)
     $courseCode = strtoupper(
         trim($request->course_code)
     );
+
+    $activeTerm = $this->resolveAcademicTerm($request);
 
 
     /*
@@ -4473,11 +4791,12 @@ public function searchMergeClasses(Request $request)
             'users.id'
         )
 
-        ->where(
-            'schedules.course_code',
-            'LIKE',
-            '%' . $courseCode . '%'
+        ->whereRaw(
+            'UPPER(schedules.course_code) LIKE ?',
+            ['%' . $courseCode . '%']
         )
+
+        ->where('schedules.academic_term_id', $activeTerm->id)
 
         /*
         |--------------------------------------------------------------------------
@@ -4512,9 +4831,12 @@ public function searchMergeClasses(Request $request)
             'users.name as faculty_name',
         ])
 
-        ->orderBy(
-            'schedules.course_code'
+        ->orderByRaw(
+            'CASE WHEN UPPER(schedules.course_code) = ? THEN 0 WHEN UPPER(schedules.course_code) LIKE ? THEN 1 ELSE 2 END',
+            [$courseCode, $courseCode . '%']
         )
+
+        ->orderBy('schedules.course_code')
 
         ->orderBy(
             'schedules.day'
@@ -4525,6 +4847,15 @@ public function searchMergeClasses(Request $request)
         )
 
         ->get();
+
+    $mergeRows = ScheduleMerge::with([
+        'subject.program',
+        'facultySubject.subjectCatalog.program',
+    ])
+        ->whereIn('schedule_id', $classes->pluck('id'))
+        ->where('status', 'approved')
+        ->get()
+        ->groupBy('schedule_id');
 
 
     /*
@@ -4537,7 +4868,7 @@ public function searchMergeClasses(Request $request)
         'success' => true,
 
         'classes' => $classes
-            ->map(function ($schedule) {
+            ->map(function ($schedule) use ($mergeRows) {
 
                 return [
 
@@ -4599,7 +4930,7 @@ public function searchMergeClasses(Request $request)
 
                     'department' =>
                         $schedule->department_name
-                        ?: 'Unknown Department',
+                        ?: 'Unknown College',
 
 
                     /*
@@ -4626,6 +4957,24 @@ public function searchMergeClasses(Request $request)
                     'program' =>
                         $schedule->program
                         ?: 'Unknown Program',
+
+                    'merged_courses' => $mergeRows
+                        ->get($schedule->id, collect())
+                        ->map(function ($merge) {
+                            $subject = $merge->subject ?? $merge->facultySubject?->subjectCatalog;
+                            if (!$subject) return null;
+                            return [
+                                'course_code' => $subject->course_code ?? $merge->facultySubject?->course_code,
+                                'course_title' => $subject->course_title ?? $merge->facultySubject?->subject,
+                                'program' => $subject->program?->code
+                                    ?? $merge->facultySubject?->subjectCatalog?->program?->code
+                                    ?? $merge->facultySubject?->program,
+                                'major' => $subject->program?->major ?? $merge->facultySubject?->major,
+                                'share_type' => $merge->share_type ?? 'merge',
+                            ];
+                        })
+                        ->filter()
+                        ->values(),
 
                 ];
             })
@@ -4734,6 +5083,7 @@ public function mergeRoomSchedule($roomId)
     }
 
     $chair = Auth::user();
+    $activeTerm = $this->resolveAcademicTerm(request());
 
     /*
      |--------------------------------------------------------------------------
@@ -4761,7 +5111,7 @@ public function mergeRoomSchedule($roomId)
     ) {
         abort(
             403,
-            'You cannot browse your own department through merge.'
+            'You cannot browse your own college through merge.'
         );
     }
 
@@ -4772,12 +5122,14 @@ public function mergeRoomSchedule($roomId)
      */
 
 $schedules = Schedule::with([
+    'facultySubject.subjectCatalog.program',
     'merges' => function ($query) {
         $query
             ->where('status', 'approved')
             ->with([
                 'department',
-                'facultySubject'
+                'subject.program.department',
+                'facultySubject.subjectCatalog.program.department',
             ]);
     }
 ])
@@ -4785,6 +5137,7 @@ $schedules = Schedule::with([
         'room_id',
         $room->id
     )
+    ->where('academic_term_id', $activeTerm->id)
     ->orderBy('row_position')
     ->orderBy('day')
     ->get();
@@ -4798,6 +5151,7 @@ $schedules->each(function ($schedule) {
     */
 
     $programs = collect();
+    $programCodes = collect();
 
     if (
         $schedule->program &&
@@ -4805,6 +5159,12 @@ $schedules->each(function ($schedule) {
     ) {
         $programs->push(
             trim($schedule->program)
+        );
+        $programCodes->push(
+            $schedule->facultySubject?->subjectCatalog?->program?->code
+                ?: (preg_match('/\(([^()]*)\)\s*$/u', trim($schedule->program), $matches) === 1
+                    ? trim($matches[1])
+                    : trim($schedule->program))
         );
     }
 
@@ -4815,21 +5175,32 @@ $schedules->each(function ($schedule) {
     |--------------------------------------------------------------------------
     */
 
+    $mergedCourses = collect();
     foreach ($schedule->merges as $merge) {
+        $subject = $merge->subject ?? $merge->facultySubject?->subjectCatalog;
+        if ($subject) {
+            $mergedCourses->push([
+                'course_code' => $subject->course_code ?? $merge->facultySubject?->course_code,
+                'course_title' => $subject->course_title ?? $merge->facultySubject?->subject,
+                'program' => $subject->program?->code
+                    ?? $merge->facultySubject?->subjectCatalog?->program?->code
+                    ?? $merge->facultySubject?->program,
+            ]);
+        }
 
-        if (
-            $merge->status === 'approved' &&
-            $merge->facultySubject &&
-            $merge->facultySubject->program
-        ) {
+        $mergedProgram = $subject?->program?->code
+            ?? $merge->facultySubject?->subjectCatalog?->program?->code
+            ?? $merge->facultySubject?->program;
+        if ($merge->status === 'approved' && $mergedProgram) {
 
             $programs->push(
-                trim(
-                    $merge->facultySubject->program
-                )
+                trim((string) $mergedProgram)
             );
+            $programCodes->push(trim((string) $mergedProgram));
         }
     }
+
+    $schedule->merged_courses = $mergedCourses->values();
 
 
     /*
@@ -4844,6 +5215,17 @@ $schedules->each(function ($schedule) {
             ->unique()
             ->values()
             ->implode(' / ');
+
+    $schedule->program_display = $programCodes
+        ->map(function ($program) {
+            $program = trim((string) $program);
+            return preg_match('/\(([^()]*)\)\s*$/u', $program, $matches) === 1
+                ? trim($matches[1])
+                : $program;
+        })
+        ->filter()
+        ->unique()
+        ->implode(' / ');
 });
 
     /*
@@ -4871,16 +5253,21 @@ $schedules->each(function ($schedule) {
             'department' =>
                 $room->department
                     ? $room->department->name
-                    : 'Unknown Department',
+                    : 'Unknown College',
         ],
 
         'schedules' => $schedules->map(
-            function ($schedule) {
+            function ($schedule) use ($room) {
 
                 return [
 
                     'id' =>
                         $schedule->id,
+
+                    'department' => $room->department?->name,
+                    'department_id' => $schedule->department_id,
+                    'semester' => $schedule->semester,
+                    'academic_year' => $schedule->academic_year,
 
                     'day' =>
                         $schedule->day,
@@ -4897,6 +5284,8 @@ $schedules->each(function ($schedule) {
                     'subject' =>
                         $schedule->subject,
 
+                    'merged_courses' => $schedule->merged_courses ?? [],
+
                     'year_level' =>
                         $schedule->year_level,
 
@@ -4904,6 +5293,7 @@ $schedules->each(function ($schedule) {
                         $schedule->major,
 
                     'program' => $schedule->program ?: 'Unknown Program',
+                    'program_display' => $schedule->program_display ?: $schedule->program ?: 'Unknown Program',
                     
                     'subject_type' =>
                         $schedule->subject_type,
@@ -4957,6 +5347,43 @@ public function mergePrograms()
         'programs' => $programs->values(),
     ]);
 }
+
+public function mergeSubjects()
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
+
+    $subjects = Subject::query()
+        ->with(['program.department'])
+        ->whereHas('program', function ($query) {
+            $query->where('department_id', Auth::user()->department_id);
+        })
+        ->orderBy('course_code')
+        ->orderBy('course_title')
+        ->get()
+        ->map(function (Subject $subject) {
+            return [
+                'id' => (int) $subject->id,
+                'course_code' => $subject->course_code,
+                'course_title' => $subject->course_title,
+                'program_id' => (int) $subject->program_id,
+                'program' => $subject->program?->name,
+                'program_code' => $subject->program?->code,
+                'department' => $subject->program?->department?->name,
+                'year_level' => $subject->year_level,
+                'semester' => $subject->semester,
+                'major' => $subject->major,
+                'subject_type' => Subject::typeFromCourseCode((string) $subject->course_code),
+            ];
+        })
+        ->values();
+
+    return response()->json([
+        'success' => true,
+        'subjects' => $subjects,
+    ]);
+}
 public function createMergeRequest(Request $request)
 {
     /*
@@ -5007,7 +5434,7 @@ public function createMergeRequest(Request $request)
         return response()->json([
             'success' => false,
             'message' =>
-                'Your account is not assigned to a department.',
+                'Your account is not assigned to a college.',
         ], 422);
     }
 
@@ -5045,7 +5472,7 @@ public function createMergeRequest(Request $request)
         return response()->json([
             'success' => false,
             'message' =>
-                'This schedule does not have an assigned department.',
+                'This schedule does not have an assigned college.',
         ], 422);
     }
 
@@ -5096,7 +5523,7 @@ public function createMergeRequest(Request $request)
         return response()->json([
             'success' => false,
             'message' =>
-                'The selected program does not belong to your department.',
+                'The selected program does not belong to your college.',
         ], 422);
     }
 
@@ -5305,6 +5732,7 @@ public function createMergeRequest(Request $request)
             'department_id',
             $chair->department_id
         )
+        ->where('share_type', 'merge')
         ->whereIn(
             'status',
             [
@@ -5336,8 +5764,8 @@ public function createMergeRequest(Request $request)
         return response()->json([
             'success' => false,
             'message' => $hasApproved
-                ? 'Your department is already merged with this class.'
-                : 'Your department already has a pending merge request for this class.',
+                ? 'Your college is already merged with this class.'
+                : 'Your college already has a pending merge request for this class.',
         ], 422);
     }
 
@@ -5368,6 +5796,7 @@ public function createMergeRequest(Request $request)
                 'department_id',
                 $chair->department_id
             )
+            ->where('share_type', 'merge')
             ->whereIn(
                 'status',
                 [
@@ -5444,9 +5873,475 @@ public function createMergeRequest(Request $request)
             'pending',
     ]);
 }
+public function mergeLocalCourse(Request $request)
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
+
+    $chair = Auth::user();
+    $validated = $request->validate([
+        'schedule_id' => ['required', 'integer', 'exists:schedules,id'],
+        'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+    ]);
+    $activeTerm = $this->resolveAcademicTerm($request);
+
+    $schedule = Schedule::with(['department', 'room'])
+        ->where('id', $validated['schedule_id'])
+        ->where('academic_term_id', $activeTerm->id)
+        ->first();
+    if (!$schedule) {
+        return response()->json(['success' => false, 'message' => 'That schedule is not in the selected academic term.'], 404);
+    }
+    if ((int) $schedule->department_id !== (int) $chair->department_id) {
+        return response()->json(['success' => false, 'message' => 'This class belongs to another college. Its chair must approve a merge request.'], 403);
+    }
+
+    $subject = Subject::with('program.department')->findOrFail($validated['subject_id']);
+    if ((int) $subject->program?->department_id !== (int) $chair->department_id) {
+        return response()->json(['success' => false, 'message' => 'Choose a subject from your college’s Manage Subjects list.'], 403);
+    }
+
+    if (
+        mb_strtolower(trim((string) $schedule->course_code)) === mb_strtolower(trim((string) $subject->course_code))
+        && mb_strtolower(trim((string) $schedule->subject)) === mb_strtolower(trim((string) $subject->course_title))
+        && mb_strtolower(trim((string) $schedule->program)) === mb_strtolower(trim((string) ($subject->program?->name ?? '')))
+    ) {
+        return response()->json(['success' => false, 'message' => 'That subject already matches the scheduled course.'], 422);
+    }
+
+    $classSchedules = $this->courseMergeClassSchedules($schedule);
+    if ($classSchedules->isEmpty()) $classSchedules = collect([$schedule]);
+    $scheduleIds = $classSchedules->pluck('id')->map(fn ($id) => (int) $id)->values();
+
+    $existing = ScheduleMerge::whereIn('schedule_id', $scheduleIds)
+        ->where('department_id', $chair->department_id)
+        ->where('share_type', 'merge')
+        ->where('subject_id', $subject->id)
+        ->get();
+    if ($existing->contains(fn ($merge) => $merge->status === 'approved')) {
+        return response()->json(['success' => false, 'message' => 'This subject is already merged with the selected class.'], 422);
+    }
+    if ($existing->contains(fn ($merge) => $merge->status === 'pending')) {
+        return response()->json(['success' => false, 'message' => 'A merge request for this subject is already pending.'], 422);
+    }
+
+    $requestGroupId = (string) Str::uuid();
+    $mergeIds = [];
+    DB::transaction(function () use ($classSchedules, $chair, $subject, $requestGroupId, &$mergeIds) {
+        foreach ($classSchedules as $classSchedule) {
+            $mergeRow = ScheduleMerge::updateOrCreate(
+                [
+                    'schedule_id' => $classSchedule->id,
+                    'department_id' => $chair->department_id,
+                    'subject_id' => $subject->id,
+                ],
+                [
+                    'requested_by' => $chair->id,
+                    'faculty_subject_id' => null,
+                    'request_group_id' => $requestGroupId,
+                    'status' => 'approved',
+                    'share_type' => 'merge',
+                    'approved_by' => $chair->id,
+                    'approved_at' => now(),
+                    'decision_note' => null,
+                ]
+            );
+            $mergeIds[] = (int) $mergeRow->id;
+        }
+    });
+
+    return response()->json([
+        'success' => true,
+        'status' => 'approved',
+        'message' => 'The subject has been added to this class and its matching meeting entries.',
+        'schedule_ids' => $scheduleIds,
+        'merge_ids' => $mergeIds,
+        'course' => [
+            'merge_id' => $mergeIds[0] ?? null,
+            'department_id' => (int) $chair->department_id,
+            'share_type' => 'merge',
+            'id' => (int) $subject->id,
+            'course_code' => $subject->course_code,
+            'course_title' => $subject->course_title,
+            'program' => $subject->program?->name,
+            'program_code' => $subject->program?->code,
+            'major' => $subject->program?->major,
+            'year_level' => $subject->year_level,
+            'semester' => $subject->semester,
+            'subject_type' => Subject::typeFromCourseCode((string) $subject->course_code),
+        ],
+    ]);
+}
+
+public function createCourseMergeRequest(Request $request)
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
+
+    $chair = Auth::user();
+    $validated = $request->validate([
+        'schedule_id' => ['required', 'integer', 'exists:schedules,id'],
+        'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+    ]);
+    $activeTerm = $this->resolveAcademicTerm($request);
+
+    $schedule = Schedule::with(['room', 'department', 'facultySubject'])
+        ->where('id', $validated['schedule_id'])
+        ->where('academic_term_id', $activeTerm->id)
+        ->first();
+
+    if (!$schedule) {
+        return response()->json([
+            'success' => false,
+            'message' => 'That class is not in the selected academic term.',
+        ], 404);
+    }
+
+    if ((int) $schedule->department_id === (int) $chair->department_id) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Choose a class owned by another college to request a course merge.',
+        ], 422);
+    }
+
+    $subject = Subject::with(['program.department'])->findOrFail($validated['subject_id']);
+    if ((int) $subject->program?->department_id !== (int) $chair->department_id) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Choose a course from your department’s Manage Subjects catalog.',
+        ], 403);
+    }
+
+    if (
+        strtoupper(trim((string) $schedule->course_code)) === strtoupper(trim((string) $subject->course_code))
+        && trim((string) $schedule->subject) === trim((string) $subject->course_title)
+        && trim((string) $schedule->program) === trim((string) $subject->program?->name)
+    ) {
+        return response()->json([
+            'success' => false,
+            'message' => 'This course is already the main course for the selected class.',
+        ], 422);
+    }
+
+    $classSchedules = $this->courseMergeClassSchedules($schedule);
+    if ($classSchedules->isEmpty()) {
+        $classSchedules = collect([$schedule]);
+    }
+
+    $scheduleIds = $classSchedules->pluck('id')->map(fn ($id) => (int) $id)->values();
+    $existing = ScheduleMerge::whereIn('schedule_id', $scheduleIds)
+        ->where('department_id', $chair->department_id)
+        ->where('share_type', 'merge')
+        ->where('subject_id', $subject->id)
+        ->get();
+
+    if ($existing->contains(fn ($merge) => in_array($merge->status, ['pending', 'approved'], true))) {
+        return response()->json([
+            'success' => false,
+            'message' => $existing->contains(fn ($merge) => $merge->status === 'approved')
+                ? 'This course is already linked to the selected class.'
+                : 'A request for this course and class is already waiting for review.',
+        ], 422);
+    }
+
+    $requestGroupId = (string) Str::uuid();
+    $existingBySchedule = $existing->keyBy('schedule_id');
+    $mergeRecords = collect();
+
+    foreach ($classSchedules as $classSchedule) {
+        $merge = $existingBySchedule->get($classSchedule->id);
+        if (!$merge) {
+            $merge = new ScheduleMerge();
+            $merge->schedule_id = $classSchedule->id;
+            $merge->department_id = $chair->department_id;
+        }
+
+        $merge->requested_by = $chair->id;
+        $merge->subject_id = $subject->id;
+        $merge->faculty_subject_id = null;
+        $merge->request_group_id = $requestGroupId;
+        $merge->status = 'pending';
+        $merge->share_type = 'merge';
+        $merge->approved_by = null;
+        $merge->approved_at = null;
+        $merge->decision_note = null;
+        $merge->save();
+        $mergeRecords->push($merge);
+    }
+
+    $representative = $mergeRecords->first()->load([
+        'schedule.room',
+        'schedule.department',
+        'department',
+        'requester',
+        'subject.program.department',
+    ]);
+    $this->notifyDepartmentChairs(
+        (int) $schedule->department_id,
+        new ScheduleMergeNotification($representative, 'requested')
+    );
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Your request was sent to ' . ($schedule->department?->name ?? 'the owning college') . ' for approval.',
+        'status' => 'pending',
+        'request_group_id' => $requestGroupId,
+        'schedule_count' => $classSchedules->count(),
+        'course' => [
+            'course_code' => $subject->course_code,
+            'course_title' => $subject->course_title,
+            'program' => $subject->program?->name,
+        ],
+    ]);
+}
+
+public function approveCourseMergeRequest(ScheduleMerge $merge)
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
+
+    abort_if(($merge->share_type ?? 'merge') !== 'merge', 404);
+
+    $merge->load(['schedule', 'subject.program', 'facultySubject.subjectCatalog.program']);
+    if (!$merge->schedule || (int) $merge->schedule->department_id !== (int) Auth::user()->department_id) {
+        abort(403, 'Only the class-owning college can approve this request.');
+    }
+    if ($merge->status !== 'pending') {
+        return back()->with('error', 'This merge request has already been reviewed.');
+    }
+
+    $rows = $this->courseMergeRequestRows($merge)->where('status', 'pending')->get();
+    if ($rows->isEmpty()) {
+        return back()->with('error', 'The pending course merge request could not be found.');
+    }
+
+    $this->courseMergeRequestRows($merge)->where('status', 'pending')->update([
+        'status' => 'approved',
+        'approved_by' => Auth::id(),
+        'approved_at' => now(),
+        'decision_note' => null,
+    ]);
+
+    $studentUpdates = app(\App\Services\StudentScheduleUpdateService::class);
+    $approvedRows = $this->courseMergeRequestRows($merge)->where('status', 'approved')->get();
+    foreach ($approvedRows as $approvedRow) {
+        $approvedRow->load(['schedule', 'subject.program', 'facultySubject.subjectCatalog.program']);
+        $schedule = $approvedRow->schedule;
+        $subject = $approvedRow->subject ?? $approvedRow->facultySubject?->subjectCatalog;
+        $program = $subject?->program?->name ?? $approvedRow->facultySubject?->program;
+        $yearLevel = $subject?->year_level ?? $approvedRow->facultySubject?->year_level;
+        if (!$schedule || !$program || !$yearLevel) continue;
+
+        $studentUpdates->recordForAudience(
+            $schedule,
+            (int) $approvedRow->department_id,
+            (string) $program,
+            (string) $yearLevel,
+            'shared_class_added',
+            'Shared class added to your timetable',
+            trim(($subject?->course_code ?? $approvedRow->facultySubject?->course_code ?? $schedule->course_code) . ' — ' . ($subject?->course_title ?? $approvedRow->facultySubject?->subject ?? $schedule->subject))
+                . ' is now included in the shared class timetable for ' . $schedule->day . ' ' . $schedule->time . '.',
+            ['shared_class' => true]
+        );
+    }
+
+    $this->notifyDepartmentChairs(
+        (int) $merge->department_id,
+        new ScheduleMergeNotification($merge->fresh(), 'approved')
+    );
+
+    return back()->with('success', 'The course was added to the shared class schedule.');
+}
+
+public function rejectCourseMergeRequest(Request $request, ScheduleMerge $merge)
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
+
+    abort_if(($merge->share_type ?? 'merge') !== 'merge', 404);
+
+    $validated = $request->validate([
+        'decision_note' => ['nullable', 'string', 'max:1000'],
+    ]);
+    $merge->load(['schedule', 'subject.program', 'facultySubject.subjectCatalog.program']);
+    if (!$merge->schedule || (int) $merge->schedule->department_id !== (int) Auth::user()->department_id) {
+        abort(403, 'Only the class-owning college can decline this request.');
+    }
+    if ($merge->status !== 'pending') {
+        return back()->with('error', 'This merge request has already been reviewed.');
+    }
+
+    $this->courseMergeRequestRows($merge)->where('status', 'pending')->update([
+        'status' => 'rejected',
+        'approved_by' => null,
+        'approved_at' => null,
+        'decision_note' => trim((string) ($validated['decision_note'] ?? '')) ?: null,
+    ]);
+
+    $merge->refresh();
+    $this->notifyDepartmentChairs(
+        (int) $merge->department_id,
+        new ScheduleMergeNotification($merge, 'rejected')
+    );
+
+    return back()->with('success', 'The request was declined and the requesting college was notified.');
+}
+
+public function cancelCourseMergeRequest(ScheduleMerge $merge)
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
+
+    abort_if(($merge->share_type ?? 'merge') !== 'merge', 404);
+
+    $merge->load(['schedule', 'subject.program', 'facultySubject.subjectCatalog.program']);
+    if ((int) $merge->department_id !== (int) Auth::user()->department_id) {
+        abort(403, 'Only the requesting college can cancel this request.');
+    }
+    if ($merge->status !== 'pending') {
+        return back()->with('error', 'Only a pending request can be cancelled.');
+    }
+
+    if ($merge->request_group_id) {
+        $rows = ScheduleMerge::where('request_group_id', $merge->request_group_id);
+    } else {
+        $rows = ScheduleMerge::where('schedule_id', $merge->schedule_id)
+            ->where('department_id', $merge->department_id)
+            ->where('subject_id', $merge->subject_id);
+    }
+
+    $this->notifyDepartmentChairs(
+        (int) $merge->schedule?->department_id,
+        new ScheduleMergeNotification($merge, 'cancelled')
+    );
+    $rows->where('status', 'pending')->delete();
+
+    return back()->with('success', 'The pending course merge request was cancelled.');
+}
+
+public function removeCourseMergeRequest(Request $request, ScheduleMerge $merge)
+{
+    if (!Auth::check() || Auth::user()->role !== 'chair') {
+        abort(403, 'Unauthorized.');
+    }
+
+    abort_if(($merge->share_type ?? 'merge') !== 'merge', 404);
+
+    $merge->load(['schedule', 'subject.program', 'facultySubject.subjectCatalog.program']);
+    $actorDepartmentId = (int) Auth::user()->department_id;
+    $ownerDepartmentId = (int) ($merge->schedule?->department_id ?? 0);
+    $requestingDepartmentId = (int) $merge->department_id;
+    if (!$merge->schedule || !in_array($actorDepartmentId, [$ownerDepartmentId, $requestingDepartmentId], true)) {
+        abort(403, 'Only the class-owning or requesting college can remove this shared course.');
+    }
+    if ($merge->status !== 'approved') {
+        if ($request->expectsJson()) {
+            return response()->json(['success' => false, 'message' => 'Only an active, approved merge can be removed.'], 422);
+        }
+        return back()->with('error', 'Only an approved course merge can be removed.');
+    }
+
+    $mergedSubject = $merge->subject ?? $merge->facultySubject?->subjectCatalog;
+    $mergedProgram = $mergedSubject?->program?->name ?? $merge->facultySubject?->program;
+    $mergedYear = $mergedSubject?->year_level ?? $merge->facultySubject?->year_level;
+    $mergeRows = $this->courseMergeRequestRows($merge)->with('schedule')->get();
+    if ($mergedProgram && $mergedYear) {
+        foreach ($mergeRows as $mergeRow) {
+            if (!$mergeRow->schedule) continue;
+            app(\App\Services\StudentScheduleUpdateService::class)->recordForAudience(
+                $mergeRow->schedule,
+                (int) $mergeRow->department_id,
+                (string) $mergedProgram,
+                (string) $mergedYear,
+                'shared_class_removed',
+                'Shared class removed from your timetable',
+                trim(($mergedSubject?->course_code ?? $merge->facultySubject?->course_code ?? $mergeRow->schedule->course_code) . ' — ' . ($mergedSubject?->course_title ?? $merge->facultySubject?->subject ?? $mergeRow->schedule->subject))
+                    . ' is no longer included in the shared class timetable.'
+            );
+        }
+    }
+
+    $recipientDepartmentId = $actorDepartmentId === $ownerDepartmentId
+        ? $requestingDepartmentId
+        : $ownerDepartmentId;
+    if ($recipientDepartmentId !== $actorDepartmentId) {
+        $this->notifyDepartmentChairs($recipientDepartmentId, new ScheduleMergeNotification($merge, 'removed'));
+    }
+    $removedScheduleIds = $mergeRows->pluck('schedule_id')->map(fn ($id) => (int) $id)->unique()->values();
+    $this->courseMergeRequestRows($merge)->delete();
+
+    if ($request->expectsJson()) {
+        return response()->json([
+            'success' => true,
+            'message' => 'The merged course was removed from the class and all matching meetings.',
+            'schedule_ids' => $removedScheduleIds,
+        ]);
+    }
+
+    return back()->with('success', 'The course was removed from the shared class.');
+}
+
+private function courseMergeRequestRows(ScheduleMerge $merge)
+{
+    if ($merge->request_group_id) {
+        return ScheduleMerge::where('request_group_id', $merge->request_group_id);
+    }
+
+    return ScheduleMerge::where('schedule_id', $merge->schedule_id)
+        ->where('department_id', $merge->department_id)
+        ->where('share_type', 'merge')
+        ->when(
+            $merge->subject_id,
+            fn ($query) => $query->where('subject_id', $merge->subject_id),
+            fn ($query) => $query->where('faculty_subject_id', $merge->faculty_subject_id)
+        );
+}
+
+private function courseMergeClassSchedules(Schedule $schedule)
+{
+    $query = Schedule::query()
+        ->where('academic_term_id', $schedule->academic_term_id)
+        ->where('department_id', $schedule->department_id)
+        ->where('room_id', $schedule->room_id)
+        ->where('faculty_id', $schedule->faculty_id)
+        ->where('course_code', $schedule->course_code)
+        ->where('subject', $schedule->subject)
+        ->where('year_level', $schedule->year_level);
+
+    foreach (['major', 'program', 'semester', 'academic_year'] as $column) {
+        if (trim((string) $schedule->{$column}) === '') {
+            $query->where(function ($subQuery) use ($column) {
+                $subQuery->whereNull($column)->orWhere($column, '');
+            });
+        } else {
+            $query->where($column, $schedule->{$column});
+        }
+    }
+
+    return $query->orderBy('row_position')->orderBy('day')->get();
+}
+
+private function notifyDepartmentChairs(int $departmentId, ScheduleMergeNotification $notification): void
+{
+    if ($departmentId <= 0) {
+        return;
+    }
+
+    User::query()
+        ->where('role', 'chair')
+        ->where('department_id', $departmentId)
+        ->get()
+        ->each(fn (User $chair) => $chair->notify($notification));
+}
+
 /*
 |--------------------------------------------------------------------------
-| APPROVE MERGE REQUEST
+| APPROVE LEGACY MERGE REQUEST
 |--------------------------------------------------------------------------
 */
 
@@ -5701,6 +6596,7 @@ public function approveMergeRequest(
         'department_id',
         $merge->department_id
     )
+    ->where('share_type', 'merge')
     ->whereIn(
         'status',
         [
@@ -5718,6 +6614,37 @@ public function approveMergeRequest(
         'approved_at' =>
             now(),
     ]);
+
+    $approvedMerges = ScheduleMerge::with([
+        'schedule',
+        'subject.program',
+        'facultySubject.subjectCatalog.program',
+    ])
+        ->whereIn('schedule_id', $scheduleIds)
+        ->where('department_id', $merge->department_id)
+        ->where('status', 'approved')
+        ->get();
+
+    $studentUpdates = app(\App\Services\StudentScheduleUpdateService::class);
+    foreach ($approvedMerges as $approvedMerge) {
+        $sharedSchedule = $approvedMerge->schedule;
+        $subject = $approvedMerge->subject ?? $approvedMerge->facultySubject?->subjectCatalog;
+        $program = $subject?->program?->name ?? $approvedMerge->facultySubject?->program;
+        $yearLevel = $subject?->year_level ?? $approvedMerge->facultySubject?->year_level;
+        if (!$sharedSchedule || !$program || !$yearLevel) continue;
+
+        $studentUpdates->recordForAudience(
+            $sharedSchedule,
+            (int) $approvedMerge->department_id,
+            (string) $program,
+            (string) $yearLevel,
+            'shared_class_added',
+            'Shared class added to your timetable',
+            trim(($subject?->course_code ?? $approvedMerge->facultySubject?->course_code ?? $sharedSchedule->course_code) . ' — ' . ($subject?->course_title ?? $approvedMerge->facultySubject?->subject ?? $sharedSchedule->subject))
+                . ' is now included in the shared class timetable for ' . $sharedSchedule->day . ' ' . $sharedSchedule->time . '.',
+            ['shared_class' => true]
+        );
+    }
 
 
     /*
@@ -5857,6 +6784,22 @@ public function removeMergeRequest(
         );
     }
 
+    $mergedSubject = $merge->subject ?? $merge->facultySubject?->subjectCatalog;
+    $mergedProgram = $mergedSubject?->program?->name ?? $merge->facultySubject?->program;
+    $mergedYear = $mergedSubject?->year_level ?? $merge->facultySubject?->year_level;
+    if ($mergedProgram && $mergedYear) {
+        app(\App\Services\StudentScheduleUpdateService::class)->recordForAudience(
+            $merge->schedule,
+            (int) $merge->department_id,
+            (string) $mergedProgram,
+            (string) $mergedYear,
+            'shared_class_removed',
+            'Shared class removed from your timetable',
+            'The shared class ' . trim(($mergedSubject?->course_code ?? $merge->facultySubject?->course_code ?? $merge->schedule->course_code) . ' — ' . ($mergedSubject?->course_title ?? $merge->facultySubject?->subject ?? $merge->schedule->subject))
+                . ' is no longer included in your timetable.'
+        );
+    }
+
     /*
     |--------------------------------------------------------------------------
     | REMOVE PARTICIPATING DEPARTMENT
@@ -5927,14 +6870,6 @@ private function resolveAcademicTerm(Request $request = null): AcademicTerm
      * This prevents records from another year/semester from leaking into the view.
      */
     private function termScheduleQuery($query, AcademicTerm $term)
-    {
-        return $query->where('academic_term_id', $term->id);
-    }
-
-    /**
-     * Only return drafts explicitly assigned to the selected academic term.
-     */
-    private function termDraftQuery($query, AcademicTerm $term)
     {
         return $query->where('academic_term_id', $term->id);
     }
@@ -6081,7 +7016,7 @@ public function academicTerms(Request $request)
     |
     */
 
-    $activeTerm = $this->resolveAcademicTerm($request);
+    $activeTerm = $this->getActiveAcademicTerm();
 
     $chairDepartmentId = (int) Auth::user()->department_id;
 
@@ -6112,6 +7047,18 @@ public function academicTerms(Request $request)
     )
     ->orderByDesc('id')
     ->get();
+
+    // Count every database record for the destructive-delete warning,
+    // including soft-deleted schedules that will also be physically removed.
+    $allScheduleCounts = DB::table('schedules')
+        ->select('academic_term_id', DB::raw('COUNT(*) as total_schedule_count'))
+        ->whereNotNull('academic_term_id')
+        ->groupBy('academic_term_id')
+        ->pluck('total_schedule_count', 'academic_term_id');
+
+    $terms->each(function (AcademicTerm $term) use ($allScheduleCounts) {
+        $term->setAttribute('total_schedule_count', (int) $allScheduleCounts->get($term->id, 0));
+    });
 
 
     /*
@@ -6281,9 +7228,26 @@ public function academicTerms(Request $request)
 
         session(['active_academic_term_id' => $term->id]);
 
+        $destination = $request->input('return_to') === 'setschedule'
+            ? 'chair.setschedule'
+            : 'chair.schedule.library';
+
         return redirect()
-            ->route('chair.schedule.library')
+            ->route($destination)
             ->with('success', 'Active academic term changed to ' . $term->academic_year . ' • ' . $term->semester . '.');
+    }
+
+    public function activateSelectedAcademicTerm(Request $request)
+    {
+        if (!Auth::check() || Auth::user()->role !== 'chair') {
+            abort(403, 'Unauthorized.');
+        }
+
+        $validated = $request->validate([
+            'term_id' => ['required', 'integer', 'exists:academic_terms,id'],
+        ]);
+
+        return $this->activateAcademicTerm($request, (int) $validated['term_id']);
     }
 
     public function deleteAcademicTerm(Request $request, $termId)
@@ -6300,14 +7264,39 @@ public function academicTerms(Request $request)
                 ->with('error', 'The active academic term cannot be deleted. Set another term as active first.');
         }
 
-        // Terms are shared across departments, so protect any schedule or draft using this term.
-        if ($term->schedules()->exists() || $term->drafts()->exists()) {
+        $scheduleCount = DB::table('schedules')
+            ->where('academic_term_id', $term->id)
+            ->count();
+
+        $confirmedScheduleCount = $request->input('confirmed_schedule_count');
+        if (!is_numeric($confirmedScheduleCount) || (int) $confirmedScheduleCount !== $scheduleCount) {
             return redirect()
                 ->route('chair.schedule.library')
-                ->with('error', 'This academic term cannot be deleted because schedules or drafts are linked to it.');
+                ->with('error', 'The schedule count changed or deletion was not confirmed. Reopen the confirmation card and review the current schedule count before deleting this term.');
         }
 
-        $term->delete();
+        DB::transaction(function () use ($term) {
+            // Schedule-time rows and notifications have no cascading foreign
+            // key, so remove their term-scoped records before deleting the term.
+            if (Schema::hasTable('schedule_time_slots') && Schema::hasColumn('schedule_time_slots', 'academic_term_id')) {
+                DB::table('schedule_time_slots')->where('academic_term_id', $term->id)->delete();
+            }
+
+            if (Schema::hasTable('student_schedule_updates') && Schema::hasColumn('student_schedule_updates', 'academic_term_id')) {
+                DB::table('student_schedule_updates')->where('academic_term_id', $term->id)->delete();
+            }
+
+            // Use the query builder to physically remove every schedule row,
+            // including soft-deleted records. Schedule-linked child records
+            // follow their existing database foreign-key delete rules.
+            DB::table('schedules')->where('academic_term_id', $term->id)->delete();
+
+            $term->delete();
+        });
+
+        if ((int) session('active_academic_term_id') === (int) $term->id) {
+            session()->forget('active_academic_term_id');
+        }
 
         return redirect()
             ->route('chair.schedule.library')
@@ -6757,6 +7746,47 @@ private function findFacultyScheduleConflict(
         });
     }
 
+    private function findFacultyScheduleConflictForCourse(
+        int $facultyId,
+        string $day,
+        string $time,
+        int $academicTermId,
+        string $courseCode,
+        int|array|null $ignoreScheduleId = null,
+        bool $ignoreSameCourse = false,
+        ?int $currentRoomId = null
+    ): ?Schedule {
+        $requestedRange = $this->scheduleTimeRangeToMinutes($time);
+        if (!$requestedRange) {
+            return null;
+        }
+
+        $query = Schedule::where('academic_term_id', $academicTermId)
+            ->where('faculty_id', $facultyId)
+            ->whereRaw('UPPER(day) = ?', [strtoupper(trim($day))]);
+
+        if (is_array($ignoreScheduleId) && !empty($ignoreScheduleId)) {
+            $query->whereNotIn('id', array_map('intval', $ignoreScheduleId));
+        } elseif ($ignoreScheduleId) {
+            $query->where('id', '!=', (int) $ignoreScheduleId);
+        }
+
+        $normalizedCourseCode = strtoupper(trim($courseCode));
+
+        return $query->get()->first(function (Schedule $schedule) use ($requestedRange, $normalizedCourseCode, $ignoreSameCourse, $currentRoomId) {
+            if ($ignoreSameCourse
+                && ($currentRoomId === null || (int) $schedule->room_id !== $currentRoomId)
+                && strtoupper(trim((string) $schedule->course_code)) === $normalizedCourseCode) {
+                return false;
+            }
+
+            $existingRange = $this->scheduleTimeRangeToMinutes($schedule->time);
+            return $existingRange
+                && $requestedRange['start'] < $existingRange['end']
+                && $requestedRange['end'] > $existingRange['start'];
+        });
+    }
+
     /**
      * Detect conflicts among schedules submitted in the same request before
      * those schedules have been written to the database.
@@ -6849,6 +7879,11 @@ private function findFacultyScheduleConflict(
                 if ($hour > 23) {
                     return null;
                 }
+
+                // Chair timetable labels use 1:00–6:00 for afternoon slots.
+                if ($hour >= 1 && $hour <= 6) {
+                    $hour += 12;
+                }
             }
 
             return ($hour * 60) + $minute;
@@ -6856,6 +7891,18 @@ private function findFacultyScheduleConflict(
 
         $start = $parsePart($parts[0]);
         $end = $parsePart($parts[1]);
+
+        // In the Chair sheet, the end of the final afternoon row is shown as
+        // "7:00" without a PM suffix. Inherit PM when the end would otherwise
+        // fall before its start (for example, 6:00-7:00).
+        $endHasMeridiem = preg_match('/\b(?:AM|PM)\s*$/i', trim($parts[1])) === 1;
+        if ($start !== null && $end !== null && !$endHasMeridiem && $end <= $start) {
+            preg_match('/^(\d{1,2})/', trim($parts[1]), $endHourMatch);
+            $endHour = (int) ($endHourMatch[1] ?? 0);
+            if ($endHour >= 1 && $endHour <= 11) {
+                $end += 12 * 60;
+            }
+        }
 
         if ($start === null || $end === null || $end <= $start) {
             return null;
@@ -6865,6 +7912,47 @@ private function findFacultyScheduleConflict(
             'start' => $start,
             'end' => $end,
         ];
+    }
+
+    /**
+     * Reject overlapping entries submitted for the same room and day.
+     */
+    private function findSubmittedRoomScheduleConflict(iterable $entries): ?array
+    {
+        $pending = [];
+
+        foreach ($entries as $entry) {
+            $day = strtoupper(trim((string) data_get($entry, 'day', '')));
+            $time = trim((string) data_get($entry, 'time', ''));
+            $range = $this->scheduleTimeRangeToMinutes($time);
+
+            if ($day === '' || !$range) {
+                return ['message' => 'Each schedule needs a valid start and end time.'];
+            }
+
+            foreach ($pending as $existing) {
+                if ($existing['day'] !== $day) {
+                    continue;
+                }
+
+                if ($range['start'] < $existing['end'] && $range['end'] > $existing['start']) {
+                    return [
+                        'message' => 'Two schedules in this room overlap on ' . $day
+                            . ': ' . $existing['time'] . ' and ' . $time
+                            . '. Adjust the cell times so they do not overlap.',
+                    ];
+                }
+            }
+
+            $pending[] = [
+                'day' => $day,
+                'time' => $time,
+                'start' => $range['start'],
+                'end' => $range['end'],
+            ];
+        }
+
+        return null;
     }
 
     private function formatScheduleConflictMessage(Schedule $schedule): string
@@ -6901,8 +7989,7 @@ private function findFacultyScheduleConflict(
             return null;
         }
 
-        $start = $this->normalizeScheduleClock($parts[0]);
-        $end = $this->normalizeScheduleClock($parts[1]);
+        [$start, $end] = $this->normalizeScheduleRangeClocks(trim($parts[0]), trim($parts[1]));
 
         if ($start === null || $end === null || $end <= $start) {
             return null;
@@ -6953,8 +8040,8 @@ private function findFacultyScheduleConflict(
                 return null;
             }
 
-            // Preserve the existing Chair timetable convention.
-            if ($hour >= 1 && $hour <= 5) {
+            // Preserve the Chair timetable's afternoon convention.
+            if ($hour >= 1 && $hour <= 6) {
                 $hour += 12;
             }
 
@@ -6962,6 +8049,29 @@ private function findFacultyScheduleConflict(
         } catch (\Throwable $e) {
             return null;
         }
+    }
+
+    /**
+     * Normalize a timetable range as a pair so an omitted PM suffix on the
+     * final end time (6:00-7:00) inherits the afternoon period correctly.
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    private function normalizeScheduleRangeClocks(string $startValue, string $endValue): array
+    {
+        $start = $this->normalizeScheduleClock($startValue);
+        $end = $this->normalizeScheduleClock($endValue);
+        $endHasMeridiem = preg_match('/\b(?:AM|PM)\s*$/i', trim($endValue)) === 1;
+
+        if ($start !== null && $end !== null && !$endHasMeridiem && $end <= $start) {
+            preg_match('/^(\d{1,2})/', trim($endValue), $endHourMatch);
+            $endHour = (int) ($endHourMatch[1] ?? 0);
+            if ($endHour >= 1 && $endHour <= 11) {
+                $end = Carbon::parse($end)->addHours(12)->format('H:i:s');
+            }
+        }
+
+        return [$start, $end];
     }
 
     private function expireReservations(): void
@@ -7006,7 +8116,7 @@ private function chairCanManageFaculty(User $chair, User $faculty): bool
         ->where('faculty_id', $faculty->id)
         ->exists();
 }
-public function manageSubjects(Request $request, $programId = null, $year = null)
+public function manageSubjects(Request $request, $programId = null, $memorandumId = null)
 {
     if (!Auth::check() || Auth::user()->role !== 'chair') {
         abort(403, 'Unauthorized.');
@@ -7014,50 +8124,79 @@ public function manageSubjects(Request $request, $programId = null, $year = null
 
     $chair = Auth::user();
     $yearLevels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
-    $semesterOptions = ['1st Semester', '2nd Semester'];
-    $programs = Program::query()
+    $programRows = Program::query()
         ->where('department_id', $chair->department_id)
         ->withCount('subjects')
-        ->orderByDesc('memorandum')
-        ->orderBy('name')
+        ->orderBy('id')
         ->get();
 
+    $groupKey = fn (Program $program) => strtolower(trim($program->name)) . '|' . strtoupper(trim($program->code));
+    $programGroups = $programRows->groupBy($groupKey)->map(function ($entries) {
+        $baseProgram = $entries->first(fn (Program $entry) => trim((string) $entry->memorandum) === '')
+            ?? $entries->first();
+        $memoranda = $entries
+            ->filter(fn (Program $entry) => trim((string) $entry->memorandum) !== '')
+            ->sortBy('id')
+            ->values();
+
+        return (object) [
+            'program' => $baseProgram,
+            'memoranda' => $memoranda,
+            'subjects_count' => (int) $entries->sum('subjects_count'),
+        ];
+    })->sortBy(fn ($group) => strtolower($group->program->name))->values();
+
     $selectedProgram = null;
-    $selectedYear = null;
-    $selectedSemester = null;
-    $subjects = collect();
+    $selectedMemoranda = collect();
+    $selectedMemorandum = null;
+    $subjectsByYear = collect();
+    $sheetYearLevels = $yearLevels;
 
     if ($programId !== null) {
-        $selectedProgram = Program::query()
-            ->where('department_id', $chair->department_id)
-            ->with('subjects')
-            ->findOrFail($programId);
+        $requestedProgram = $programRows->firstWhere('id', (int) $programId);
+        abort_unless($requestedProgram, 404);
 
-        if ($year !== null) {
-            $selectedYear = rawurldecode((string) $year);
-            abort_unless(in_array($selectedYear, $yearLevels, true), 404);
-            $requestedSemester = $request->query('semester');
-            if ($requestedSemester !== null) {
-                $selectedSemester = rawurldecode((string) $requestedSemester);
-                abort_unless(in_array($selectedSemester, $semesterOptions, true), 404);
-                $subjects = $selectedProgram->subjects
-                    ->where('year_level', $selectedYear)
-                    ->where('semester', $selectedSemester)
-                    ->sortBy('course_code')
-                    ->values();
+        $selectedRows = $programRows->filter(fn (Program $entry) => $groupKey($entry) === $groupKey($requestedProgram));
+        $selectedProgram = $selectedRows->first(fn (Program $entry) => trim((string) $entry->memorandum) === '')
+            ?? $selectedRows->first();
+        $selectedMemoranda = $selectedRows
+            ->filter(fn (Program $entry) => trim((string) $entry->memorandum) !== '')
+            ->sortBy('id')
+            ->values();
+
+        if ($memorandumId !== null) {
+            $selectedMemorandum = $selectedMemoranda->firstWhere('id', (int) $memorandumId);
+            abort_unless($selectedMemorandum, 404);
+            if ($selectedMemorandum->year_level) {
+                abort_unless(in_array($selectedMemorandum->year_level, $yearLevels, true), 404);
+                $sheetYearLevels = [$selectedMemorandum->year_level];
             }
+            $subjectsByYear = $selectedMemorandum->subjects()
+                ->orderBy('year_level')
+                ->orderBy('semester')
+                ->orderBy('course_code')
+                ->get()
+                ->groupBy('year_level');
         }
     }
 
     return view('chair.managesubjects', compact(
-        'programs',
+        'programGroups',
         'selectedProgram',
-        'selectedYear',
-        'selectedSemester',
+        'selectedMemoranda',
+        'selectedMemorandum',
+        'subjectsByYear',
         'yearLevels',
-        'semesterOptions',
-        'subjects'
+        'sheetYearLevels'
     ));
+}
+
+private function programGroupQuery(Program $program)
+{
+    return Program::query()
+        ->where('department_id', $program->department_id)
+        ->whereRaw('LOWER(name) = ?', [strtolower(trim($program->name))])
+        ->whereRaw('UPPER(code) = ?', [strtoupper(trim($program->code))]);
 }
 
 public function storeProgram(Request $request)
@@ -7068,36 +8207,33 @@ public function storeProgram(Request $request)
     $data = $request->validate([
         'name' => ['required', 'string', 'max:200'],
         'code' => ['required', 'string', 'max:40'],
-        'memorandum' => ['required', 'string', 'max:500'],
-        'major' => ['nullable', 'string', 'max:120'],
     ]);
 
+    $name = trim($data['name']);
     $code = strtoupper(trim($data['code']));
-    $memorandum = trim($data['memorandum']);
-    $major = trim((string) ($data['major'] ?? '')) ?: null;
-    $duplicate = Program::query()
+    $existing = Program::query()
         ->where('department_id', $chair->department_id)
+        ->whereRaw('LOWER(name) = ?', [strtolower($name)])
         ->whereRaw('UPPER(code) = ?', [$code])
-        ->where('memorandum', $memorandum)
-        ->where('name', trim($data['name']))
-        ->where(function ($query) use ($major) {
-            $major === null ? $query->whereNull('major') : $query->where('major', $major);
-        })
-        ->exists();
+        ->orderBy('id')
+        ->first();
 
-    if ($duplicate) {
-        return back()->withInput()->with('error', 'This program and memorandum already exist.');
+    if ($existing) {
+        return redirect()->route('chair.managesubjects.program', $existing->id)
+            ->with('success', 'This program is already set up. Add another memorandum from its program page.');
     }
 
-    Program::create([
+    $program = Program::create([
         'department_id' => $chair->department_id,
-        'name' => trim($data['name']),
+        'name' => $name,
         'code' => $code,
-        'memorandum' => $memorandum,
-        'major' => $major,
+        'memorandum' => '',
+        'major' => null,
+        'year_level' => null,
     ]);
 
-    return redirect()->route('chair.managesubjects')->with('success', 'Program created. Open it to choose a year level and add subjects.');
+    return redirect()->route('chair.managesubjects.program', $program->id)
+        ->with('success', 'Program created. Add a curriculum memorandum and major to continue.');
 }
 
 public function updateProgram(Request $request, $programId)
@@ -7105,52 +8241,40 @@ public function updateProgram(Request $request, $programId)
     $chair = Auth::user();
     abort_unless($chair && $chair->role === 'chair', 403);
 
-    $program = Program::query()
-        ->where('department_id', $chair->department_id)
-        ->findOrFail($programId);
-
+    $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
     $data = $request->validate([
         'name' => ['required', 'string', 'max:200'],
         'code' => ['required', 'string', 'max:40'],
-        'memorandum' => ['required', 'string', 'max:500'],
-        'major' => ['nullable', 'string', 'max:120'],
     ]);
 
+    $name = trim($data['name']);
     $code = strtoupper(trim($data['code']));
-    $memorandum = trim($data['memorandum']);
-    $major = trim((string) ($data['major'] ?? '')) ?: null;
-
     $duplicate = Program::query()
         ->where('department_id', $chair->department_id)
-        ->where('id', '!=', $program->id)
+        ->whereRaw('LOWER(name) = ?', [strtolower($name)])
         ->whereRaw('UPPER(code) = ?', [$code])
-        ->where('memorandum', $memorandum)
-        ->where('name', trim($data['name']))
-        ->where(function ($query) use ($major) {
-            $major === null ? $query->whereNull('major') : $query->where('major', $major);
+        ->where(function ($query) use ($program) {
+            $query->where('name', '!=', $program->name)->orWhere('code', '!=', $program->code);
         })
         ->exists();
 
     if ($duplicate) {
-        return back()->withInput()->with('error', 'This program and memorandum already exist.');
+        return back()->withInput()->with('error', 'A program with that name and code already exists.');
     }
 
-    $program->update([
-        'name' => trim($data['name']),
-        'code' => $code,
-        'memorandum' => $memorandum,
-        'major' => $major,
-    ]);
+    $entries = $this->programGroupQuery($program)->get();
+    $ids = $entries->pluck('id');
+    Program::whereIn('id', $ids)->update(['name' => $name, 'code' => $code]);
 
-    $subjectIds = $program->subjects()->pluck('id');
+    $subjectIds = Subject::whereIn('program_id', $ids)->pluck('id');
     if ($subjectIds->isNotEmpty()) {
         FacultySubject::whereIn('subject_id', $subjectIds)->update([
-            'program' => $program->name . ' (' . $program->code . ')',
-            'major' => $program->major,
+            'program' => $name . ' (' . $code . ')',
         ]);
     }
 
-    return back()->with('success', 'Program information updated. Its major is now used for all subjects in this program.');
+    return redirect()->route('chair.managesubjects.program', $entries->first()->id)
+        ->with('success', 'Program details updated.');
 }
 
 public function deleteProgram($programId)
@@ -7158,12 +8282,255 @@ public function deleteProgram($programId)
     $chair = Auth::user();
     abort_unless($chair && $chair->role === 'chair', 403);
 
-    Program::query()
-        ->where('department_id', $chair->department_id)
-        ->findOrFail($programId)
-        ->delete();
+    $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+    $this->programGroupQuery($program)->delete();
 
-    return redirect()->route('chair.managesubjects')->with('success', 'Program deleted. Existing faculty assignments keep their saved course details.');
+    return redirect()->route('chair.managesubjects')
+        ->with('success', 'Program and its memorandum subject sheets were removed. Existing instructor assignments keep their saved details.');
+}
+
+public function storeProgramMemorandum(Request $request, $programId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+    $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+
+    $data = $request->validate([
+        'memorandum' => ['required', 'string', 'max:500'],
+        'major' => ['nullable', 'string', 'max:120'],
+        'year_level' => ['nullable', 'in:1st Year,2nd Year,3rd Year,4th Year'],
+    ]);
+    $memorandumText = trim($data['memorandum']);
+    $major = trim((string) ($data['major'] ?? '')) ?: null;
+    $yearLevel = $data['year_level'] ?: null;
+
+    $duplicate = $this->programGroupQuery($program)
+        ->where('memorandum', $memorandumText)
+        ->where(function ($query) use ($major) {
+            $major === null ? $query->whereNull('major') : $query->where('major', $major);
+        })
+        ->where(function ($query) use ($yearLevel) {
+            $yearLevel === null ? $query->whereNull('year_level') : $query->where('year_level', $yearLevel);
+        })
+        ->exists();
+    if ($duplicate) {
+        return back()->withInput()->with('error', 'That memorandum is already listed for the selected year level.');
+    }
+
+    $memorandum = Program::create([
+        'department_id' => $program->department_id,
+        'name' => $program->name,
+        'code' => strtoupper(trim($program->code)),
+        'memorandum' => $memorandumText,
+        'major' => $major,
+        'year_level' => $yearLevel,
+    ]);
+
+    $baseProgram = $this->programGroupQuery($program)->orderBy('id')->first();
+    return redirect()->route('chair.managesubjects.memorandum', [$baseProgram->id, $memorandum->id])
+        ->with('success', 'Curriculum memorandum added. Add subjects in the year-level sheets below.');
+}
+
+public function updateProgramMemorandum(Request $request, $programId, $memorandumId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+    $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+    $memorandum = $this->programGroupQuery($program)->whereKey($memorandumId)->findOrFail($memorandumId);
+
+    $data = $request->validate([
+        'memorandum' => ['required', 'string', 'max:500'],
+        'major' => ['nullable', 'string', 'max:120'],
+        'year_level' => ['nullable', 'in:1st Year,2nd Year,3rd Year,4th Year'],
+    ]);
+    $yearLevel = $data['year_level'] ?: null;
+
+    if ($yearLevel && $memorandum->subjects()->where('year_level', '!=', $yearLevel)->exists()) {
+        return back()->withInput()->with('error', 'Move or remove subjects from other year levels before limiting this memorandum to one year.');
+    }
+
+    $duplicate = $this->programGroupQuery($program)
+        ->where('id', '!=', $memorandum->id)
+        ->where('memorandum', trim($data['memorandum']))
+        ->where(function ($query) use ($data) {
+            $major = trim((string) ($data['major'] ?? '')) ?: null;
+            $major === null ? $query->whereNull('major') : $query->where('major', $major);
+        })
+        ->where(function ($query) use ($yearLevel) {
+            $yearLevel === null ? $query->whereNull('year_level') : $query->where('year_level', $yearLevel);
+        })
+        ->exists();
+    if ($duplicate) {
+        return back()->withInput()->with('error', 'That memorandum is already listed for the selected year level.');
+    }
+
+    $memorandum->update([
+        'memorandum' => trim($data['memorandum']),
+        'major' => trim((string) ($data['major'] ?? '')) ?: null,
+        'year_level' => $yearLevel,
+    ]);
+    $this->syncFacultySubjectCatalogSnapshot($memorandum);
+
+    $baseProgram = $this->programGroupQuery($program)->orderBy('id')->first();
+    return redirect()->route('chair.managesubjects.memorandum', [$baseProgram->id, $memorandum->id])
+        ->with('success', 'Memorandum details updated.');
+}
+
+public function deleteProgramMemorandum($programId, $memorandumId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+    $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+    $memorandum = $this->programGroupQuery($program)->whereKey($memorandumId)->findOrFail($memorandumId);
+    $groupName = $program->name;
+    $groupCode = $program->code;
+    $departmentId = $program->department_id;
+    $memorandum->delete();
+
+    $remaining = Program::query()
+        ->where('department_id', $departmentId)
+        ->whereRaw('LOWER(name) = ?', [strtolower(trim($groupName))])
+        ->whereRaw('UPPER(code) = ?', [strtoupper(trim($groupCode))])
+        ->orderBy('id')
+        ->first();
+
+    if (!$remaining) {
+        $remaining = Program::create([
+            'department_id' => $departmentId,
+            'name' => $groupName,
+            'code' => $groupCode,
+            'memorandum' => '',
+            'major' => null,
+            'year_level' => null,
+        ]);
+    }
+
+    return redirect()->route('chair.managesubjects.program', $remaining->id)
+        ->with('success', 'Memorandum and its catalog subjects were removed. Existing instructor assignments keep their saved details.');
+}
+
+private function syncFacultySubjectCatalogSnapshot(Program $memorandum): void
+{
+    $subjectIds = $memorandum->subjects()->pluck('id');
+    if ($subjectIds->isEmpty()) {
+        return;
+    }
+
+    FacultySubject::whereIn('subject_id', $subjectIds)->update([
+        'program' => $memorandum->name . ' (' . $memorandum->code . ')',
+        'major' => $memorandum->major,
+    ]);
+}
+
+public function saveCurriculumSheet(Request $request, $programId, $memorandumId, $year)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair', 403);
+    $year = rawurldecode((string) $year);
+    $yearLevels = ['1st Year', '2nd Year', '3rd Year', '4th Year'];
+    abort_unless(in_array($year, $yearLevels, true), 404);
+
+    $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+    $memorandum = $this->programGroupQuery($program)
+        ->whereKey($memorandumId)
+        ->where('memorandum', '!=', '')
+        ->findOrFail($memorandumId);
+    if ($memorandum->year_level) {
+        abort_unless($memorandum->year_level === $year, 404);
+    }
+
+    $data = $request->validate([
+        'rows' => ['nullable', 'array'],
+        'rows.*.first_id' => ['nullable', 'integer'],
+        'rows.*.first_code' => ['nullable', 'string', 'max:50'],
+        'rows.*.first_title' => ['nullable', 'string', 'max:255'],
+        'rows.*.second_id' => ['nullable', 'integer'],
+        'rows.*.second_code' => ['nullable', 'string', 'max:50'],
+        'rows.*.second_title' => ['nullable', 'string', 'max:255'],
+    ]);
+
+    $rows = $data['rows'] ?? [];
+    $existing = $memorandum->subjects()->where('year_level', $year)->get()->keyBy('id');
+    $entries = [];
+    $keptIds = [];
+    $seenCourseCodes = [];
+    $semesterFields = [
+        'first' => '1st Semester',
+        'second' => '2nd Semester',
+    ];
+
+    foreach ($rows as $row) {
+        foreach ($semesterFields as $prefix => $semester) {
+            $code = trim((string) ($row[$prefix . '_code'] ?? ''));
+            $title = trim((string) ($row[$prefix . '_title'] ?? ''));
+            $subjectId = $row[$prefix . '_id'] ?? null;
+
+            if ($code === '' && $title === '') {
+                continue;
+            }
+            if ($code === '' || $title === '') {
+                return back()->withInput()->withErrors([
+                    'sheet' => 'Fill in both the course code and course title for every subject row.',
+                ]);
+            }
+
+            $normalizedCode = strtoupper($code);
+            $duplicateKey = $semester . '|' . $normalizedCode;
+            if (isset($seenCourseCodes[$duplicateKey])) {
+                return back()->withInput()->withErrors([
+                    'sheet' => 'A course code can appear only once in each semester of this year level.',
+                ]);
+            }
+            $seenCourseCodes[$duplicateKey] = true;
+
+            if ($subjectId !== null && $subjectId !== '') {
+                $subjectId = (int) $subjectId;
+                abort_unless($existing->has($subjectId) && !isset($keptIds[$subjectId]), 404);
+                $keptIds[$subjectId] = true;
+            }
+
+            $entries[] = [
+                'id' => $subjectId ? (int) $subjectId : null,
+                'semester' => $semester,
+                'course_code' => $normalizedCode,
+                'course_title' => $title,
+            ];
+        }
+    }
+
+    DB::transaction(function () use ($memorandum, $year, $entries, $existing, $keptIds) {
+        foreach ($entries as $entry) {
+            $subject = $entry['id']
+                ? $existing->get($entry['id'])
+                : new Subject();
+            $subject->fill([
+                'program_id' => $memorandum->id,
+                'year_level' => $year,
+                'semester' => $entry['semester'],
+                'course_code' => $entry['course_code'],
+                'course_title' => $entry['course_title'],
+            ]);
+            $subject->save();
+
+            FacultySubject::where('subject_id', $subject->id)->update([
+                'course_code' => $subject->course_code,
+                'subject' => $subject->course_title,
+                'year_level' => $subject->year_level,
+                'major' => $memorandum->major,
+                'program' => $memorandum->name . ' (' . $memorandum->code . ')',
+                'subject_type' => Subject::typeFromCourseCode($subject->course_code),
+            ]);
+        }
+
+        $removedIds = $existing->keys()->filter(fn ($id) => !isset($keptIds[$id]));
+        if ($removedIds->isNotEmpty()) {
+            Subject::whereIn('id', $removedIds)->delete();
+        }
+    });
+
+    $baseProgram = $this->programGroupQuery($program)->orderBy('id')->first();
+    return redirect()->route('chair.managesubjects.memorandum', [$baseProgram->id, $memorandum->id])
+        ->with('success', $year . ' subjects saved for both semesters.');
 }
 
 public function storeCatalogSubject(Request $request, $programId, $year)
@@ -7176,6 +8543,9 @@ public function storeCatalogSubject(Request $request, $programId, $year)
     $program = Program::query()
         ->where('department_id', $chair->department_id)
         ->findOrFail($programId);
+    if ($program->year_level) {
+        abort_unless($program->year_level === $year, 404);
+    }
 
     $data = $request->validate([
         'semester' => ['required', 'in:1st Semester,2nd Semester'],
@@ -7212,6 +8582,9 @@ public function updateCatalogSubject(Request $request, $programId, $year, $subje
     abort_unless($chair && $chair->role === 'chair', 403);
     $year = rawurldecode((string) $year);
     $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+    if ($program->year_level) {
+        abort_unless($program->year_level === $year, 404);
+    }
     $subject = Subject::query()->where('program_id', $program->id)->where('year_level', $year)->findOrFail($subjectId);
     $data = $request->validate([
         'semester' => ['required', 'in:1st Semester,2nd Semester'],
@@ -7247,12 +8620,9 @@ public function updateCatalogSubject(Request $request, $programId, $year, $subje
         'subject_type' => Subject::typeFromCourseCode($subject->course_code),
     ]);
 
+    $baseProgram = $this->programGroupQuery($program)->orderBy('id')->first();
     return redirect()
-        ->route('chair.managesubjects', [
-            'program' => $program->id,
-            'year' => $year,
-            'semester' => $subject->semester,
-        ])
+        ->route('chair.managesubjects.memorandum', [$baseProgram->id, $program->id])
         ->with('success', 'Subject details updated.');
 }
 
@@ -7261,9 +8631,13 @@ public function deleteCatalogSubject($programId, $year, $subjectId)
     $chair = Auth::user();
     abort_unless($chair && $chair->role === 'chair', 403);
     $program = Program::query()->where('department_id', $chair->department_id)->findOrFail($programId);
+    $year = rawurldecode((string) $year);
+    if ($program->year_level) {
+        abort_unless($program->year_level === $year, 404);
+    }
     $subject = Subject::query()
         ->where('program_id', $program->id)
-        ->where('year_level', rawurldecode((string) $year))
+        ->where('year_level', $year)
         ->findOrFail($subjectId);
     $subject->delete();
 

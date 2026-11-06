@@ -1,15 +1,10 @@
-<aside class="sidebar faculty-sidebar" aria-label="Faculty navigation">
-  
-
-    <div class="faculty-sidebar-workspace">
-        <span class="faculty-workspace-mark"><i class="fa-solid fa-chalkboard-user" aria-hidden="true"></i></span>
-        <div>
-            <span class="faculty-workspace-label">WORKSPACE</span>
-            <strong>Faculty Portal</strong>
-        </div>
-    </div>
-
-    <nav class="faculty-sidebar-nav" aria-label="Faculty portal">
+<aside class="sidebar faculty-sidebar admin-sidebar" aria-label="Administrator navigation">
+    <a class="portal-brand" href="{{ route('admin.dashboard') }}" aria-label="WebRoomSched administration home">
+        <span class="portal-brand-mark" aria-hidden="true">W</span>
+        <span class="portal-brand-copy"><strong>WebRoomSched</strong><small>Campus administration</small></span>
+    </a>
+    
+    <nav class="faculty-sidebar-nav" aria-label="Instructor Portal">
         <span class="faculty-sidebar-section">GENERAL</span>
         <ul class="sidebar-menu">
             <li class="{{ request()->routeIs('faculty.dashboard') ? 'active' : '' }}">
@@ -47,15 +42,23 @@
                     <span class="sidebar-text">Room Swap</span>
                 </a>
             </li>
+          
             </ul>
 
-        <span class="faculty-sidebar-section">RESERVATIONS</span>
+        <span class="faculty-sidebar-section">RESERVATIONS & ROOM SWAPS</span>
         <ul class="sidebar-menu">
            
             <li class="{{ request()->routeIs('faculty.bookings') ? 'active' : '' }}">
                 <a href="{{ route('faculty.bookings') }}" @if(request()->routeIs('faculty.bookings')) aria-current="page" @endif>
                     <span class="faculty-nav-icon"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></span>
                     <span class="sidebar-text">My Reservations</span>
+                </a>
+            </li>
+
+              <li class="{{ request()->routeIs('faculty.room.swap.requests') ? 'active' : '' }}">
+                <a href="{{ route('faculty.room.swap.requests') }}" @if(request()->routeIs('faculty.room.swap.requests')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-inbox" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Swap Requests & History</span>
                 </a>
             </li>
         </ul>

@@ -1349,22 +1349,22 @@
 
     @include('faculty.sidebar')
 
-    <main class="content faculty-dashboard-pro">
+    <main class="content faculty-dashboard-pro faculty-dashboard-view">
 
         <div class="dashboard-header">
 
             <div>
                 <div class="dashboard-eyebrow">
-                    Faculty Workspace
+                    Instructor Workspace
                 </div>
 
                 <h2>
-                    Faculty Dashboard
+                    Instructor Dashboard
                 </h2>
 
                 <p>
-                    Welcome, {{ Auth::user()->name ?? 'Faculty' }}.
-                    View your teaching activity, rooms, and faculty tools in one place.
+                    Welcome, {{ Auth::user()->name ?? 'Instructor' }}.
+                    View your teaching activity, rooms, and instructor tools in one place.
                 </p>
             </div>
 
@@ -1461,7 +1461,7 @@
 
                 <div>
                     <span class="faculty-stat-label">
-                        Room Swap Requests
+                        Incoming Swap Requests
                     </span>
 
                     <strong>
@@ -1483,384 +1483,23 @@
 
         <section class="dashboard-workspace">
 
-            @php
-                // Requests sent by the currently logged-in faculty member.
-                $swapRelations = [
-                    'requester', 'targetUser', 'requesterRoom', 'targetRoom',
-                    'requesterSchedule', 'targetSchedule'
-                ];
-
-                // Outgoing requests belong to the logged-in faculty member.
-                $myRoomSwapRequests = \App\Models\RoomSwapRequest::with($swapRelations)
-                    ->where('requester_id', Auth::id())
-                    ->latest()
-                    ->get();
-
-                
-
-/*
-|--------------------------------------------------------------------------
-| INCOMING ROOM SWAP REQUESTS
-|--------------------------------------------------------------------------
-| Only requests addressed to the currently logged-in faculty member.
-| These are the requests that must appear under "Others' Requests".
-|--------------------------------------------------------------------------
-*/
-
-$pendingIncomingSwapRequests = \App\Models\RoomSwapRequest::with([
-    'requester',
-    'targetUser',
-    'requesterRoom',
-    'targetRoom',
-    'requesterSchedule',
-    'targetSchedule',
-])
-    ->where(function ($query) {
-        $faculty = Auth::user();
-
-        // Primary match: target_user_id
-        $query->where('target_user_id', $faculty->id);
-
-        // Fallback: match the target schedule instructor
-        if (!empty($faculty->name)) {
-            $query->orWhereHas('targetSchedule', function ($scheduleQuery) use ($faculty) {
-                $scheduleQuery->whereRaw(
-                    'LOWER(TRIM(instructor)) = ?',
-                    [mb_strtolower(trim($faculty->name))]
-                );
-            });
-        }
-    })
-    ->whereRaw("LOWER(TRIM(status)) = ?", ['pending'])
-    ->latest()
-    ->get();
-
-            @endphp
-
             <div class="dashboard-panel schedule-panel room-swap-dashboard-card" id="roomSwapCenter">
                 <div class="dashboard-panel-header">
                     <div class="panel-title">
                         <span class="panel-title-icon"><i class="fas fa-right-left"></i></span>
                         <div>
-                            <h3>Room Swap Center</h3>
-                            <p>Track the requests you sent or review requests from other faculty.</p>
+                            <h3>Room Swap Requests</h3>
+                            <p>Review incoming requests and track the swaps you have sent from one organized page.</p>
                         </div>
                     </div>
-                    <a href="{{ route('faculty.room-swap') }}" class="panel-action">
-                        New Room Swap <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-
-                <div class="swap-dashboard-tabs" role="tablist" aria-label="Room swap request sections">
-                    <button type="button" class="swap-dashboard-tab active" id="mySwapTab"
-                            role="tab" aria-selected="true" aria-controls="mySwapPanel"
-                            onclick="switchRoomSwapTab('my')">
-                        <i class="fas fa-paper-plane"></i>
-                        My Room Swap Requests
-                        <span class="swap-tab-count">{{ $myRoomSwapRequests->count() }}</span>
-                    </button>
-                    <button type="button" class="swap-dashboard-tab" id="receivedSwapTab"
-                            role="tab" aria-selected="false" aria-controls="receivedSwapPanel"
-                            onclick="switchRoomSwapTab('received')">
-                        <i class="fas fa-inbox"></i>
-                        Others’ Requests
-                        <span class="swap-tab-count">{{ $pendingIncomingSwapRequests->count() }}</span>
-                    </button>
-                </div>
-
-                {{-- MY REQUESTS: outgoing requests and their current status --}}
-                <div class="swap-tab-panel" id="mySwapPanel" role="tabpanel" aria-labelledby="mySwapTab">
-                    <div class="swap-tab-intro">Requests you sent to other faculty members.</div>
-                    <div class="swap-request-container">
-                        @forelse($myRoomSwapRequests as $swap)
-                            @php
-                                $requesterRoomName = $swap->requesterRoom?->room_name ?? $swap->requesterRoom?->name ?? 'Room not assigned';
-                                $targetRoomName = $swap->targetRoom?->room_name ?? $swap->targetRoom?->name ?? 'Room not assigned';
-                                $swapDay = $swap->requesterSchedule?->day ?? $swap->targetSchedule?->day ?? $swap->swap_date ?? 'N/A';
-                                $swapTime = $swap->requesterSchedule?->time ?? $swap->targetSchedule?->time ?? (($swap->start_time && $swap->end_time) ? $swap->start_time.' - '.$swap->end_time : 'N/A');
-                                $swapStatus = strtolower((string) $swap->status);
-                            @endphp
-                            <article class="swap-request-card-item outgoing-swap-card status-{{ $swapStatus }}">
-                                <div class="swap-request-header">
-                                    <div class="swap-request-person">
-                                        <span class="swap-request-avatar"><i class="fas fa-user"></i></span>
-                                        <div>
-                                            <h4>To: {{ $swap->targetUser?->name ?? 'Unknown Faculty' }}</h4>
-                                            <p>You requested to exchange room assignments.</p>
-                                        </div>
-                                    </div>
-                                    <span class="swap-state-badge {{ $swapStatus }}">
-                                        @if($swapStatus === 'pending') <i class="fas fa-clock"></i> Pending
-                                        @elseif($swapStatus === 'approved') <i class="fas fa-circle"></i> Room Swap Active
-                                        @elseif($swapStatus === 'expired') <i class="fas fa-rotate-left"></i> Completed
-                                        @elseif($swapStatus === 'declined') <i class="fas fa-times-circle"></i> Declined
-                                        @elseif($swapStatus === 'cancelled') <i class="fas fa-ban"></i> Cancelled
-                                        @else {{ ucfirst($swapStatus ?: 'Unknown') }} @endif
-                                    </span>
-                                </div>
-                                <div class="swap-room-comparison">
-                                    <div class="swap-room-box"><span class="swap-room-label">Your Current Room</span><strong>{{ $requesterRoomName }}</strong></div>
-                                    <span class="swap-exchange-icon"><i class="fas fa-right-left"></i></span>
-                                    <div class="swap-room-box"><span class="swap-room-label">Requested Room</span><strong>{{ $targetRoomName }}</strong></div>
-                                </div>
-                                <div class="swap-request-meta">
-                                    <div><span><i class="fas fa-calendar-day"></i> Day / Date</span><strong>{{ $swapDay }}</strong></div>
-                                    <div><span><i class="fas fa-clock"></i> Schedule Time</span><strong>{{ $swapTime }}</strong></div>
-                                </div>
-                                @if($swap->reason)
-                                    <div class="swap-request-reason"><i class="fas fa-comment-dots"></i><div><strong>Your Reason</strong><p>{{ $swap->reason }}</p></div></div>
-                                @endif
-                                @if($swapStatus === 'pending')
-                                    <div class="swap-status-note"><i class="fas fa-hourglass-half"></i> Waiting for {{ $swap->targetUser?->name ?? 'the other faculty member' }} to accept or decline.</div>
-
-                                    <div class="swap-cancel-action">
-                                        <form method="POST"
-                                              action="{{ route('faculty.room-swap.cancel', $swap->id) }}"
-                                              onsubmit="return confirm('Cancel this room swap request? The other faculty member will no longer be able to accept it, and no room assignments will be changed.');">
-                                            @csrf
-                                            <button type="submit" class="swap-cancel-button">
-                                                <i class="fas fa-ban"></i>
-                                                Cancel Room Swap Request
-                                            </button>
-                                        </form>
-                                    </div>
-                                @elseif($swapStatus === 'approved')
-                                    <div class="swap-status-note success"><i class="fas fa-circle"></i> Accepted. The two selected schedules are temporarily using each other’s rooms until {{ $swap->end_time ? \Carbon\Carbon::parse($swap->end_time)->format('g:i A') : 'the scheduled end time' }}.</div>
-                                @elseif($swapStatus === 'expired')
-                                    <div class="swap-status-note expired"><i class="fas fa-rotate-left"></i> The temporary room swap has ended and the original room assignments have been restored.</div>
-                                @elseif($swapStatus === 'declined')
-                                    <div class="swap-status-note declined"><i class="fas fa-info-circle"></i> This request was declined. Your schedule was not changed.</div>
-                                @elseif($swapStatus === 'cancelled')
-                                    <div class="swap-status-note cancelled"><i class="fas fa-ban"></i> You cancelled this room swap request. No room assignments were changed.</div>
-                                @endif
-                            </article>
-                        @empty
-                            <div class="schedule-empty-state">
-                                <span class="schedule-empty-icon"><i class="fas fa-paper-plane"></i></span>
-                                <strong>You haven’t sent any room swap requests</strong>
-                                <p>When you send a request, you can track its status here.</p>
-                                <a href="{{ route('faculty.room-swap') }}" class="empty-state-button"><i class="fas fa-right-left"></i> Create Room Swap Request</a>
-                            </div>
-                        @endforelse
-                    </div>
-                </div>
-
-                {{-- OTHERS' REQUESTS: only incoming pending requests with approve/decline actions --}}
-                <div class="swap-tab-panel" id="receivedSwapPanel" role="tabpanel" aria-labelledby="receivedSwapTab" hidden>
-                    <div class="swap-tab-intro">Requests sent to you by other faculty members. Accept or decline them here.</div>
-                    <div class="swap-request-container">
-                        @forelse($pendingIncomingSwapRequests as $swap)
-                            @php
-                                $requesterRoomName = $swap->requesterRoom?->room_name ?? $swap->requesterRoom?->name ?? 'Room not assigned';
-                                $targetRoomName = $swap->targetRoom?->room_name ?? $swap->targetRoom?->name ?? 'Room not assigned';
-                                $swapDay = $swap->targetSchedule?->day ?? $swap->requesterSchedule?->day ?? $swap->swap_date ?? 'N/A';
-                                $swapTime = $swap->targetSchedule?->time ?? $swap->requesterSchedule?->time ?? (($swap->start_time && $swap->end_time) ? $swap->start_time.' - '.$swap->end_time : 'N/A');
-                            @endphp
-                            <article class="swap-request-card-item incoming-swap-card">
-                                <div class="swap-request-header">
-                                    <div class="swap-request-person">
-                                        <span class="swap-request-avatar"><i class="fas fa-user"></i></span>
-                                        <div><h4>{{ $swap->requester?->name ?? 'Unknown Faculty' }}</h4><p>Requested to exchange classroom assignments with you.</p></div>
-                                    </div>
-                                    <span class="swap-state-badge pending"><i class="fas fa-clock"></i> Pending Your Action</span>
-                                </div>
-                                <div class="swap-room-comparison">
-                                    <div class="swap-room-box"><span class="swap-room-label">Your Current Room</span><strong>{{ $targetRoomName }}</strong></div>
-                                    <span class="swap-exchange-icon"><i class="fas fa-right-left"></i></span>
-                                    <div class="swap-room-box"><span class="swap-room-label">Room You Will Receive</span><strong>{{ $requesterRoomName }}</strong></div>
-                                </div>
-                                <div class="swap-request-meta">
-                                    <div><span><i class="fas fa-calendar-day"></i> Day / Date</span><strong>{{ $swapDay }}</strong></div>
-                                    <div><span><i class="fas fa-clock"></i> Schedule Time</span><strong>{{ $swapTime }}</strong></div>
-                                </div>
-                                <div class="swap-request-reason"><i class="fas fa-comment-dots"></i><div><strong>Reason</strong><p>{{ $swap->reason ?: 'No reason provided.' }}</p></div></div>
-                                <div class="swap-action-buttons">
-                                    <form method="POST" action="{{ route('faculty.room-swap.approve', $swap->id) }}" onsubmit="return confirm('Accept this room swap request? The two selected schedules will exchange rooms.');">
-                                        @csrf
-                                        <button type="submit" class="swap-accept-button"><i class="fas fa-check"></i> Accept Request</button>
-                                    </form>
-                                    <form method="POST" action="{{ route('faculty.room-swap.decline', $swap->id) }}" onsubmit="return confirm('Decline this room swap request?');">
-                                        @csrf
-                                        <button type="submit" class="swap-decline-button"><i class="fas fa-times"></i> Decline Request</button>
-                                    </form>
-                                </div>
-                            </article>
-                        @empty
-                            <div class="schedule-empty-state">
-                                <span class="schedule-empty-icon"><i class="fas fa-inbox"></i></span>
-                                <strong>No Pending Requests From Others</strong>
-                                <p>New room swap requests sent to you will appear here.</p>
-                                <a href="{{ route('faculty.room-swap') }}" class="empty-state-button"><i class="fas fa-right-left"></i> Room Swap Page</a>
-                            </div>
-                        @endforelse
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <a href="{{ route('faculty.room.swap.requests') }}" class="panel-action">Manage Requests <i class="fas fa-arrow-right"></i></a>
+                        <a href="{{ route('faculty.room-swap') }}" class="panel-action">New Room Swap <i class="fas fa-plus"></i></a>
                     </div>
                 </div>
             </div>
 
-            <style>
-                .room-swap-dashboard-card { overflow: hidden; }
-                .swap-dashboard-tabs { display:flex; gap:8px; padding:16px 20px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-                .swap-dashboard-tab { display:inline-flex; align-items:center; justify-content:center; gap:9px; border:1px solid transparent; border-bottom:3px solid transparent; background:transparent; color:#657168; padding:12px 15px; font-weight:800; font-size:13px; cursor:pointer; border-radius:10px 10px 0 0; transition:all .18s ease; }
-                .swap-dashboard-tab:hover { background:#f4f8f4; color:var(--primary-dark); }
-                .swap-dashboard-tab.active { color:var(--primary-dark); background:#eef7ef; border-bottom-color:var(--primary); }
-                .swap-tab-count { display:inline-flex; align-items:center; justify-content:center; min-width:23px; height:23px; padding:0 7px; border-radius:999px; background:#e7ece8; color:#445148; font-size:11px; }
-                .swap-dashboard-tab.active .swap-tab-count { background:var(--primary); color:#fff; }
-                .swap-tab-panel[hidden] { display:none !important; }
-                .swap-tab-intro { padding:15px 22px 0; color:var(--muted); font-size:12px; }
-                .swap-state-badge { display:inline-flex; align-items:center; gap:6px; padding:7px 10px; border-radius:999px; font-size:10px; font-weight:800; white-space:nowrap; }
-                .swap-state-badge.pending { background:#fff0d2; color:#985700; }
-                .swap-state-badge.approved { background:#ffe8e8; color:#b32626; }
-                .swap-state-badge.expired { background:#eef1ef; color:#5f6963; }
-                .swap-state-badge.declined { background:#fde8e7; color:#a12828; }
-                .outgoing-swap-card.status-pending { border-left:4px solid #ed9b20; }
-                .outgoing-swap-card.status-approved { border-left:4px solid #d13b3b; }
-                .outgoing-swap-card.status-expired { border-left:4px solid #8b9690; }
-                .outgoing-swap-card.status-declined { border-left:4px solid #c94343; }
-                .outgoing-swap-card.status-cancelled { border-left:4px solid #7b8580; }
-                .swap-status-note { display:flex; gap:8px; align-items:flex-start; margin-top:14px; padding:11px 13px; border-radius:9px; background:#fff6e5; color:#8b590c; font-size:12px; font-weight:650; }
-                .swap-cancel-action { display:flex; justify-content:flex-end; margin-top:10px; }
-                .swap-cancel-action form { margin:0; }
-                .swap-cancel-button {
-                    display:inline-flex;
-                    align-items:center;
-                    justify-content:center;
-                    gap:7px;
-                    min-height:36px;
-                    padding:8px 12px;
-                    border:1px solid #e2bcbc;
-                    border-radius:9px;
-                    background:#fff5f5;
-                    color:#b32626;
-                    font-size:11px;
-                    font-weight:800;
-                    cursor:pointer;
-                    transition:background .16s ease, border-color .16s ease, transform .16s ease;
-                }
-                .swap-cancel-button:hover {
-                    background:#ffe8e8;
-                    border-color:#d99696;
-                    transform:translateY(-1px);
-                }
-                .swap-status-note.success { background:#fff0f0; color:#a12828; }
-                .swap-status-note.expired { background:#eef1ef; color:#5f6963; }
-                .swap-status-note.declined { background:#fff0ef; color:#a12828; }
-                .swap-status-note.cancelled { background:#f0f2f1; color:#5f6963; }
-                @media(max-width:650px) { .swap-dashboard-tabs { padding:12px 12px 0; } .swap-dashboard-tab { flex:1 1 100%; justify-content:flex-start; border-radius:9px; border:1px solid var(--border); } .swap-dashboard-tab.active { border-color:#b9d8be; } .swap-tab-intro { padding:12px 14px 0; } }
-            </style>
 
-            <script>
-                function switchRoomSwapTab(tab) {
-                    const mine = tab === 'my';
-                    const myPanel = document.getElementById('mySwapPanel');
-                    const receivedPanel = document.getElementById('receivedSwapPanel');
-                    const myButton = document.getElementById('mySwapTab');
-                    const receivedButton = document.getElementById('receivedSwapTab');
-                    if (!myPanel || !receivedPanel || !myButton || !receivedButton) return;
-                    myPanel.hidden = !mine;
-                    receivedPanel.hidden = mine;
-                    myButton.classList.toggle('active', mine);
-                    receivedButton.classList.toggle('active', !mine);
-                    myButton.setAttribute('aria-selected', mine ? 'true' : 'false');
-                    receivedButton.setAttribute('aria-selected', mine ? 'false' : 'true');
-                }
-
-                document.addEventListener('DOMContentLoaded', function () {
-                    const requestedPanel = window.location.hash;
-                    if (requestedPanel === '#receivedSwapPanel') {
-                        switchRoomSwapTab('received');
-                    } else if (requestedPanel === '#mySwapPanel') {
-                        switchRoomSwapTab('my');
-                    } else {
-                        return;
-                    }
-                    window.setTimeout(function () {
-                        document.getElementById('roomSwapCenter')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 80);
-                });
-            </script>
-
-            <style>
-                .swap-pending-count {
-                    display: inline-flex;
-                    align-items: center;
-                    padding: 7px 10px;
-                    border-radius: 999px;
-                    background: #fff5dc;
-                    color: #8b6100;
-                    font-size: 10px;
-                    font-weight: 800;
-                    white-space: nowrap;
-                }
-                .swap-request-container { padding: 14px; }
-                .swap-request-card-item {
-                    padding: 16px;
-                    margin-bottom: 13px;
-                    border: 1px solid var(--border);
-                    border-left: 4px solid #d99a00;
-                    border-radius: 12px;
-                    background: #fff;
-                }
-                .swap-request-card-item:last-child { margin-bottom: 0; }
-                .swap-request-header {
-                    display: flex;
-                    align-items: flex-start;
-                    justify-content: space-between;
-                    gap: 12px;
-                    margin-bottom: 15px;
-                }
-                .swap-request-person { display: flex; align-items: center; gap: 10px; min-width: 0; }
-                .swap-request-avatar {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 38px;
-                    height: 38px;
-                    flex: 0 0 38px;
-                    border-radius: 11px;
-                    background: var(--primary-soft);
-                    color: var(--primary);
-                }
-                .swap-request-person h4 { margin: 0 0 4px; color: var(--text); font-size: 13px; }
-                .swap-request-person p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
-                .swap-pending-label {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 5px;
-                    padding: 6px 8px;
-                    border-radius: 999px;
-                    background: #fff5dc;
-                    color: #8b6100;
-                    font-size: 9px;
-                    font-weight: 800;
-                    white-space: nowrap;
-                }
-                .swap-room-comparison { display: grid; grid-template-columns: minmax(0,1fr) 26px minmax(0,1fr); align-items: center; gap: 8px; }
-                .swap-room-box { min-width: 0; padding: 11px; border: 1px solid #e2e9e3; border-radius: 10px; background: #f8faf8; }
-                .swap-room-label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; }
-                .swap-room-box strong { display: block; color: var(--text); font-size: 12px; overflow-wrap: anywhere; }
-                .swap-exchange-icon { color: var(--primary); text-align: center; font-size: 12px; }
-                .swap-request-meta { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-top: 10px; }
-                .swap-request-meta > div { padding: 10px; border-radius: 9px; background: #f8faf8; }
-                .swap-request-meta span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 9px; }
-                .swap-request-meta span i { margin-right: 4px; color: var(--primary); }
-                .swap-request-meta strong { display: block; color: var(--text); font-size: 11px; overflow-wrap: anywhere; }
-                .swap-request-reason { display: flex; align-items: flex-start; gap: 9px; margin-top: 10px; padding: 11px; border: 1px solid #f1dfae; border-radius: 9px; background: #fff8e8; color: #795600; }
-                .swap-request-reason > i { margin-top: 2px; }
-                .swap-request-reason strong { display: block; font-size: 10px; }
-                .swap-request-reason p { margin: 4px 0 0; font-size: 11px; line-height: 1.45; overflow-wrap: anywhere; }
-                .swap-action-buttons { display: flex; gap: 9px; margin-top: 14px; }
-                .swap-action-buttons form { flex: 1; min-width: 0; margin: 0; }
-                .swap-action-buttons button { width: 100%; min-height: 39px; padding: 9px 10px; border: 0; border-radius: 8px; color: #fff; font-size: 10px; font-weight: 800; cursor: pointer; transition: opacity .2s ease, transform .2s ease; }
-                .swap-action-buttons button:hover { opacity: .9; transform: translateY(-1px); }
-                .swap-accept-button { background: #2e7d32; }
-                .swap-decline-button { background: #c62828; }
-                @media (max-width: 520px) {
-                    .swap-request-header { flex-direction: column; }
-                    .swap-room-comparison { grid-template-columns: 1fr; }
-                    .swap-exchange-icon { transform: rotate(90deg); }
-                    .swap-action-buttons { flex-direction: column; }
-                }
-            </style>
 
             <div class="dashboard-side-column">
 
@@ -1877,9 +1516,9 @@ $pendingIncomingSwapRequests = \App\Models\RoomSwapRequest::with([
                     <div class="campus-snapshot-grid">
                         <div class="campus-snapshot-item"><span>Active schedules</span><strong>{{ number_format($systemActiveScheduleCount ?? 0) }}</strong></div>
                         <div class="campus-snapshot-item"><span>Today’s classes</span><strong>{{ number_format($systemTodayScheduleCount ?? 0) }}</strong></div>
-                        <div class="campus-snapshot-item"><span>Departments</span><strong>{{ number_format($totalDepartments ?? 0) }}</strong></div>
+                        <div class="campus-snapshot-item"><span>Colleges</span><strong>{{ number_format($totalDepartments ?? 0) }}</strong></div>
                         <div class="campus-snapshot-item"><span>Buildings</span><strong>{{ number_format($totalBuildings ?? 0) }}</strong></div>
-                        <div class="campus-snapshot-item"><span>Faculty members</span><strong>{{ number_format($systemFacultyCount ?? 0) }}</strong></div>
+                        <div class="campus-snapshot-item"><span>Instructors</span><strong>{{ number_format($systemFacultyCount ?? 0) }}</strong></div>
                         <div class="campus-snapshot-item"><span>Room reservations</span><strong>{{ number_format($currentReservationsCount ?? 0) }}</strong></div>
                     </div>
                 </div>
@@ -1899,7 +1538,7 @@ $pendingIncomingSwapRequests = \App\Models\RoomSwapRequest::with([
                                 </h3>
 
                                 <p>
-                                    Current faculty activity.
+                                    Current instructor activity.
                                 </p>
                             </div>
 
@@ -1958,7 +1597,7 @@ $pendingIncomingSwapRequests = \App\Models\RoomSwapRequest::with([
                         <div class="today-info-row">
                             <span>
                                 <i class="fas fa-right-left"></i>
-                                Swap Requests
+                                Incoming Swap Requests
                             </span>
 
                             <strong>
@@ -2586,6 +2225,183 @@ $pendingIncomingSwapRequests = \App\Models\RoomSwapRequest::with([
     .faculty-dashboard-pro .faculty-stat-icon { width:35px !important; height:35px !important; flex-basis:35px; }
     .faculty-dashboard-pro .faculty-stat-card strong { font-size:22px !important; }
 }
+
+/* Faculty dashboard refinement: stronger hierarchy, roomier cards, and a consistent campus palette. */
+body.portal-shell.faculty-portal .main-layout > .content.faculty-dashboard-view {
+    min-height:100vh;
+    padding:128px clamp(20px,3vw,42px) 46px !important;
+    background:
+        radial-gradient(ellipse at 88% 2%,rgba(215,195,145,.25),transparent 25%),
+        radial-gradient(ellipse at 8% 96%,rgba(204,224,208,.36),transparent 30%),
+        linear-gradient(145deg,#edf2ec 0%,#f8f7f2 58%,#f1f0e8 100%);
+    color:#263a2f;
+    font-family:'DM Sans',Arial,sans-serif;
+}
+.faculty-dashboard-view > * { width:min(100%,1480px); margin-right:auto; margin-left:auto; }
+.faculty-dashboard-view .dashboard-header {
+    position:relative;
+    isolation:isolate;
+    overflow:hidden;
+    align-items:center !important;
+    min-height:220px;
+    gap:26px;
+    margin-bottom:22px !important;
+    padding:clamp(30px,4vw,46px) clamp(25px,4vw,48px) !important;
+    border:1px solid rgba(232,215,175,.22);
+    border-radius:24px;
+    background:radial-gradient(circle at 78% 18%,rgba(217,196,143,.17),transparent 25%),linear-gradient(118deg,#153a32 0%,#215440 58%,#37684e 100%);
+    box-shadow:0 20px 44px rgba(24,58,43,.16);
+}
+.faculty-dashboard-view .dashboard-header::before {
+    content:"";
+    position:absolute;
+    z-index:-1;
+    top:0;
+    bottom:0;
+    left:0;
+    width:5px;
+    background:#d8c18c;
+}
+.faculty-dashboard-view .dashboard-header::after {
+    content:"";
+    position:absolute;
+    z-index:-1;
+    top:-158px;
+    right:105px;
+    width:340px;
+    height:340px;
+    border:1px solid rgba(244,232,200,.23);
+    border-radius:50%;
+    box-shadow:0 0 0 27px rgba(244,232,200,.035),0 0 0 63px rgba(244,232,200,.026),0 0 0 102px rgba(244,232,200,.018);
+    pointer-events:none;
+}
+.faculty-dashboard-view .dashboard-header > div:first-child,
+.faculty-dashboard-view .dashboard-date-card { position:relative; z-index:1; }
+.faculty-dashboard-view .dashboard-eyebrow { margin-bottom:12px; color:#e2ca8d !important; font-size:12px !important; font-weight:800; letter-spacing:.16em !important; }
+.faculty-dashboard-view .dashboard-header h2 { margin:0 0 12px; color:#fff !important; font:800 clamp(34px,3.2vw,46px)/1.1 'Manrope','DM Sans',sans-serif !important; letter-spacing:-.045em; }
+.faculty-dashboard-view .dashboard-header p { max-width:680px; margin:0; color:#e0e9e1 !important; font-size:15px; font-weight:550; line-height:1.7; }
+.faculty-dashboard-view .dashboard-date-card { flex:0 0 auto; gap:13px; padding:13px 16px; border-color:rgba(255,255,255,.2) !important; border-radius:14px; background:rgba(255,255,255,.09) !important; box-shadow:none !important; }
+.faculty-dashboard-view .dashboard-date-card > i { width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,.13) !important; color:#e7d49f !important; font-size:16px; }
+.faculty-dashboard-view .dashboard-date-card strong { color:#fff !important; font-size:14px !important; font-weight:800; }
+.faculty-dashboard-view .dashboard-date-card span { margin-top:4px; color:#d2ded4 !important; font-size:12px !important; font-weight:650; }
+
+.faculty-dashboard-view .faculty-stats-grid { gap:14px !important; margin-bottom:22px !important; }
+.faculty-dashboard-view .faculty-stat-card { min-height:142px; gap:15px !important; padding:20px !important; border-color:#dce6dc !important; border-radius:17px !important; background:linear-gradient(155deg,#fff 0%,#fbfcf9 100%) !important; box-shadow:0 9px 25px rgba(31,57,43,.055) !important; }
+.faculty-dashboard-view .faculty-stat-card::after { width:92px; height:92px; right:-40px; bottom:-48px; background:rgba(39,103,71,.065); }
+.faculty-dashboard-view .faculty-stat-icon { width:46px !important; height:46px !important; flex:0 0 46px; border:1px solid #e4eadd; border-radius:14px !important; font-size:18px; }
+.faculty-dashboard-view .faculty-stat-label { display:block; color:#43584a !important; font-size:13px !important; font-weight:800 !important; line-height:1.4; }
+.faculty-dashboard-view .faculty-stat-card strong { display:block; margin:7px 0 4px; color:#173b33 !important; font:800 34px/1 'Manrope','DM Sans',sans-serif !important; }
+.faculty-dashboard-view .faculty-stat-card small { display:block; color:#64746a !important; font-size:12px !important; font-weight:600; line-height:1.45; }
+
+.faculty-dashboard-view .dashboard-workspace { grid-template-columns:minmax(0,1.55fr) minmax(300px,.82fr) !important; gap:18px !important; }
+.faculty-dashboard-view .dashboard-panel { overflow:hidden; border:1px solid #dce6dc !important; border-radius:19px !important; background:#fff !important; box-shadow:0 9px 26px rgba(31,57,43,.05) !important; }
+.faculty-dashboard-view .dashboard-panel-header { gap:14px; padding:21px 23px !important; border-bottom:1px solid #e9eee8 !important; background:linear-gradient(110deg,#f6f8f3,#fff); }
+.faculty-dashboard-view .dashboard-panel-header h3 { color:#203d30 !important; font:800 18px/1.25 'Manrope','DM Sans',sans-serif !important; }
+.faculty-dashboard-view .dashboard-panel-header p { margin-top:5px; color:#65756a !important; font-size:13px !important; font-weight:550; line-height:1.55; }
+.faculty-dashboard-view .panel-title-icon { width:40px; height:40px; border:1px solid #e2e9df; border-radius:13px !important; background:#edf3eb !important; color:#285940 !important; font-size:16px; }
+.faculty-dashboard-view .panel-action { color:#24563d; font-size:13px; font-weight:800; }
+.faculty-dashboard-view .panel-action:hover { color:#173b33; }
+
+.faculty-dashboard-view .campus-snapshot-grid { gap:10px; padding:17px 19px 20px; }
+.faculty-dashboard-view .campus-snapshot-item { padding:13px; border-color:#e2e9e0; border-radius:12px; background:#f8faf6; }
+.faculty-dashboard-view .campus-snapshot-item span { color:#586d5e; font-size:12px; font-weight:700; line-height:1.4; }
+.faculty-dashboard-view .campus-snapshot-item strong { margin-top:7px; color:#1b5b3e; font:800 24px/1.1 'Manrope','DM Sans',sans-serif; }
+.faculty-dashboard-view .today-info { padding:8px 19px 19px !important; }
+.faculty-dashboard-view .today-clock { padding:16px; border:1px solid #dfebdf; border-radius:14px !important; background:linear-gradient(125deg,#eef6ed,#f8faf5) !important; }
+.faculty-dashboard-view .today-clock span { color:#586d5e; font-size:12px; font-weight:750; }
+.faculty-dashboard-view .today-clock strong { margin-top:5px; color:#173b33; font:800 28px/1.2 'Manrope','DM Sans',sans-serif; }
+.faculty-dashboard-view .today-info-row { min-height:52px; border-color:#edf1eb; }
+.faculty-dashboard-view .today-info-row span { color:#53675a; font-size:13px; font-weight:700; }
+.faculty-dashboard-view .today-info-row span i { color:#32704d; }
+.faculty-dashboard-view .today-info-row strong { color:#203d30; font-size:15px; font-weight:850; }
+
+.faculty-dashboard-view .today-schedule-item { gap:14px; margin:0 20px !important; padding:15px 0; border-color:#e8eee7 !important; }
+.faculty-dashboard-view .schedule-time-block { min-height:60px; border-color:#dce9dc; border-radius:12px !important; background:#edf5eb !important; color:#245940 !important; }
+.faculty-dashboard-view .schedule-time-block strong { color:#294b38; font-size:12px; font-weight:800; }
+.faculty-dashboard-view .schedule-code-row > strong { color:#24563d; font-size:13px; font-weight:850; }
+.faculty-dashboard-view .schedule-type-badge { font-size:10px; font-weight:800; }
+.faculty-dashboard-view .schedule-class-info h4 { margin:6px 0 9px; color:#203d30; font-size:16px; font-weight:800; line-height:1.35; }
+.faculty-dashboard-view .schedule-meta { gap:8px; }
+.faculty-dashboard-view .schedule-meta span { padding:6px 9px; border-radius:8px; background:#f5f8f3; color:#53675a; font-size:11px; font-weight:700; }
+.faculty-dashboard-view .schedule-empty-state { min-height:250px; padding:34px 24px; }
+.faculty-dashboard-view .schedule-empty-icon { width:58px; height:58px; border:1px solid #e3e9df; border-radius:17px; background:#edf3eb; color:#78917e; font-size:23px; }
+.faculty-dashboard-view .schedule-empty-state strong { color:#294437; font-size:16px; font-weight:850; }
+.faculty-dashboard-view .schedule-empty-state p { color:#65756a; font-size:13px; font-weight:550; line-height:1.6; }
+.faculty-dashboard-view .empty-state-button { min-height:40px; padding:0 14px; border-radius:10px; background:#246044; font-size:12px; font-weight:800; }
+
+.faculty-dashboard-view .swap-dashboard-tabs { gap:8px; padding:13px 19px 0; border-bottom-color:#e6ece5; }
+.faculty-dashboard-view .swap-dashboard-tab { min-height:46px; gap:8px; padding:0 13px; border-radius:10px 10px 0 0; color:#596c60; font-size:13px; font-weight:800; }
+.faculty-dashboard-view .swap-dashboard-tab.active { border-bottom-color:#2a6847 !important; background:#edf5eb !important; color:#1e553a !important; }
+.faculty-dashboard-view .swap-tab-count { padding:4px 8px; border-radius:999px; background:#e0eadf; color:#315943; font-size:11px; font-weight:850; }
+.faculty-dashboard-view .swap-tab-panel { padding:16px 19px 20px; }
+.faculty-dashboard-view .swap-tab-intro { margin-bottom:13px; color:#596c60; font-size:13px; font-weight:600; line-height:1.55; }
+.faculty-dashboard-view .swap-request-card-item { margin-bottom:13px; padding:18px !important; border-color:#dfe8de !important; border-radius:15px !important; background:#fff !important; box-shadow:0 5px 17px rgba(31,57,43,.04) !important; }
+.faculty-dashboard-view .swap-request-header { gap:14px; }
+.faculty-dashboard-view .swap-request-avatar { width:42px; height:42px; border-radius:13px; background:#edf3eb; color:#285940; font-size:16px; }
+.faculty-dashboard-view .swap-request-person h4 { color:#233f31; font-size:15px; font-weight:850; }
+.faculty-dashboard-view .swap-request-person p { color:#64746a; font-size:12px; font-weight:550; line-height:1.5; }
+.faculty-dashboard-view .swap-state-badge { padding:6px 10px; font-size:11px; font-weight:850; }
+.faculty-dashboard-view .swap-room-comparison { gap:10px; }
+.faculty-dashboard-view .swap-room-box { padding:13px; border-color:#e1e9df; border-radius:11px; background:#f8faf6; }
+.faculty-dashboard-view .swap-room-label { color:#637368; font-size:10px; font-weight:850; }
+.faculty-dashboard-view .swap-room-box strong { color:#294437; font-size:14px; font-weight:850; line-height:1.4; }
+.faculty-dashboard-view .swap-request-meta { gap:10px; margin-top:11px; }
+.faculty-dashboard-view .swap-request-meta > div { padding:12px; border:1px solid #e9eee7; border-radius:10px; background:#fafbf9; }
+.faculty-dashboard-view .swap-request-meta span { color:#64746a; font-size:11px; font-weight:700; }
+.faculty-dashboard-view .swap-request-meta strong { color:#294437; font-size:13px; font-weight:800; line-height:1.4; }
+.faculty-dashboard-view .swap-request-reason { padding:13px; border-radius:11px; font-size:13px; line-height:1.55; }
+.faculty-dashboard-view .swap-request-reason strong { font-size:12px; font-weight:850; }
+.faculty-dashboard-view .swap-request-reason p { font-size:13px; line-height:1.55; }
+.faculty-dashboard-view .swap-status-note { margin-top:12px; padding:12px 13px; border-radius:10px; font-size:12px; font-weight:700; line-height:1.5; }
+.faculty-dashboard-view .swap-action-buttons { gap:10px; margin-top:15px; }
+.faculty-dashboard-view .swap-action-buttons button,.faculty-dashboard-view .swap-cancel-button { min-height:43px; border-radius:10px; font-size:12px; font-weight:850; }
+
+.faculty-dashboard-view .reservation-summary-card,
+.faculty-dashboard-view .reservation-card { border-color:#dfe8de !important; border-radius:15px !important; box-shadow:0 6px 19px rgba(31,57,43,.045) !important; }
+.faculty-dashboard-view .reservation-summary-title h3 { color:#203d30; font-size:17px; font-weight:850; }
+.faculty-dashboard-view .reservation-summary-title p { color:#627369; font-size:13px; line-height:1.5; }
+.faculty-dashboard-view .reservation-summary-total { color:#1b5b3e; font-size:34px; font-weight:850; }
+.faculty-dashboard-view .reservation-status-filter { border-color:#e4ebe2 !important; background:#f8faf7 !important; }
+.faculty-dashboard-view .reservation-status-filter-label { color:#4e6355; font-size:12px; font-weight:850; }
+.faculty-dashboard-view .reservation-filter-btn { min-height:36px; padding:0 11px; border-radius:9px !important; font-size:12px; font-weight:800; }
+.faculty-dashboard-view .reservation-filter-count { font-size:11px; font-weight:850; }
+.faculty-dashboard-view .reservation-card h3 { color:#233f31; font-size:16px !important; font-weight:850; }
+.faculty-dashboard-view .reservation-card p { color:#5e7064; font-size:13px !important; line-height:1.55; }
+.faculty-dashboard-view .reservation-status-badge { padding:6px 10px; font-size:11px; font-weight:850; }
+
+@media(max-width:1100px) {
+    .faculty-dashboard-view .dashboard-workspace { grid-template-columns:minmax(0,1fr) !important; }
+    .faculty-dashboard-view .dashboard-side-column { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+}
+@media(max-width:760px) {
+    body.portal-shell.faculty-portal .main-layout > .content.faculty-dashboard-view { min-height:calc(100vh - 64px); padding:22px 17px 32px !important; }
+    .faculty-dashboard-view .dashboard-header { align-items:flex-start !important; flex-direction:column; min-height:0; gap:20px; padding:28px 24px !important; }
+    .faculty-dashboard-view .dashboard-header::after { top:-85px; right:-80px; width:260px; height:260px; }
+    .faculty-dashboard-view .dashboard-date-card { align-self:flex-start; }
+    .faculty-dashboard-view .faculty-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+    .faculty-dashboard-view .dashboard-side-column { grid-template-columns:1fr !important; }
+}
+@media(max-width:520px) {
+    .faculty-dashboard-view .dashboard-header { padding:25px 21px !important; }
+    .faculty-dashboard-view .dashboard-header h2 { font-size:34px !important; }
+    .faculty-dashboard-view .dashboard-header p { font-size:14px; }
+    .faculty-dashboard-view .faculty-stats-grid { gap:10px !important; }
+    .faculty-dashboard-view .faculty-stat-card { align-items:flex-start; flex-direction:column; min-height:148px; gap:9px !important; padding:15px !important; }
+    .faculty-dashboard-view .faculty-stat-icon { width:38px !important; height:38px !important; flex-basis:38px; font-size:15px; }
+    .faculty-dashboard-view .faculty-stat-label { font-size:12px !important; }
+    .faculty-dashboard-view .faculty-stat-card strong { margin:4px 0; font-size:29px !important; }
+    .faculty-dashboard-view .faculty-stat-card small { font-size:11px !important; }
+    .faculty-dashboard-view .dashboard-panel-header { padding:17px !important; }
+    .faculty-dashboard-view .dashboard-panel-header h3 { font-size:17px !important; }
+    .faculty-dashboard-view .swap-dashboard-tabs { overflow-x:auto; padding-right:12px; padding-left:12px; }
+    .faculty-dashboard-view .swap-dashboard-tab { flex:0 0 auto; font-size:12px; }
+    .faculty-dashboard-view .swap-tab-panel { padding:13px 12px 15px; }
+    .faculty-dashboard-view .swap-request-card-item { padding:14px !important; }
+    .faculty-dashboard-view .swap-room-comparison { grid-template-columns:1fr; }
+    .faculty-dashboard-view .swap-exchange-icon { transform:rotate(90deg); }
+    .faculty-dashboard-view .swap-request-meta { grid-template-columns:1fr; }
+    .faculty-dashboard-view .swap-action-buttons { flex-direction:column; }
+}
 </style>
 
 
@@ -2658,7 +2474,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 </script>
-@include('footerheader.footer')
+
 <script>
 
 function showTab(tabId, button)

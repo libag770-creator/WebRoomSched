@@ -1,168 +1,139 @@
 @include('footerheader.header')
 
+<style>
+    /* Dashboard page and the matching WebRoomSched admin shell. */
+    .portal-shell.admin-portal { --dashboard-sidebar-width:252px; --dashboard-shell-gutter:28px; background:#e9eee8; }
+    .portal-shell.admin-portal .wrapper { min-height:100vh; background:#e9eee8; }
+    .portal-shell.admin-portal .main-layout { grid-template-columns:var(--dashboard-sidebar-width) minmax(0,1fr); align-items:stretch; min-height:100vh; }
+    .portal-shell.admin-portal .main-layout > .sidebar.admin-sidebar { position:sticky; top:0; align-self:start; width:var(--dashboard-sidebar-width); height:100vh; min-height:100vh; padding:25px 15px 18px; border:0; background:linear-gradient(165deg,#112f29 0%,#173b33 54%,#285342 100%); color:#f7f5eb; box-shadow:12px 0 32px rgba(20,47,37,.1); scrollbar-color:#496a59 transparent; }
+    .portal-shell.admin-portal .portal-brand-mark { background:#d8c18c; color:#173b33; box-shadow:0 8px 18px rgba(0,0,0,.18); }
+    .portal-shell.admin-portal .portal-brand-copy strong { color:#fffdf5; }
+    .portal-shell.admin-portal .portal-brand-copy small { color:#bdc9bd; }
+    .portal-shell.admin-portal .faculty-sidebar-section { color:#c3b27f; }
+    .portal-shell.admin-portal .sidebar-menu a { color:#d1ddd3; }
+    .portal-shell.admin-portal .sidebar-menu a:hover { border-color:rgba(255,255,255,.09); background:rgba(255,255,255,.08); color:#fff; }
+    .portal-shell.admin-portal .sidebar-menu li.active > a,.portal-shell.admin-portal .sidebar-menu a[aria-current="page"] { border-color:rgba(220,199,143,.26); background:rgba(220,199,143,.13); color:#fff9e8; }
+    .portal-shell.admin-portal .sidebar-menu li.active > a::before,.portal-shell.admin-portal .sidebar-menu a[aria-current="page"]::before { background:#d8c18c; }
+    .portal-shell.admin-portal .faculty-nav-icon { color:#b5c5b9; }
+    .portal-shell.admin-portal .sidebar-menu li.active .faculty-nav-icon,.portal-shell.admin-portal .sidebar-menu a[aria-current="page"] .faculty-nav-icon { color:#e2ca8d; }
+    .portal-shell.admin-portal .faculty-sidebar-footer { border-color:rgba(255,255,255,.16); }
+    .portal-shell.admin-portal .faculty-sidebar-footer strong { color:#f3f2e9; }
+    .portal-shell.admin-portal .faculty-sidebar-footer span:not(.faculty-footer-indicator) { color:#b9c7bc; }
+    .portal-shell.admin-portal .top-header { position:fixed; top:16px; right:var(--dashboard-shell-gutter); left:calc(var(--dashboard-sidebar-width) + var(--dashboard-shell-gutter)); z-index:1000; min-height:72px; padding:10px 15px 10px 22px; border:1px solid rgba(224,231,224,.96); border-radius:18px; background:rgba(255,255,255,.95); box-shadow:0 12px 34px rgba(31,57,43,.09); backdrop-filter:blur(18px); }
+    .portal-shell.admin-portal .header-title small { color:#9a8450; font-size:10px; }
+    .portal-shell.admin-portal .header-title h3 { color:#173b33; font-size:20px; }
+    .portal-shell.admin-portal .header-action { color:#375448; }
+    .portal-shell.admin-portal .sidebar-toggle { top:36px; left:calc(var(--dashboard-sidebar-width) - 15px); z-index:1200; border-color:rgba(216,193,140,.52); background:#f8f5eb; color:#224336; }
+    .portal-shell.admin-portal.sidebar-collapsed { --dashboard-sidebar-width:76px; }
+    .portal-shell.admin-portal.sidebar-collapsed .main-layout { grid-template-columns:76px minmax(0,1fr); }
+    .portal-shell.admin-portal.sidebar-collapsed .main-layout > .sidebar.admin-sidebar { width:76px; padding-right:10px; padding-left:10px; }
+    .portal-shell.admin-portal.sidebar-collapsed .sidebar-toggle { left:61px; }
+    .portal-shell.admin-portal .main-layout > .content.admin-dashboard-view { min-height:100vh; padding:124px clamp(20px,3vw,42px) 42px; background:radial-gradient(ellipse at 90% 2%,rgba(214,194,143,.23),transparent 28%),linear-gradient(145deg,#eef2ec 0%,#f8f7f2 58%,#f1f0e8 100%); }
+
+    .admin-dashboard-view .admin-home { width:min(100%,1480px); margin:0 auto; }
+    .admin-dashboard-view .ah-welcome { min-height:235px; margin-bottom:29px; padding:clamp(27px,4vw,43px); border:1px solid rgba(231,214,173,.22); border-radius:24px; background:radial-gradient(circle at 82% 20%,rgba(215,194,143,.18),transparent 23%),linear-gradient(118deg,#163b33 0%,#245543 58%,#37664d 100%); box-shadow:0 18px 40px rgba(28,65,48,.16); }
+    .admin-dashboard-view .ah-welcome::after { right:-45px; bottom:-175px; width:340px; height:340px; border-color:rgba(232,215,169,.25); box-shadow:0 0 0 26px rgba(232,215,169,.035),0 0 0 62px rgba(232,215,169,.025),0 0 0 101px rgba(232,215,169,.02); }
+    .admin-dashboard-view .ah-welcome-copy { max-width:720px; }
+    .admin-dashboard-view .ah-eyebrow { color:#e2c987; font-size:10px; }
+    .admin-dashboard-view .ah-welcome h1 { max-width:750px; font-size:clamp(31px,3.2vw,45px); line-height:1.12; }
+    .admin-dashboard-view .ah-welcome-copy > p:not(.ah-eyebrow) { max-width:640px; font-size:15px; }
+    .admin-dashboard-view .ah-hero-actions { position:relative; z-index:2; display:flex; flex-wrap:wrap; gap:9px; margin-top:21px; }
+    .admin-dashboard-view .ah-hero-action { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:42px; padding:0 15px; border:1px solid rgba(255,255,255,.24); border-radius:10px; color:#fff; font-size:12px; font-weight:700; text-decoration:none; transition:background .16s ease,transform .16s ease; }
+    .admin-dashboard-view .ah-hero-action:hover { transform:translateY(-1px); background:rgba(255,255,255,.14); }
+    .admin-dashboard-view .ah-hero-action.primary { border-color:#e8d7ae; background:#e8d7ae; color:#203d34; }
+    .admin-dashboard-view .ah-hero-action.primary:hover { background:#f1e3c3; }
+    .admin-dashboard-view .ah-hero-note { margin-top:13px !important; font-size:12px !important; }
+    .admin-dashboard-view .ah-date { min-width:230px; padding:17px; border-color:rgba(255,255,255,.23); border-radius:15px; background:rgba(255,255,255,.1); }
+    .admin-dashboard-view .ah-date > i { color:#e2c987; font-size:19px; }
+    .admin-dashboard-view .ah-date span { color:#d8e2d8; font-size:10px; }
+    .admin-dashboard-view .ah-date strong { color:#fff; font-size:13px; }
+    .admin-dashboard-view .ah-section-heading { display:flex; justify-content:space-between; align-items:flex-end; margin:0 0 15px; }
+    .admin-dashboard-view .ah-section-heading > div::before { content:"CAMPUS OVERVIEW"; display:block; margin-bottom:7px; color:#917b4a; font-size:10px; font-weight:800; letter-spacing:.15em; }
+    .admin-dashboard-view .ah-section-heading h2 { color:#173b33; font-size:23px; }
+    .admin-dashboard-view .ah-section-heading p { color:#5d6d63; font-size:13px; }
+    .admin-dashboard-view .ah-stats { gap:13px; margin:0 0 25px; }
+    .admin-dashboard-view a.ah-stat { display:block; min-height:145px; padding:19px 20px; border-color:#dfe7dd; color:inherit; text-decoration:none; }
+    .admin-dashboard-view a.ah-stat:hover { transform:translateY(-3px); border-color:#9db7a3; box-shadow:0 14px 30px rgba(31,57,43,.09); }
+    .admin-dashboard-view .ah-stat-label { color:#4e6256; font-size:12px; font-weight:700; }
+    .admin-dashboard-view .ah-stat-icon { width:38px; height:38px; border:1px solid #e2e9df; background:#eef3eb; color:#285940; font-size:15px; }
+    .admin-dashboard-view .ah-stat-number { margin-top:14px; color:#173b33; font-size:34px; }
+    .admin-dashboard-view .ah-stat-note { color:#5b6c61; font-size:11px; }
+    .admin-dashboard-view .ah-stat:nth-child(2) .ah-stat-icon { background:#f5f0e4; color:#917b4a; }
+    .admin-dashboard-view .ah-stat:nth-child(3) .ah-stat-icon { background:#edf1ed; color:#536f60; }
+    .admin-dashboard-view .ah-stat:nth-child(4) .ah-stat-icon { background:#e8f0e9; color:#32684c; }
+    .admin-dashboard-view .ah-main-grid { grid-template-columns:minmax(0,1.35fr) minmax(300px,.8fr); gap:17px; }
+    .admin-dashboard-view .ah-panel { border-color:#dfe7dd; border-radius:18px; box-shadow:0 8px 24px rgba(31,57,43,.045); }
+    .admin-dashboard-view .ah-panel-head { padding:20px 21px; background:linear-gradient(110deg,#f5f7f1,#fff); }
+    .admin-dashboard-view .ah-panel-head h2 { color:#173b33; font-size:18px; }
+    .admin-dashboard-view .ah-panel-head p { color:#5c6d62; font-size:12px; }
+    .admin-dashboard-view .ah-panel-body { padding:16px 20px 20px; }
+    .admin-dashboard-view .ah-manage-list { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .admin-dashboard-view .ah-manage-link { position:relative; min-height:115px; align-items:flex-start; gap:12px; padding:15px; border:1px solid #e3e9e1; border-radius:13px; background:#fff; }
+    .admin-dashboard-view .ah-manage-link:hover { border-color:#b5c9b7; background:#f8faf6; box-shadow:0 8px 19px rgba(31,57,43,.06); }
+    .admin-dashboard-view .ah-manage-icon { flex-basis:38px; width:38px; height:38px; border:1px solid #e3e9e0; border-radius:12px; background:#edf3eb; color:#285940; font-size:14px; }
+    .admin-dashboard-view .ah-manage-copy { padding:2px 17px 0 0; gap:5px; }
+    .admin-dashboard-view .ah-manage-copy strong { color:#294437; font-size:13px; }
+    .admin-dashboard-view .ah-manage-copy span { color:#5e6f64; font-size:11px; }
+    .admin-dashboard-view .ah-manage-link > .fa-chevron-right { position:absolute; top:18px; right:15px; color:#87978c; }
+    .admin-dashboard-view .ah-coverage-item { min-height:58px; gap:12px; }
+    .admin-dashboard-view .ah-coverage-icon { width:34px; height:34px; border:1px solid #e3e9e0; border-radius:11px; background:#edf3eb; color:#285940; font-size:13px; }
+    .admin-dashboard-view .ah-coverage-copy strong { color:#2f483a; font-size:12px; }
+    .admin-dashboard-view .ah-coverage-copy span { color:#637268; font-size:10px; }
+    .admin-dashboard-view .ah-coverage-value { color:#173b33; font-size:18px; }
+    .admin-dashboard-view .ah-callout { margin-top:18px; padding:15px; border-color:#e5e5d7; background:#f7f6ee; }
+    .admin-dashboard-view .ah-callout-icon { color:#8c7645; font-size:15px; }
+    .admin-dashboard-view .ah-callout strong { color:#354b3e; font-size:12px; }
+    .admin-dashboard-view .ah-callout p { color:#5d6b61; font-size:11px; }
+
+    @media(max-width:1100px) {
+        .portal-shell.admin-portal { --dashboard-sidebar-width:226px; --dashboard-shell-gutter:22px; }
+        .portal-shell.admin-portal.sidebar-collapsed { --dashboard-sidebar-width:76px; }
+        .portal-shell.admin-portal .main-layout { grid-template-columns:var(--dashboard-sidebar-width) minmax(0,1fr); }
+        .portal-shell.admin-portal .main-layout > .content.admin-dashboard-view { padding-right:24px; padding-left:24px; }
+        .admin-dashboard-view .ah-main-grid { grid-template-columns:minmax(0,1fr); }
+    }
+    @media(max-width:760px) {
+        .portal-shell.admin-portal .top-header { position:sticky; top:0; right:auto; left:auto; min-height:64px; margin:0; padding:9px 12px 9px 54px; border:0; border-radius:0 0 15px 15px; box-shadow:0 5px 18px rgba(31,57,43,.08); }
+        .portal-shell.admin-portal .header-title h3 { font-size:17px; }
+        .portal-shell.admin-portal .wrapper,.portal-shell.admin-portal .main-layout { min-height:calc(100vh - 64px); }
+        .portal-shell.admin-portal .main-layout { display:block; }
+        .portal-shell.admin-portal .main-layout > .sidebar.admin-sidebar { position:fixed; top:0; bottom:0; left:0; z-index:1100; width:262px; height:100dvh; min-height:0; padding:20px 15px; transform:translateX(0); }
+        .portal-shell.admin-portal.sidebar-collapsed .main-layout > .sidebar.admin-sidebar { width:262px; transform:translateX(-110%); }
+        .portal-shell.admin-portal .sidebar-backdrop { position:fixed; inset:0; z-index:1050; }
+        .portal-shell.admin-portal .sidebar-toggle,.portal-shell.admin-portal.sidebar-collapsed .sidebar-toggle { top:17px; left:14px; z-index:1200; }
+        .portal-shell.admin-portal:not(.sidebar-collapsed) .sidebar-toggle { top:17px; left:270px; }
+        .portal-shell.admin-portal .main-layout > .content.admin-dashboard-view { min-height:calc(100vh - 64px); padding:22px 17px 32px; }
+        .admin-dashboard-view .ah-welcome { align-items:flex-start; flex-direction:column; min-height:0; gap:20px; padding:27px 23px; }
+        .admin-dashboard-view .ah-date { min-width:0; }
+    }
+    @media(max-width:540px) {
+        .admin-dashboard-view .ah-stats { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+        .admin-dashboard-view a.ah-stat { min-height:132px; padding:14px; }
+        .admin-dashboard-view .ah-stat-label { font-size:11px; }
+        .admin-dashboard-view .ah-stat-number { font-size:30px; }
+        .admin-dashboard-view .ah-stat-note { font-size:10px; }
+        .admin-dashboard-view .ah-manage-list { grid-template-columns:minmax(0,1fr); }
+        .admin-dashboard-view .ah-manage-link { min-height:90px; }
+    }
+</style>
+
 <div class="wrapper">
     <div class="main-layout">
         @include('admin.sidebar')
 
-        <main class="content">
-            <style>
-                .admin-home {
-                    --ah-green: #087443;
-                    --ah-green-dark: #075b36;
-                    --ah-ink: #17251e;
-                    --ah-muted: #708078;
-                    --ah-line: #e8eeea;
-                    --ah-soft: #f5f8f6;
-                    width: min(1480px, 100%);
-                    margin: 0 auto;
-                    padding: 30px clamp(18px, 3vw, 42px) 38px;
-                    color: var(--ah-ink);
-                }
-                .admin-home * { box-sizing: border-box; }
-                .ah-welcome {
-                    position: relative;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 24px;
-                    min-height: 190px;
-                    overflow: hidden;
-                    padding: 34px clamp(24px, 4vw, 48px);
-                    border-radius: 22px;
-                    color: #fff;
-                    background: linear-gradient(115deg, #075d38 0%, #0a8050 57%, #159267 100%);
-                    box-shadow: 0 14px 34px rgba(8, 116, 67, .16);
-                }
-                .ah-welcome::before, .ah-welcome::after {
-                    position: absolute;
-                    content: "";
-                    border: 1px solid rgba(255,255,255,.13);
-                    border-radius: 50%;
-                    pointer-events: none;
-                }
-                .ah-welcome::before { width: 310px; height: 310px; right: 85px; top: -175px; }
-                .ah-welcome::after { width: 230px; height: 230px; right: -55px; bottom: -150px; }
-                .ah-welcome-copy, .ah-date { position: relative; z-index: 1; }
-                .ah-eyebrow {
-                    display: flex; align-items: center; gap: 8px;
-                    margin: 0 0 12px; color: rgba(255,255,255,.74);
-                    font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
-                }
-                .ah-welcome h1 { margin: 0; color: #fff; font-size: clamp(27px, 3vw, 38px); line-height: 1.1; letter-spacing: -.04em; }
-                .ah-welcome-copy > p { max-width: 560px; margin: 12px 0 0; color: rgba(255,255,255,.79); font-size: 14px; line-height: 1.65; }
-                .ah-date {
-                    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
-                    padding: 13px 16px; border: 1px solid rgba(255,255,255,.24);
-                    border-radius: 14px; background: rgba(255,255,255,.1); backdrop-filter: blur(8px);
-                }
-                .ah-date i { font-size: 17px; }
-                .ah-date span { display: block; color: rgba(255,255,255,.68); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-                .ah-date strong { display: block; margin-top: 3px; color: #fff; font-size: 13px; font-weight: 700; }
-                .ah-section-heading { display:flex; justify-content:space-between; align-items:end; gap:16px; margin: 30px 0 15px; }
-                .ah-section-heading h2 { margin:0; color:var(--ah-ink); font-size:17px; font-weight:800; letter-spacing:-.02em; }
-                .ah-section-heading p { margin:5px 0 0; color:var(--ah-muted); font-size:12px; }
-                .ah-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:15px; }
-                .ah-stat {
-                    min-width:0; padding:19px 20px 18px; border:1px solid var(--ah-line); border-radius:16px;
-                    background:#fff; box-shadow:0 3px 12px rgba(24,39,30,.035); transition:transform .18s ease,box-shadow .18s ease;
-                }
-                .ah-stat:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(24,39,30,.075); }
-                .ah-stat-top { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-                .ah-stat-label { color:#75827b; font-size:12px; font-weight:700; }
-                .ah-stat-icon { display:grid; place-items:center; width:38px; height:38px; border-radius:12px; color:var(--ah-green); background:#edf7f1; font-size:15px; }
-                .ah-stat-number { margin-top:17px; color:var(--ah-ink); font-size:31px; font-weight:800; line-height:1; letter-spacing:-.045em; }
-                .ah-stat-note { margin-top:8px; color:#97a29c; font-size:11px; }
-                .ah-main-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(285px,.85fr); gap:18px; margin-top:20px; align-items:start; }
-                .ah-panel { min-width:0; overflow:hidden; border:1px solid var(--ah-line); border-radius:17px; background:#fff; box-shadow:0 3px 12px rgba(24,39,30,.035); }
-                .ah-panel-head { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:20px 22px 16px; border-bottom:1px solid #f0f3f1; }
-                .ah-panel-head h2 { margin:0; color:var(--ah-ink); font-size:15px; font-weight:800; }
-                .ah-panel-head p { margin:5px 0 0; color:var(--ah-muted); font-size:11px; }
-                .ah-panel-body { padding:18px 22px 22px; }
-                .ah-manage-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
-                .ah-manage-link {
-                    display:flex; align-items:center; gap:13px; min-height:75px; padding:14px;
-                    border:1px solid #eaf0ec; border-radius:13px; color:inherit; text-decoration:none;
-                    background:#fff; transition:background .18s ease,border-color .18s ease,transform .18s ease;
-                }
-                .ah-manage-link:hover { transform:translateY(-1px); border-color:#b7d7c3; background:#f7fbf8; }
-                .ah-manage-icon { display:grid; place-items:center; width:41px; height:41px; flex:0 0 41px; border-radius:12px; color:var(--ah-green); background:#edf7f1; font-size:16px; }
-                .ah-manage-copy { min-width:0; flex:1; }
-                .ah-manage-copy strong { display:block; color:#26362d; font-size:12px; font-weight:800; }
-                .ah-manage-copy span { display:block; margin-top:4px; color:#849088; font-size:10px; line-height:1.4; }
-                .ah-manage-link > i { color:#a2aea6; font-size:11px; }
-                .ah-coverage { display:flex; flex-direction:column; gap:16px; }
-                .ah-coverage-item { display:grid; grid-template-columns:35px 1fr auto; gap:11px; align-items:center; }
-                .ah-coverage-icon { display:grid; place-items:center; width:35px; height:35px; border-radius:11px; color:#168054; background:#f0f7f3; font-size:13px; }
-                .ah-coverage-copy strong { display:block; color:#344239; font-size:11px; font-weight:750; }
-                .ah-coverage-copy span { display:block; margin-top:3px; color:#8b9790; font-size:10px; }
-                .ah-coverage-value { color:#25342b; font-size:13px; font-weight:800; }
-                .ah-callout { display:flex; gap:12px; margin-top:17px; padding:14px; border:1px solid #dceee3; border-radius:13px; background:#f5faf7; }
-                .ah-callout-icon { display:grid; place-items:center; width:32px; height:32px; flex:0 0 32px; border-radius:10px; color:#087443; background:#e4f3e9; }
-                .ah-callout strong { display:block; color:#28503a; font-size:11px; }
-                .ah-callout p { margin:4px 0 0; color:#718078; font-size:10px; line-height:1.55; }
-                .ah-footer { margin-top:22px; color:#9aa49e; text-align:center; font-size:10px; }
-                @media(max-width:1100px) { .ah-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .ah-main-grid { grid-template-columns:1fr; } }
-                @media(max-width:650px) {
-                    .admin-home { padding:20px 14px 28px; }
-                    .ah-welcome { display:block; padding:25px 22px; border-radius:18px; }
-                    .ah-date { display:inline-flex; margin-top:20px; }
-                    .ah-stats { gap:10px; }
-                    .ah-stat { padding:15px; }
-                    .ah-stat-number { font-size:27px; }
-                    .ah-manage-list { grid-template-columns:1fr; }
-                    .ah-panel-head,.ah-panel-body { padding-left:16px; padding-right:16px; }
-                }
-            </style>
-
-            <style>
-                /* Light neumorphic dashboard, coordinated with the shared shell */
-                .admin-home { --ah-ink:#24382f; --ah-muted:#52675a; --ah-line:#dee6df; color:#30483d !important; }
-                .ah-welcome { min-height:205px !important; padding:34px clamp(24px,4vw,46px) !important; color:#24382f !important; background:linear-gradient(115deg,#e5ece6,#f5f7f4 58%,#e9efe9) !important; border:1px solid #d5e0ec !important; border-radius:23px !important; box-shadow:9px 9px 20px #dce2dc,-9px -9px 20px #fff !important; }
-                .ah-welcome::before,.ah-welcome::after { border-color:rgba(76,119,166,.12) !important; background:rgba(100,143,190,.05) !important; }
-                .ah-eyebrow { color:#285c50 !important; font-size:16px !important; line-height:1.5 !important; letter-spacing:.08em !important; }
-                .ah-welcome h1 { color:#24382f !important; font-size:clamp(35px,3.5vw,46px) !important; line-height:1.2 !important; }
-                .ah-welcome-copy>p { color:#4e6658 !important; font-size:18px !important; line-height:1.7 !important; }
-                .ah-date { color:#354d69 !important; background:#eef2ee !important; border:1px solid #d5e0ec !important; border-radius:15px !important; box-shadow:inset 4px 4px 8px #dbe2eb,inset -4px -4px 8px #fff !important; }
-                .ah-date i { color:#337767 !important; font-size:20px !important; }
-                .ah-date span { color:#526b5c !important; font-size:16px !important; }
-                .ah-date strong { color:#2e4b3e !important; font-size:16px !important; }
-                .ah-section-heading h2 { color:#24382f !important; font-size:27px !important; }
-                .ah-section-heading p { color:#52675a !important; font-size:16px !important; line-height:1.6 !important; }
-                .ah-stat,.ah-panel { color:#30483d !important; background:#f0f3ef !important; border:1px solid #dfe7e0 !important; border-radius:18px !important; box-shadow:7px 7px 16px #d7dee8,-7px -7px 16px #fff !important; }
-                .ah-stat { padding:22px !important; }
-                .ah-stat-label { color:#405873 !important; font-size:17px !important; }
-                .ah-stat-icon,.ah-manage-icon,.ah-coverage-icon { color:#3c7764 !important; background:#e6eef7 !important; box-shadow:inset 3px 3px 6px #dbe2eb,inset -3px -3px 6px #fff !important; }
-                .ah-stat-icon { width:46px !important; height:46px !important; font-size:19px !important; }
-                .ah-stat-number { color:#24382f !important; font-size:39px !important; }
-                .ah-stat-note { color:#536b5b !important; font-size:16px !important; line-height:1.55 !important; }
-                .ah-panel-head { border-bottom-color:#dfe7e0 !important; padding:22px 24px 17px !important; }
-                .ah-panel-head h2 { color:#2e4b3e !important; font-size:22px !important; }
-                .ah-panel-head p { color:#52675a !important; font-size:16px !important; line-height:1.65 !important; }
-                .ah-panel-body { padding:20px 24px 24px !important; }
-                .ah-manage-link { min-height:88px !important; padding:16px !important; color:#30483d !important; background:#f0f3ef !important; border:1px solid #dfe7e0 !important; border-radius:15px !important; box-shadow:4px 4px 9px #d7dee8,-4px -4px 9px #fff !important; }
-                .ah-manage-link:hover { background:#f7f8f6 !important; border-color:#c5d5e6 !important; }
-                .ah-manage-icon { width:46px !important; height:46px !important; flex-basis:46px !important; font-size:19px !important; }
-                .ah-manage-copy strong { color:#304b3b !important; font-size:17px !important; }
-                .ah-manage-copy span { color:#52675a !important; font-size:16px !important; line-height:1.55 !important; }
-                .ah-manage-link>i { color:#337767 !important; font-size:15px !important; }
-                .ah-coverage-copy strong { color:#304b3b !important; font-size:16px !important; }
-                .ah-coverage-copy span { color:#536b5b !important; font-size:16px !important; line-height:1.6 !important; }
-                .ah-coverage-value { color:#24382f !important; font-size:18px !important; }
-                .ah-callout { color:#344d40 !important; background:#e8eee9 !important; border:1px solid #d5e0ed !important; border-radius:15px !important; box-shadow:inset 3px 3px 6px #dfe6df,inset -3px -3px 6px #fff !important; }
-                .ah-callout-icon { color:#3c7764 !important; background:#e2ebe4 !important; }
-                .ah-callout strong { color:#304b3b !important; font-size:16px !important; }
-                .ah-callout p { color:#4e6658 !important; font-size:16px !important; line-height:1.7 !important; }
-                .ah-footer { color:#536b5b !important; font-size:16px !important; }
-                @media(max-width:900px) { .ah-main-grid { grid-template-columns:1fr !important; } }
-                @media(max-width:650px) { .ah-welcome{min-height:0!important;padding:25px 20px!important}.ah-welcome h1{font-size:32px!important}.ah-welcome-copy>p{font-size:16px!important}.ah-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px!important}.ah-stat{padding:16px!important}.ah-stat-label{font-size:16px!important}.ah-stat-number{font-size:34px!important}.ah-stat-note{font-size:15px!important}.ah-manage-list{grid-template-columns:1fr!important}.ah-panel-head,.ah-panel-body{padding-left:16px!important;padding-right:16px!important} }
-                @media(max-width:390px) { .ah-stats{grid-template-columns:1fr!important} }
-            </style>
+        <main class="content admin-dashboard admin-dashboard-view">
+           
             <section class="admin-home">
                 <header class="ah-welcome">
                     <div class="ah-welcome-copy">
-                        <p class="ah-eyebrow"><i class="fa-solid fa-shield-halved"></i> Administrator workspace</p>
+                        <p class="ah-eyebrow"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Campus control center</p>
                         <h1>Welcome, {{ Auth::user()->name ?? 'Administrator' }}</h1>
-                        <p>Manage campus rooms, schedules, departments, and accounts from one place.</p>
+                        <p>Keep colleges, classrooms, schedules, and campus access organized from one workspace.</p>
+                        <div class="ah-hero-actions">
+                            <a class="ah-hero-action primary" href="{{ route('admin.schedules') }}"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Browse schedules</a>
+                            <a class="ah-hero-action" href="{{ route('admin.buildings') }}"><i class="fa-solid fa-building" aria-hidden="true"></i> Buildings &amp; rooms</a>
+                        </div>
+                        <p class="ah-hero-note"><i class="fa-solid fa-square-check" aria-hidden="true"></i> Campus records at a glance</p>
                     </div>
                     <div class="ah-date">
                         <i class="fa-regular fa-calendar"></i>
@@ -176,46 +147,46 @@
                 <div class="ah-section-heading">
                     <div>
                         <h2>Campus at a glance</h2>
-                        <p>A live summary of the information managed in WebRoomSched.</p>
+                        <p>A clear snapshot of the information managed in WebRoomSched.</p>
                     </div>
                 </div>
 
                 <div class="ah-stats">
-                    <article class="ah-stat">
-                        <div class="ah-stat-top"><span class="ah-stat-label">Departments</span><span class="ah-stat-icon"><i class="fa-solid fa-building-columns"></i></span></div>
+                    <a class="ah-stat" href="{{ route('admin.departments') }}" aria-label="Open college management">
+                        <div class="ah-stat-top"><span class="ah-stat-label">Colleges</span><span class="ah-stat-icon"><i class="fa-solid fa-building-columns"></i></span></div>
                         <div class="ah-stat-number">{{ $totalDepartments ?? 0 }}</div>
                         <div class="ah-stat-note">Academic units in the campus</div>
-                    </article>
-                    <article class="ah-stat">
+                    </a>
+                    <a class="ah-stat" href="{{ route('admin.buildings') }}" aria-label="Open buildings and room management">
                         <div class="ah-stat-top"><span class="ah-stat-label">Buildings &amp; rooms</span><span class="ah-stat-icon"><i class="fa-solid fa-door-open"></i></span></div>
                         <div class="ah-stat-number">{{ $totalRooms ?? 0 }}</div>
                         <div class="ah-stat-note">{{ $totalBuildings ?? 0 }} buildings · registered spaces</div>
-                    </article>
-                    <article class="ah-stat">
+                    </a>
+                    <a class="ah-stat" href="{{ route('admin.manageusers') }}" aria-label="Open user account management">
                         <div class="ah-stat-top"><span class="ah-stat-label">User accounts</span><span class="ah-stat-icon"><i class="fa-solid fa-users"></i></span></div>
                         <div class="ah-stat-number">{{ $totalUsers ?? 0 }}</div>
-                        <div class="ah-stat-note">Faculty, chairs, and administrators</div>
-                    </article>
-                    <article class="ah-stat">
+                        <div class="ah-stat-note">Instructor, chairs, and administrators</div>
+                    </a>
+                    <a class="ah-stat" href="{{ route('admin.schedules') }}" aria-label="Open campus schedules">
                         <div class="ah-stat-top"><span class="ah-stat-label">Schedules</span><span class="ah-stat-icon"><i class="fa-regular fa-calendar-check"></i></span></div>
                         <div class="ah-stat-number">{{ $activeSchedules ?? 0 }}</div>
                         <div class="ah-stat-note">Schedules recorded in the system</div>
-                    </article>
+                    </a>
                 </div>
 
                 <div class="ah-main-grid">
                     <section class="ah-panel">
                         <div class="ah-panel-head">
-                            <div>
-                                <h2>Administration</h2>
-                                <p>Go directly to the campus information you need to manage.</p>
+                                    <div>
+                                        <h2>Quick actions</h2>
+                                        <p>Jump directly to a campus task.</p>
                             </div>
                         </div>
                         <div class="ah-panel-body">
                             <div class="ah-manage-list">
                                 <a class="ah-manage-link" href="{{ route('admin.departments') }}">
                                     <span class="ah-manage-icon"><i class="fa-solid fa-building-columns"></i></span>
-                                    <span class="ah-manage-copy"><strong>Departments</strong><span>Review campus departments and their details</span></span>
+                                    <span class="ah-manage-copy"><strong>Colleges</strong><span>Review campus Colleges and their details</span></span>
                                     <i class="fa-solid fa-chevron-right"></i>
                                 </a>
                                 <a class="ah-manage-link" href="{{ route('admin.buildings') }}">
@@ -233,11 +204,6 @@
                                     <span class="ah-manage-copy"><strong>Manage Users</strong><span>Maintain accounts and access details</span></span>
                                     <i class="fa-solid fa-chevron-right"></i>
                                 </a>
-                                <a class="ah-manage-link" href="{{ route('admin.roomreassignment') }}">
-                                    <span class="ah-manage-icon"><i class="fa-solid fa-right-left"></i></span>
-                                    <span class="ah-manage-copy"><strong>Room Reassignment</strong><span>Review and manage room transfers</span></span>
-                                    <i class="fa-solid fa-chevron-right"></i>
-                                </a>
                             </div>
                         </div>
                     </section>
@@ -247,14 +213,14 @@
                             <div class="ah-panel-head">
                                 <div>
                                     <h2>System overview</h2>
-                                    <p>Current records by area</p>
+                                    <p>Campus data by area</p>
                                 </div>
                             </div>
                             <div class="ah-panel-body">
                                 <div class="ah-coverage">
                                     <div class="ah-coverage-item">
                                         <span class="ah-coverage-icon"><i class="fa-solid fa-building-columns"></i></span>
-                                        <span class="ah-coverage-copy"><strong>Departments</strong><span>Campus academic units</span></span>
+                                        <span class="ah-coverage-copy"><strong>Colleges</strong><span>Campus academic units</span></span>
                                         <span class="ah-coverage-value">{{ $totalDepartments ?? 0 }}</span>
                                     </div>
                                     <div class="ah-coverage-item">
@@ -277,7 +243,7 @@
                                     <span class="ah-callout-icon"><i class="fa-solid fa-circle-check"></i></span>
                                     <div>
                                         <strong>Keep campus records current</strong>
-                                        <p>Accurate room, schedule, and account information helps faculty and chairs plan around reliable availability.</p>
+                                        <p>Accurate room, schedule, and account information helps instructor and chairs plan around reliable availability.</p>
                                     </div>
                                 </div>
                             </div>
@@ -285,13 +251,26 @@
                     </aside>
                 </div>
 
-                <footer class="ah-footer">WebRoomSched · Administrator workspace</footer>
             </section>
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const search = document.getElementById('adminDashboardSearch');
+                    if (!search) return;
+
+                    const searchableCards = document.querySelectorAll('.admin-home .ah-stat, .admin-home .ah-manage-link');
+                    search.addEventListener('input', function () {
+                        const query = search.value.trim().toLocaleLowerCase();
+                        searchableCards.forEach(function (card) {
+                            const matches = card.textContent.toLocaleLowerCase().includes(query);
+                            card.hidden = !matches;
+                        });
+                    });
+                });
+            </script>
         </main>
     </div>
 </div>
-
-<!-- @include('footerheader.footer') -->
 
 
 

@@ -9,10 +9,15 @@ class ScheduleMerge extends Model
     protected $fillable = [
         'schedule_id',
         'department_id',
+        'requested_by',
         'faculty_subject_id',
+        'subject_id',
+        'request_group_id',
         'status',
+        'share_type',
         'approved_by',
         'approved_at',
+        'decision_note',
     ];
 
 
@@ -58,6 +63,16 @@ class ScheduleMerge extends Model
             FacultySubject::class,
             'faculty_subject_id'
         );
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class, 'subject_id');
+    }
+
+    public function requester()
+    {
+        return $this->belongsTo(User::class, 'requested_by');
     }
 
 

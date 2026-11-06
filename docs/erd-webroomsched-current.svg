@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3000" height="1200" viewBox="0 0 3000 1200" role="img" aria-labelledby="title desc">
+  <title id="title">WEBROOMSCHED — Current Database ERD</title>
+  <desc id="desc">Entity relationship diagram for the current WEBROOMSCHED academic structure, instructor assignments, schedules, rooms, and schedule requests.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#53779d"/></marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#17324f" flood-opacity=".09"/></filter>
+    <style>
+      text{font-family:Inter,Segoe UI,Arial,sans-serif;fill:#183451}
+      .title{font-size:38px;font-weight:750;letter-spacing:.2px}.subtitle{font-size:18px;fill:#5c7188}
+      .band{font-size:16px;font-weight:700;letter-spacing:2px;fill:#68809a}
+      .box{fill:#fff;stroke:#c5d3e1;stroke-width:1.5;filter:url(#shadow)}
+      .head{font-size:18px;font-weight:750;fill:#fff}.kind{font-size:12px;font-weight:700;letter-spacing:1.1px;fill:#d9e7f6}
+      .field{font-size:15px}.key{font-weight:750}.muted{fill:#61768c}
+      .edge{fill:none;stroke:#53779d;stroke-width:2.2;marker-end:url(#arrow);opacity:.82}
+      .edge2{fill:none;stroke:#7892ad;stroke-width:1.8;stroke-dasharray:7 6;marker-end:url(#arrow);opacity:.8}
+      .relation{font-size:12px;font-weight:650;fill:#496987;paint-order:stroke;stroke:#f4f8fc;stroke-width:5px;stroke-linejoin:round}
+      .note{font-size:14px;fill:#526b84}.legend{font-size:14px;font-weight:650;fill:#425e78}
+    </style>
+  </defs>
+  <rect width="3000" height="1820" fill="#f3f7fc"/>
+  <rect x="36" y="30" width="2928" height="1140" rx="30" fill="#f7faff" stroke="#c8d8e8" stroke-width="2"/>
+  <text x="82" y="95" class="title">WEBROOMSCHED</text>
+  <text x="82" y="130" class="subtitle">Current database relationships · academic structure · instructor assignments · schedules · room activity</text>
+  <text x="82" y="178" class="band">ORGANIZATION AND CATALOG</text>
+
+  <!-- Relationship lines: links point from referenced parent table to dependent table. -->
+  <g>
+    <path class="edge" d="M480 265 H550"/>
+    <path class="edge" d="M280 330 V380"/>
+    <path class="edge" d="M480 330 V345 H1220 V380"/>
+    <path class="edge" d="M750 330 V350 H480 V450"/>
+    <path class="edge" d="M1220 330 V350 H2160 V380"/>
+    <path class="edge" d="M2630 330 V355 H1220 V380"/>
+    <path class="edge" d="M1960 330 V360 H1420 V380"/>
+    <path class="edge" d="M1690 330 V380"/>
+    <path class="edge" d="M2160 330 V380"/>
+    <path class="edge" d="M1220 520 V540 H2160 V570"/>
+    <path class="edge" d="M280 520 V570"/>
+    <path class="edge" d="M480 450 H515 V640 H550"/>
+    <path class="edge" d="M1890 265 H1935 V540 H1690 V570"/>
+    <path class="edge" d="M2630 520 V570"/>
+    <path class="edge" d="M2630 520 V535 H750 V570"/>
+    <path class="edge" d="M2630 520 V543 H1220 V570"/>
+    <path class="edge" d="M2630 520 V548 H2160 V570"/>
+    <path class="edge" d="M280 520 V535 H2630 V520"/>
+    <path class="edge2" d="M2830 265 H2880 V825 H1890"/>
+  </g>
+
+  <!-- Row 1 -->
+  <g transform="translate(80 200)"><rect class="box" width="400" height="130" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#245b8d"/><text x="18" y="26" class="head">DEPARTMENTS</text><text x="378" y="25" text-anchor="end" class="kind">COLLEGES IN UI</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · code · name</text><text x="18" y="91" class="field">theme_color · logo</text><text x="18" y="116" class="field muted">College identity / ownership</text></g>
+  <g transform="translate(550 200)"><rect class="box" width="400" height="130" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#245b8d"/><text x="18" y="26" class="head">BUILDINGS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> department_id</text><text x="18" y="91" class="field">name · timestamps</text><text x="18" y="116" class="field muted">Belongs to one college</text></g>
+  <g transform="translate(1020 200)"><rect class="box" width="400" height="130" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#245b8d"/><text x="18" y="26" class="head">PROGRAMS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> department_id</text><text x="18" y="91" class="field">name · code · memorandum</text><text x="18" y="116" class="field muted">major · year_level</text></g>
+  <g transform="translate(1490 200)"><rect class="box" width="400" height="130" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#245b8d"/><text x="18" y="26" class="head">ACADEMIC_TERMS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id</text><text x="18" y="91" class="field">academic_year · semester</text><text x="18" y="116" class="field muted">status · is_active</text></g>
+  <g transform="translate(1960 200)"><rect class="box" width="400" height="130" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#245b8d"/><text x="18" y="26" class="head">SUBJECTS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> program_id</text><text x="18" y="91" class="field">course_code · course_title</text><text x="18" y="116" class="field muted">year_level · semester · major</text></g>
+  <g transform="translate(2430 200)"><rect class="box" width="400" height="130" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#245b8d"/><text x="18" y="26" class="head">USERS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · name · username · email</text><text x="18" y="91" class="field">password (hashed) · role · status</text><text x="18" y="116" class="field muted"><tspan class="key">FK</tspan> department_id · deleted_at</text></g>
+
+  <!-- Row 2 -->
+  <g transform="translate(80 380)"><rect class="box" width="400" height="140" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#34785c"/><text x="18" y="26" class="head">ROOMS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> department_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> building_id · room_name · capacity</text><text x="18" y="116" class="field muted">equipment · purpose · access permission</text></g>
+  <g transform="translate(550 380)"><rect class="box" width="400" height="140" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#34785c"/><text x="18" y="26" class="head">DEPARTMENT_FACULTY_IMPORTS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> department_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> faculty_id · imported_by (users)</text><text x="18" y="116" class="field muted">Tracks instructor imports to a college</text></g>
+  <g transform="translate(1020 380)"><rect class="box" width="400" height="140" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#34785c"/><text x="18" y="26" class="head">FACULTY_SUBJECTS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> faculty_id → users</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> subject_id · course_code · subject</text><text x="18" y="116" class="field muted">program · major · year · type</text></g>
+  <g transform="translate(1490 380)"><rect class="box" width="400" height="140" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#34785c"/><text x="18" y="26" class="head">SCHEDULE_TIME_SLOTS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> academic_term_id</text><text x="18" y="91" class="field">day · start_time · end_time</text><text x="18" y="116" class="field muted">row_position · is_active</text></g>
+  <g transform="translate(1960 380)"><rect class="box" width="400" height="140" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#34785c"/><text x="18" y="26" class="head">FACULTY_SUBJECT_COHORTS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> faculty_subject_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> subject_id</text><text x="18" y="116" class="field muted">Bridge for shared program/major cohorts</text></g>
+  <g transform="translate(2430 380)"><rect class="box" width="400" height="140" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#34785c"/><text x="18" y="26" class="head">SCHEDULES</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> room_id · academic_term_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> faculty_id · faculty_subject_id</text><text x="18" y="116" class="field muted">course · cohort · day/time · row · status</text></g>
+
+  <!-- Row 3 -->
+  <g transform="translate(80 570)"><rect class="box" width="400" height="150" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#a76a27"/><text x="18" y="26" class="head">ROOM_SCHEDULE_TIME_SLOTS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> room_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> academic_term_id</text><text x="18" y="116" class="field muted">day/time · row_position · is_active</text></g>
+  <g transform="translate(550 570)"><rect class="box" width="400" height="150" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#a76a27"/><text x="18" y="26" class="head">RESERVATIONS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> room_id · user_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> schedule_id (nullable)</text><text x="18" y="116" class="field muted">academic_term_id · date/time · status</text></g>
+  <g transform="translate(1020 570)"><rect class="box" width="400" height="150" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#a76a27"/><text x="18" y="26" class="head">SCHEDULE_MERGES</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> schedule_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> department_id · subject_id · faculty_subject_id</text><text x="18" y="116" class="field muted">requested_by · approved_by · group · status</text></g>
+  <g transform="translate(1490 570)"><rect class="box" width="400" height="150" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#a76a27"/><text x="18" y="26" class="head">SCHEDULE_CELL_MERGES</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> room_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> academic_term_id</text><text x="18" y="116" class="field muted">axis · cells (saved manual layout)</text></g>
+  <g transform="translate(1960 570)"><rect class="box" width="400" height="150" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#a76a27"/><text x="18" y="26" class="head">ROOM_SWAP_REQUESTS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · requester/target users</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> schedules (nullable) · rooms</text><text x="18" y="116" class="field muted">swap_type · date/time · reason · status</text></g>
+  <g transform="translate(2430 570)"><rect class="box" width="400" height="150" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#a76a27"/><text x="18" y="26" class="head">SCHEDULE_OVERRIDES</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> room_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> schedule_id / faculty_id (nullable)</text><text x="18" y="116" class="field muted">created_by · date/time · reason · expiry · status</text></g>
+
+  <!-- Row 4 -->
+  <g transform="translate(550 760)"><rect class="box" width="400" height="130" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#a76a27"/><text x="18" y="26" class="head">ROOM_REASSIGNMENTS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id · <tspan class="key">FK</tspan> schedule_id</text><text x="18" y="91" class="field"><tspan class="key">FK</tspan> original_room_id · new_room_id</text><text x="18" y="116" class="field muted">day/time · reason · active period · status</text></g>
+  <g transform="translate(1490 760)"><rect class="box" width="400" height="130" rx="13"/><path d="M0 13 Q0 0 13 0 H387 Q400 0 400 13 V38 H0Z" fill="#76509a"/><text x="18" y="26" class="head">NOTIFICATIONS</text><text x="18" y="66" class="field"><tspan class="key">PK</tspan> id (UUID) · type · data (JSON)</text><text x="18" y="91" class="field">notifiable_type · notifiable_id · read_at</text><text x="18" y="116" class="field muted">Polymorphic recipient; Laravel notifications</text></g>
+
+  <rect x="80" y="952" width="2740" height="100" rx="16" fill="#e9f0f8" stroke="#c6d5e4"/>
+  <text x="108" y="987" class="legend">READING THE RELATIONSHIPS</text>
+  <path d="M390 982 H520" class="edge"/><text x="540" y="987" class="note">Solid arrow: foreign-key relationship (parent → dependent records)</text>
+  <path d="M1120 1025 H1250" class="edge2"/><text x="1270" y="1030" class="note">Dashed arrow: polymorphic or multi-role reference; see the FK fields on the box</text>
+  <text x="80" y="1092" class="note">Nullable foreign keys are labelled in each entity. Instructor, chair, and administrator accounts are roles in USERS; students select a cohort to view published schedules.</text>
+  <text x="80" y="1120" class="note">Legacy FACULTIES, curriculum tables, schedule drafts, and student update-feed records are excluded from this current-flow diagram.</text>
+</svg>

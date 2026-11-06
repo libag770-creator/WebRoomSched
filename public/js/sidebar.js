@@ -1,79 +1,25 @@
 (() => {
     const storageKey = 'webroomsched-sidebar-collapsed';
-    const toggleStyleId = 'sidebar-toggle-overlay-styles';
 
     const readCollapsed = () => {
         try {
-            return localStorage.getItem(storageKey) === 'true';
+            const saved = localStorage.getItem(storageKey);
+            if (saved !== null) return saved === 'true';
         } catch {
-            return false;
+            // Fall through to the small-screen default when storage is unavailable.
         }
-    };
 
-    const installToggleStyles = () => {
-        if (document.getElementById(toggleStyleId)) return;
-
-        const style = document.createElement('style');
-        style.id = toggleStyleId;
-        style.textContent = `
-            body > .sidebar-toggle {
-                position: fixed !important;
-                top: 50% !important;
-                left: var(--sidebar-toggle-left, 0px) !important;
-                z-index: 1450 !important;
-                display: grid !important;
-                place-items: center !important;
-                box-sizing: border-box !important;
-                width: 28px !important;
-                min-width: 28px !important;
-                height: 58px !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                color: #285b3f !important;
-                background: #f7faf7 !important;
-                border: 1px solid #cfddd2 !important;
-                border-radius: 12px !important;
-                box-shadow: 4px 7px 18px rgba(11, 33, 19, .2) !important;
-                transform: translateY(-50%) !important;
-                cursor: pointer !important;
-                transition: background .16s ease, color .16s ease,
-                    border-color .16s ease, box-shadow .16s ease !important;
-            }
-
-            body > .sidebar-toggle:hover {
-                color: #17472e !important;
-                background: #fff !important;
-                border-color: #a8cbb0 !important;
-                box-shadow: 5px 8px 20px rgba(11, 33, 19, .24) !important;
-            }
-
-            body > .sidebar-toggle:focus-visible {
-                outline: 3px solid #a6d1ae !important;
-                outline-offset: 2px !important;
-            }
-        `;
-        document.head.appendChild(style);
+        return window.matchMedia('(max-width: 760px)').matches;
     };
 
     const init = () => {
-        const sidebars = Array.from(document.querySelectorAll('.sidebar'));
+        const sidebars = document.querySelectorAll('.sidebar');
         if (!sidebars.length) return;
         if (document.body.dataset.sidebarInitialized === 'true') return;
 
         document.body.dataset.sidebarInitialized = 'true';
         document.body.classList.toggle('sidebar-collapsed', readCollapsed());
 
-        document.body.classList.add('page-entering');
-        window.requestAnimationFrame(() => {
-            window.requestAnimationFrame(() => {
-                document.body.classList.remove('page-entering');
-            });
-        });
-
-        installToggleStyles();
-
-        // Keep one toggle outside the scrollable sidebar so its border cannot be clipped.
-        const sidebar = sidebars[0];
         const toggle = document.createElement('button');
         toggle.type = 'button';
         toggle.className = 'sidebar-toggle';
@@ -82,28 +28,17 @@
         toggle.title = 'Collapse navigation';
         toggle.innerHTML =
             '<i class="fa-solid fa-angles-left" aria-hidden="true"></i>';
-        document.body.appendChild(toggle);
+        document.body.append(toggle);
 
-        const placeToggle = () => {
-            const sidebarRight = sidebar.getBoundingClientRect().right;
-            const left = Math.max(
-                0,
-                Math.min(sidebarRight - 8, window.innerWidth - 30)
-            );
-            toggle.style.setProperty('--sidebar-toggle-left', `${left}px`);
-        };
+        const backdrop = document.createElement('button');
+        backdrop.type = 'button';
+        backdrop.className = 'sidebar-backdrop';
+        backdrop.setAttribute('aria-label', 'Close navigation');
+        backdrop.setAttribute('aria-hidden', 'true');
+        document.body.append(backdrop);
 
-        placeToggle();
-        window.addEventListener('resize', placeToggle, { passive: true });
-
-        if ('ResizeObserver' in window) {
-            const observer = new ResizeObserver(placeToggle);
-            observer.observe(sidebar);
-            toggle._sidebarResizeObserver = observer;
-        }
-
-        sidebars.forEach((currentSidebar) => {
-            currentSidebar
+        sidebars.forEach((sidebar) => {
+            sidebar
                 .querySelectorAll('.sidebar-menu a, li a, ul a')
                 .forEach((link) => {
                     const label =
@@ -113,7 +48,7 @@
                     if (!label) return;
 
                     link.dataset.tooltip = label;
-                    link.title = label;
+                    link.setAttribute('aria-label', label);
 
                     const placeTooltip = () => {
                         const bounds = link.getBoundingClientRect();
@@ -143,6 +78,7 @@
             toggle.innerHTML = collapsed
                 ? '<i class="fa-solid fa-angles-right" aria-hidden="true"></i>'
                 : '<i class="fa-solid fa-angles-left" aria-hidden="true"></i>';
+            backdrop.setAttribute('aria-hidden', String(collapsed));
         };
 
         toggle.addEventListener('click', () => {
@@ -155,68 +91,36 @@
             );
 
             try {
-                localStorage.setItem(storageKey, String(collapsed));
+                localStorage.setItem(
+                    storageKey,
+                    String(collapsed)
+                );
             } catch {
                 // Storage may be unavailable in private browsing.
             }
 
             updateToggleState();
-            placeToggle();
         });
 
-        let navigationStarted = false;
-
-        document.addEventListener('click', (event) => {
-            const link = event.target.closest('.sidebar a[href]');
-
-            if (
-                !link ||
-                event.defaultPrevented ||
-                event.button !== 0 ||
-                event.metaKey ||
-                event.ctrlKey ||
-                event.shiftKey ||
-                event.altKey ||
-                link.hasAttribute('download') ||
-                (link.target && link.target !== '_self')
-            ) {
-                return;
+        backdrop.addEventListener('click', () => {
+            document.body.classList.add('sidebar-collapsed');
+            try {
+                localStorage.setItem(storageKey, 'true');
+            } catch {
+                // Storage may be unavailable in private browsing.
             }
+            updateToggleState();
+        });
 
-            const destination = new URL(link.href, window.location.href);
-
-            if (destination.origin !== window.location.origin) return;
-
+        document.addEventListener('keydown', (event) => {
             if (
-                destination.href === window.location.href ||
-                (
-                    destination.pathname === window.location.pathname &&
-                    destination.search === window.location.search &&
-                    destination.hash
-                )
+                event.key === 'Escape' &&
+                window.matchMedia('(max-width: 760px)').matches &&
+                !document.body.classList.contains('sidebar-collapsed')
             ) {
-                return;
+                document.body.classList.add('sidebar-collapsed');
+                updateToggleState();
             }
-
-            event.preventDefault();
-
-            if (navigationStarted) return;
-            navigationStarted = true;
-
-            if (
-                window.matchMedia(
-                    '(prefers-reduced-motion: reduce)'
-                ).matches
-            ) {
-                window.location.assign(destination.href);
-                return;
-            }
-
-            document.body.classList.add('page-leaving');
-
-            window.setTimeout(() => {
-                window.location.assign(destination.href);
-            }, 180);
         });
 
         updateToggleState();

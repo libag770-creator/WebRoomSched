@@ -737,13 +737,140 @@
                     .search-button { height: 46px; }
                 }
 
+                /* Faculty vacant-rooms refinement: clear search flow and readable availability cards. */
+                body.portal-shell.faculty-portal .main-layout > .content.faculty-vacant-view {
+                    min-height:100vh;
+                    padding:128px clamp(20px,3vw,42px) 46px !important;
+                    background:
+                        radial-gradient(ellipse at 88% 2%,rgba(215,195,145,.25),transparent 25%),
+                        radial-gradient(ellipse at 8% 96%,rgba(204,224,208,.36),transparent 30%),
+                        linear-gradient(145deg,#edf2ec 0%,#f8f7f2 58%,#f1f0e8 100%);
+                    color:#263a2f;
+                    font-family:'DM Sans',Arial,sans-serif;
+                }
+                .faculty-vacant-view,
+                .faculty-vacant-view * { font-family:'DM Sans',Arial,sans-serif; }
+                .faculty-vacant-view .vacant-container { width:min(100%,1480px); max-width:1480px; margin:0 auto; padding:0 0 42px; }
+                .faculty-vacant-view .vacant-heading { position:relative; isolation:isolate; min-height:210px; display:flex; flex-direction:column; justify-content:center; margin:0 0 21px; padding:clamp(30px,4vw,44px) clamp(25px,4vw,46px); border:1px solid rgba(232,215,175,.22); border-radius:24px; background:radial-gradient(circle at 78% 18%,rgba(217,196,143,.17),transparent 25%),linear-gradient(118deg,#153a32 0%,#215440 58%,#37684e 100%); box-shadow:0 20px 44px rgba(24,58,43,.16); }
+                .faculty-vacant-view .vacant-heading::after { top:-145px; right:95px; width:330px; height:330px; border-color:rgba(244,232,200,.22); box-shadow:0 0 0 27px rgba(244,232,200,.035),0 0 0 63px rgba(244,232,200,.026),0 0 0 102px rgba(244,232,200,.018); }
+                .faculty-vacant-view .vacant-eyebrow { position:relative; z-index:1; margin:0 0 12px; color:#e2ca8d; font-size:11px; font-weight:850; letter-spacing:.16em; }
+                .faculty-vacant-view .vacant-title { position:relative; z-index:1; margin:0 0 10px; color:#fff !important; font:800 clamp(34px,3.2vw,44px)/1.12 'Manrope','DM Sans',sans-serif; letter-spacing:-.045em; }
+                .faculty-vacant-view .vacant-subtitle { position:relative; z-index:1; max-width:700px; margin:0; color:#e0e9e1; font-size:15px; font-weight:550; line-height:1.65; }
+                .faculty-vacant-view .alert { width:min(100%,1480px); margin:0 auto 16px; padding:14px 16px; border-radius:12px; font-size:14px; font-weight:700; }
+                .faculty-vacant-view .search-box { margin:0 0 20px; padding:21px; border-color:#dce6dc; border-radius:18px; background:linear-gradient(145deg,#fff,#fbfcf9); box-shadow:0 9px 25px rgba(31,57,43,.05); }
+                .faculty-vacant-view .search-row { display:grid; grid-template-columns:minmax(180px,.9fr) minmax(160px,.8fr) minmax(230px,1.15fr) auto; align-items:end; gap:13px; }
+                .faculty-vacant-view .form-group { min-width:0; gap:8px; }
+                .faculty-vacant-view .form-group label { color:#43584a; font-size:13px; font-weight:850; }
+                .faculty-vacant-view .select-control,.faculty-vacant-view .date-control { position:relative; width:100%; min-width:0; }
+                .faculty-vacant-view .form-group input,.faculty-vacant-view .form-group select,.faculty-vacant-view .date-control input { width:100%; min-width:0; height:49px; padding:0 13px; border:1px solid #d3dfd3; border-radius:11px; background:#fff; color:#294437; font-size:15px; font-weight:650; outline:0; transition:border-color .16s,box-shadow .16s; }
+                .faculty-vacant-view .form-group .select-control select { padding-right:40px; padding-left:41px; }
+                .faculty-vacant-view .select-control > i:first-child { left:14px; color:#32704d; font-size:14px; }
+                .faculty-vacant-view .select-control::after { right:15px; color:#617268; }
+                .faculty-vacant-view .form-group input:focus,.faculty-vacant-view .form-group select:focus { border-color:#4f8663; box-shadow:0 0 0 4px rgba(50,112,77,.12); }
+                .faculty-vacant-view .form-group select:disabled { color:#8b978e; background:#f2f5f0; }
+                .faculty-vacant-view .search-button { min-height:49px; height:49px; padding:0 20px; border-radius:11px; background:#245940; box-shadow:0 5px 12px rgba(36,89,64,.16); font-size:14px; font-weight:850; white-space:nowrap; }
+                .faculty-vacant-view .search-button:hover { background:#173b33; }
+                .faculty-vacant-view .filter-wrapper { border-color:#dce6dc; border-radius:14px; background:#fff; box-shadow:0 6px 18px rgba(31,57,43,.04); }
+                .faculty-vacant-view .filter-title { color:#294437; font-size:14px; font-weight:850; }
+                .faculty-vacant-view .filter-btn { border-color:#dce6dc; border-radius:9px; color:#506557; font-size:13px; font-weight:800; }
+                .faculty-vacant-view .filter-btn:hover { border-color:#9cbda1; color:#245940; }
+                .faculty-vacant-view .filter-btn.active { border-color:#245940; background:#245940; color:#fff; }
+                .faculty-vacant-view .time-only-results { gap:16px; }
+                .faculty-vacant-view .time-only-summary { padding:16px 18px; border-color:#dce6dc; border-radius:14px; background:linear-gradient(110deg,#f1f6ed,#fff); box-shadow:0 5px 16px rgba(31,57,43,.04); }
+                .faculty-vacant-view .time-only-summary strong { display:block; color:#203d30; font-size:16px; font-weight:850; line-height:1.45; }
+                .faculty-vacant-view .time-only-summary span { color:#617268; font-size:13px; font-weight:650; line-height:1.5; }
+                .faculty-vacant-view .time-only-summary > span { padding:7px 11px; border:1px solid #d9e6d8; border-radius:999px; background:#edf5eb; color:#245940; font-size:12px; font-weight:850; }
+                .faculty-vacant-view .vacant-container .department-section { margin-bottom:16px; overflow:hidden; border:1px solid #dce6dc; border-radius:17px; background:#fff; box-shadow:0 8px 23px rgba(31,57,43,.045); }
+                .faculty-vacant-view .vacant-container .department-title { gap:10px; padding:15px 18px; border-color:#e5ebe3; background:linear-gradient(110deg,#f3f7ef,#fff); color:#294437; font-size:16px; font-weight:850; }
+                .faculty-vacant-view .vacant-container .department-title i { color:#32704d; }
+                .faculty-vacant-view .vacant-container .building { margin:0; border-color:#e7ede5; }
+                .faculty-vacant-view .vacant-container .building-title { padding:13px 18px; border-color:#e9eee6; background:#f8faf6; color:#405a49; font-size:14px; font-weight:850; }
+                .faculty-vacant-view .vacant-container .building-title i { color:#32704d; }
+                .faculty-vacant-view .vacant-container .rooms { grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; padding:15px; background:#fbfcf9; }
+                .faculty-vacant-view .vacant-container .room-card { min-width:0; padding:16px; border-color:#e0e8dd; border-radius:14px; background:#fff; box-shadow:0 5px 15px rgba(31,57,43,.04); transition:border-color .18s ease,box-shadow .18s ease; }
+                .faculty-vacant-view .vacant-container .room-card:hover { transform:none; border-color:#9cbda1; box-shadow:0 10px 22px rgba(31,57,43,.07); }
+                .faculty-vacant-view .vacant-container .room-name { color:#203d30; font-size:18px; font-weight:850; line-height:1.35; }
+                .faculty-vacant-view .vacant-container .department-name { margin:4px 0 0; color:#65756a; font-size:12px; font-weight:600; }
+                .faculty-vacant-view .vacant-container .room-time { margin-top:11px; padding:7px 10px; border-radius:9px; background:#edf5eb; color:#245940; font-size:12px; font-weight:850; }
+                .faculty-vacant-view .vacant-container .room-status { margin-top:13px; padding:13px; border-radius:11px; }
+                .faculty-vacant-view .vacant-container .room-status-label { color:#586d5e; font-size:11px; font-weight:850; }
+                .faculty-vacant-view .vacant-container .room-status-value { margin-top:6px; font-size:18px; font-weight:900; line-height:1.35; }
+                .faculty-vacant-view .vacant-container .room-status-help { margin-top:6px; color:#5e7064; font-size:12px; font-weight:550; line-height:1.5; }
+                .faculty-vacant-view .vacant-container .room-status.available { border-color:#c9dfc6; background:#f2f7ef; }
+                .faculty-vacant-view .vacant-container .room-status.available .room-status-value { color:#245940; }
+                .faculty-vacant-view .vacant-container .room-status.occupied { border-color:#efc9c5; background:#fff5f3; }
+                .faculty-vacant-view .vacant-container .room-status.occupied .room-status-value { color:#a33d34; }
+                .faculty-vacant-view .vacant-container .room-status.reserved { border-color:#ead9ad; background:#fff8e8; }
+                .faculty-vacant-view .vacant-container .room-status.reserved .room-status-value { color:#855c15; }
+                .faculty-vacant-view .vacant-container .room-features { gap:8px; margin-top:13px; }
+                .faculty-vacant-view .vacant-container .feature { padding:9px; border-color:#e4ebe1; border-radius:9px; background:#f8faf6; }
+                .faculty-vacant-view .vacant-container .feature-label { color:#65756a; font-size:10px; font-weight:850; line-height:1.35; }
+                .faculty-vacant-view .vacant-container .feature-value { color:#294437; font-size:12px; font-weight:800; line-height:1.45; }
+                .faculty-vacant-view .vacant-container .room-purpose,.faculty-vacant-view .vacant-container .room-description { margin-top:10px; color:#5e7064; font-size:13px; font-weight:550; line-height:1.55; }
+                .faculty-vacant-view .vacant-container .room-purpose strong { color:#405a49; font-weight:850; }
+                .faculty-vacant-view .vacant-container .reserve-button { display:flex; align-items:center; justify-content:center; gap:8px; box-sizing:border-box; width:100%; min-height:45px; height:45px; margin-top:15px; padding:0 14px; border:0; border-radius:10px; background:#245940; color:#fff; font-size:14px; font-weight:850; line-height:1.2; white-space:nowrap; cursor:pointer; transform:none; transition:background-color .16s ease,box-shadow .16s ease; }
+                .faculty-vacant-view .vacant-container .reserve-button:hover { background:#173b33; transform:none; }
+                .faculty-vacant-view .vacant-container .reserve-button:active { background:#123229; transform:none; }
+                .faculty-vacant-view .vacant-container .reserve-button:focus-visible { outline:3px solid rgba(50,112,77,.3); outline-offset:3px; }
+                .faculty-vacant-view .vacant-container .reserve-button:disabled { background:#b8c3b9; }
+                .faculty-vacant-view .vacant-container .no-results { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:170px; padding:28px; border-color:#dce6dc; border-radius:15px; background:rgba(255,255,255,.92); color:#5f7065; font-size:14px; font-weight:600; line-height:1.6; box-shadow:0 6px 18px rgba(31,57,43,.04); }
+                .faculty-vacant-view .vacant-container .no-results > i { color:#32704d; font-size:23px; }
+                .faculty-vacant-view .week-reserve-modal { background:rgba(16,43,31,.56); backdrop-filter:blur(4px); }
+                .faculty-vacant-view .week-reserve-dialog { border:1px solid #dce6dc; border-radius:18px; box-shadow:0 24px 75px rgba(17,45,31,.24); }
+                .faculty-vacant-view .week-reserve-header { padding:18px 20px; border-color:#e5ebe3; background:#f5f8f2; }
+                .faculty-vacant-view .week-reserve-title { color:#203d30; font:800 19px/1.3 'Manrope','DM Sans',sans-serif; }
+                .faculty-vacant-view .week-reserve-help { color:#617268; font-size:12px; line-height:1.5; }
+                .faculty-vacant-view .week-reserve-close { color:#52665a; }
+                .faculty-vacant-view .week-reserve-body { padding:20px; }
+                .faculty-vacant-view .week-reserve-summary-item { padding:12px; border-color:#e2e9df; border-radius:10px; background:#f8faf6; }
+                .faculty-vacant-view .week-reserve-label { color:#617268; font-size:10px; font-weight:850; }
+                .faculty-vacant-view .week-reserve-value { color:#294437; font-size:14px; font-weight:850; }
+                .faculty-vacant-view .week-reserve-field label { color:#405a49; font-size:13px; font-weight:850; }
+                .faculty-vacant-view .week-reserve-field select { min-height:45px; border-color:#d3dfd3; border-radius:10px; color:#294437; font-size:14px; }
+                .faculty-vacant-view .week-reserve-help { color:#617268; font-size:12px; line-height:1.5; }
+                .faculty-vacant-view .week-reserve-actions { gap:10px; }
+                .faculty-vacant-view .week-reserve-cancel,.faculty-vacant-view .week-reserve-submit { min-height:43px; padding:0 15px; border-radius:10px; font-size:13px; font-weight:850; }
+                .faculty-vacant-view .week-reserve-cancel { background:#edf2e9; color:#405a49; }
+                .faculty-vacant-view .week-reserve-submit { background:#245940; color:#fff; }
+                .faculty-vacant-view .week-reserve-submit:hover { background:#173b33; }
+                @media(max-width:1000px) {
+                    .faculty-vacant-view .search-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+                    .faculty-vacant-view .search-button { grid-column:1/-1; }
+                    .faculty-vacant-view .vacant-container .rooms { grid-template-columns:repeat(2,minmax(0,1fr)); }
+                }
+                @media(max-width:760px) {
+                    body.portal-shell.faculty-portal .main-layout > .content.faculty-vacant-view { min-height:calc(100vh - 64px); padding:22px 17px 32px !important; }
+                    .faculty-vacant-view .vacant-container { padding-bottom:30px; }
+                    .faculty-vacant-view .vacant-heading { min-height:0; margin-bottom:16px; padding:27px 23px; border-radius:19px; }
+                    .faculty-vacant-view .vacant-heading::after { top:-85px; right:-90px; width:260px; height:260px; }
+                    .faculty-vacant-view .vacant-title { font-size:34px; }
+                    .faculty-vacant-view .vacant-subtitle { font-size:14px; }
+                    .faculty-vacant-view .search-box { padding:17px; }
+                    .faculty-vacant-view .rooms { grid-template-columns:repeat(2,minmax(0,1fr)); }
+                }
+                @media(max-width:520px) {
+                    .faculty-vacant-view .vacant-heading { padding:24px 20px; }
+                    .faculty-vacant-view .vacant-title { font-size:31px; }
+                    .faculty-vacant-view .vacant-eyebrow { font-size:9px; }
+                    .faculty-vacant-view .search-row { grid-template-columns:1fr; }
+                    .faculty-vacant-view .search-button { grid-column:auto; width:100%; }
+                    .faculty-vacant-view .vacant-container .rooms { grid-template-columns:1fr; padding:12px; }
+                    .faculty-vacant-view .time-only-summary { align-items:flex-start; flex-direction:column; }
+                    .faculty-vacant-view .time-only-summary strong { font-size:15px; }
+                    .faculty-vacant-view .vacant-container .room-card { padding:14px; }
+                    .faculty-vacant-view .vacant-container .room-features { grid-template-columns:1fr 1fr; }
+                    .faculty-vacant-view .week-reserve-summary { grid-template-columns:1fr; }
+                    .faculty-vacant-view .week-reserve-actions { align-items:stretch; flex-direction:column-reverse; }
+                    .faculty-vacant-view .week-reserve-actions button { width:100%; }
+                }
+
             </style>
 
 
             <div class="vacant-container">
 
                 <div class="vacant-heading">
-                    <p class="vacant-eyebrow">FACULTY WORKSPACE / ROOM AVAILABILITY</p>
+                    <p class="vacant-eyebrow">INSTRUCTOR WORKSPACE / ROOM AVAILABILITY</p>
                     <h1 class="vacant-title">Find a vacant room</h1>
                     <p class="vacant-subtitle">
                         Choose a day and official time slot to check classroom availability. Time slots follow the Chair's schedule.
@@ -1350,4 +1477,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-@include('footerheader.footer')
+

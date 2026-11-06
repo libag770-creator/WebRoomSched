@@ -10,7 +10,11 @@ use App\Models\AcademicTerm;
 
 use App\Models\Department;
 
+use App\Models\Room;
+
 use App\Models\RoomSwapRequest;
+
+use App\Models\RoomScheduleTimeSlot;
 
 use App\Models\Schedule;
 use App\Models\ScheduleOverride;
@@ -257,9 +261,9 @@ $targetSchedules = $targetSchedulesQuery
 
             foreach ([
 
-                (int) $swap->requester_schedule_id => $swap->targetUser?->name ?? 'Another faculty',
+                (int) $swap->requester_schedule_id => $swap->targetUser?->name ?? 'Another instructor',
 
-                (int) $swap->target_schedule_id => $swap->requester?->name ?? 'Another faculty',
+                (int) $swap->target_schedule_id => $swap->requester?->name ?? 'Another instructor',
 
             ] as $scheduleId => $partnerName) {
 
@@ -371,6 +375,8 @@ return view(
 
         $validated = $request->validate([
 
+            'swap_type' => ['required', 'in:temporary,permanent'],
+
             'requester_schedule_id' => ['required', 'integer', 'exists:schedules,id'],
 
             'target_schedule_id' => ['required', 'integer', 'exists:schedules,id', 'different:requester_schedule_id'],
@@ -381,11 +387,11 @@ return view(
 
             'target_user_id' => ['required', 'integer', 'exists:users,id'],
 
-            'swap_date' => ['required', 'date', 'after_or_equal:today'],
+            'swap_date' => ['nullable', 'required_if:swap_type,temporary', 'date', 'after_or_equal:today'],
 
-            'start_time' => ['required', 'string', 'max:50'],
+            'start_time' => ['nullable', 'required_if:swap_type,temporary', 'string', 'max:50'],
 
-            'end_time' => ['required', 'string', 'max:50'],
+            'end_time' => ['nullable', 'required_if:swap_type,temporary', 'string', 'max:50'],
 
             'reason' => ['required', 'string', 'max:255'],
 
@@ -463,7 +469,7 @@ if (!$targetFaculty) {
         ->withInput()
         ->with(
             'error',
-            'The faculty owner of the selected target schedule could not be found.'
+            'The instructor owner of the selected target schedule could not be found.'
         );
 }
 
@@ -518,6 +524,8 @@ if ((int) $targetFaculty->id === (int) $user->id) {
 
         }
 
+        $swapDate = null;
+        if ($validated['swap_type'] === 'temporary') {
         try {
             $swapDate = Carbon::parse($validated['swap_date'])->startOfDay();
             $scheduleDay = strtoupper(substr(trim((string) $requesterSchedule->day), 0, 3));
@@ -536,6 +544,7 @@ if ((int) $targetFaculty->id === (int) $user->id) {
         } catch (\Throwable $exception) {
             return back()->withInput()->with('error', 'The room swap date or time is invalid.');
         }
+        }
 
 
 
@@ -552,28 +561,34 @@ if ((int) $targetFaculty->id === (int) $user->id) {
             (int) $targetSchedule->room_id,
         ]));
 
+        $adminOverride = null;
+        if ($validated['swap_type'] === 'temporary') {
         $adminOverride = ScheduleOverride::query()
-            ->with('schedule.room')
+            ->with(['room', 'schedule.room'])
             ->where('status', 'active')
             ->whereDate('override_date', $swapDate->toDateString())
             ->where('expires_at', '>', now())
-            ->whereHas('schedule', function ($query) use ($overrideRoomIds) {
-                $query->whereIn('room_id', $overrideRoomIds);
+            ->where(function ($query) use ($overrideRoomIds) {
+                $query->whereIn('room_id', $overrideRoomIds)
+                    ->orWhereHas('schedule', function ($scheduleQuery) use ($overrideRoomIds) {
+                        $scheduleQuery->whereIn('room_id', $overrideRoomIds);
+                    });
             })
             ->get()
-            ->first(function (ScheduleOverride $override) use ($targetSchedule) {
-                return $override->schedule
-                    && $this->normalizeScheduleTime($override->schedule->time)
-                        === $this->normalizeScheduleTime($targetSchedule->time);
+            ->first(function (ScheduleOverride $override) use ($requesterSchedule, $targetSchedule) {
+                return $this->scheduleConflictsWithOverride($requesterSchedule, $override)
+                    || $this->scheduleConflictsWithOverride($targetSchedule, $override);
             });
+        }
 
         if ($adminOverride) {
-            $overrideRoom = $adminOverride->schedule?->room?->room_name
+            $overrideRoom = $adminOverride->room?->room_name
+                ?: $adminOverride->schedule?->room?->room_name
                 ?: 'A room involved in this swap';
 
             return back()->withInput()->with(
                 'error',
-                $overrideRoom . ' is occupied under an admin override on ' . $swapDate->format('F j, Y') . '. Choose another date or room.'
+                $overrideRoom . ' is reserved under an admin override during this swap on ' . $swapDate->format('F j, Y') . '. Choose another date or room.'
             );
         }
 
@@ -639,11 +654,13 @@ if ((int) $targetFaculty->id === (int) $user->id) {
 
             'target_room_id' => $targetSchedule->room_id,
 
-            'swap_date' => $validated['swap_date'],
+            'swap_type' => $validated['swap_type'],
 
-            'start_time' => $validated['start_time'],
+            'swap_date' => $validated['swap_type'] === 'temporary' ? $validated['swap_date'] : null,
 
-            'end_time' => $validated['end_time'],
+            'start_time' => $validated['swap_type'] === 'temporary' ? $validated['start_time'] : null,
+
+            'end_time' => $validated['swap_type'] === 'temporary' ? $validated['end_time'] : null,
 
             'reason' => trim($validated['reason']),
 
@@ -655,7 +672,11 @@ if ((int) $targetFaculty->id === (int) $user->id) {
 
 
 
-        return redirect()->back()->with('success', 'Room swap request sent. The other faculty member can now accept or decline it from Received Room Swap Requests.');
+        $successMessage = $validated['swap_type'] === 'permanent'
+            ? 'Permanent room swap request sent. The other instructor must accept it before either schedule changes rooms.'
+            : 'Temporary room swap request sent. The other faculty member can now accept or decline it from Received Room Swap Requests.';
+
+        return redirect()->back()->with('success', $successMessage);
 
     }
 
@@ -687,17 +708,40 @@ if ((int) $targetFaculty->id === (int) $user->id) {
 
         ])
 
-            ->where('target_user_id', Auth::id())
-
             ->where('status', 'pending')
+
+            ->where(function ($query) {
+                $faculty = Auth::user();
+                $query->where('target_user_id', $faculty->id);
+                if (!empty($faculty->name)) {
+                    $query->orWhereHas('targetSchedule', function ($scheduleQuery) use ($faculty) {
+                        $scheduleQuery->whereRaw(
+                            'LOWER(TRIM(instructor)) = ?',
+                            [mb_strtolower(trim($faculty->name))]
+                        );
+                    });
+                }
+            })
 
             ->latest()
 
             ->get();
 
+        $sentRequests = RoomSwapRequest::with([
+            'requester',
+            'targetUser',
+            'requesterRoom',
+            'targetRoom',
+            'requesterSchedule',
+            'targetSchedule',
+        ])
+            ->where('requester_id', Auth::id())
+            ->latest()
+            ->get();
 
 
-        return view('faculty.room-swap-requests', compact('requests'));
+
+        return view('faculty.room-swap-requests', compact('requests', 'sentRequests'));
 
     }
 
@@ -705,10 +749,9 @@ if ((int) $targetFaculty->id === (int) $user->id) {
 /**
  * Accept a pending room swap request.
  *
- * IMPORTANT:
- * This does NOT change schedules.room_id.
- * The RoomSwapRequest itself is used as the temporary
- * room override when the scheduled swap time becomes active.
+ * Temporary swaps keep the saved schedules.room_id values and use the
+ * request as a one-meeting override. Permanent swaps update both saved
+ * schedule room assignments after acceptance.
  */
 public function approve($id)
 {
@@ -759,6 +802,12 @@ public function approve($id)
 
             }
 
+            if ((int) $requesterSchedule->academic_term_id !== (int) $targetSchedule->academic_term_id) {
+                throw ValidationException::withMessages([
+                    'swap' => 'The two schedules are no longer in the same academic term. Please create a new room swap request.',
+                ]);
+            }
+
             /*
             |--------------------------------------------------------------------------
             | VERIFY THE CURRENT USER IS THE TARGET FACULTY
@@ -790,7 +839,7 @@ public function approve($id)
 
                 throw ValidationException::withMessages([
                     'swap' =>
-                        'You are not the faculty member assigned to the target schedule.'
+                        'You are not the instructor assigned to the target schedule.'
                 ]);
 
             }
@@ -887,10 +936,7 @@ public function approve($id)
             ];
 
             $existingSwap = RoomSwapRequest::query()
-                ->whereIn('status', [
-                    'pending',
-                    'approved'
-                ])
+                ->whereIn('status', ['pending', 'approved'])
                 ->where('id', '!=', $swap->id)
                 ->where(function ($query) use ($scheduleIds) {
 
@@ -922,6 +968,7 @@ public function approve($id)
 |--------------------------------------------------------------------------
 */
 
+            if (($swap->swap_type ?? 'temporary') === 'temporary') {
             try {
                 $selectedDate = $swap->swap_date instanceof Carbon
                     ? $swap->swap_date->format('Y-m-d')
@@ -960,25 +1007,28 @@ public function approve($id)
             ]));
 
             $adminOverride = ScheduleOverride::query()
-                ->with('schedule.room')
+                ->with(['room', 'schedule.room'])
                 ->where('status', 'active')
                 ->whereDate('override_date', $selectedDate)
                 ->where('expires_at', '>', now())
-                ->whereHas('schedule', function ($query) use ($overrideRoomIds) {
-                    $query->whereIn('room_id', $overrideRoomIds);
+                ->where(function ($query) use ($overrideRoomIds) {
+                    $query->whereIn('room_id', $overrideRoomIds)
+                        ->orWhereHas('schedule', function ($scheduleQuery) use ($overrideRoomIds) {
+                            $scheduleQuery->whereIn('room_id', $overrideRoomIds);
+                        });
                 })
                 ->get()
-                ->first(function (ScheduleOverride $override) use ($targetSchedule) {
-                    return $override->schedule
-                        && $this->normalizeScheduleTime($override->schedule->time)
-                            === $this->normalizeScheduleTime($targetSchedule->time);
+                ->first(function (ScheduleOverride $override) use ($requesterSchedule, $targetSchedule) {
+                    return $this->scheduleConflictsWithOverride($requesterSchedule, $override)
+                        || $this->scheduleConflictsWithOverride($targetSchedule, $override);
                 });
 
             if ($adminOverride) {
-                $roomName = $adminOverride->schedule?->room?->room_name ?: 'A room involved in this swap';
+                $roomName = $adminOverride->room?->room_name ?: $adminOverride->schedule?->room?->room_name ?: 'A room involved in this swap';
                 throw ValidationException::withMessages([
-                    'swap' => $roomName . ' is occupied under an admin override on ' . Carbon::parse($selectedDate)->format('F j, Y') . '. The request cannot be accepted for that date.',
+                    'swap' => $roomName . ' is reserved under an admin override during this swap on ' . Carbon::parse($selectedDate)->format('F j, Y') . '. The request cannot be accepted for that date.',
                 ]);
+            }
             }
 
             /*
@@ -1172,16 +1222,55 @@ if (
             | APPROVE THE REQUEST
             |--------------------------------------------------------------------------
             |
-            | VERY IMPORTANT:
-            |
-            | We intentionally DO NOT do:
-            |
-            | $requesterSchedule->room_id = ...
-            | $targetSchedule->room_id = ...
-            |
-            | The original room assignments must remain unchanged.
+            | Temporary swaps leave schedules.room_id unchanged. Permanent
+            | swaps update both rows here after the conflict checks pass.
             |
             */
+
+            if (($swap->swap_type ?? 'temporary') === 'permanent') {
+                $requesterDestinationRoom = Room::query()
+                    ->lockForUpdate()
+                    ->find($swap->target_room_id);
+                $targetDestinationRoom = Room::query()
+                    ->lockForUpdate()
+                    ->find($swap->requester_room_id);
+
+                if (!$requesterDestinationRoom || !$targetDestinationRoom) {
+                    throw ValidationException::withMessages([
+                        'swap' => 'One of the rooms in this swap no longer exists. Please create a new room swap request.',
+                    ]);
+                }
+
+                $scheduleTerm = $requesterSchedule->academic_term_id
+                    ? AcademicTerm::find($requesterSchedule->academic_term_id)
+                    : null;
+
+                if ($this->roomHasConflict($targetSchedule->room_id, $requesterSchedule, $scheduleIds, $scheduleTerm)) {
+                    throw ValidationException::withMessages([
+                        'swap' => 'The permanent swap would place your class in a room that now has an overlapping schedule.',
+                    ]);
+                }
+                if ($this->roomHasConflict($requesterSchedule->room_id, $targetSchedule, $scheduleIds, $scheduleTerm)) {
+                    throw ValidationException::withMessages([
+                        'swap' => 'The permanent swap would place the other class in a room that now has an overlapping schedule.',
+                    ]);
+                }
+
+                // Merge details belong to the parent schedule_id. Moving the
+                // parent therefore moves the complete shared/spanning class.
+                $requesterSchedule->room_id = $requesterDestinationRoom->id;
+                $requesterSchedule->row_position = $this->roomRowPositionForSchedule(
+                    $requesterDestinationRoom,
+                    $requesterSchedule
+                );
+                $targetSchedule->room_id = $targetDestinationRoom->id;
+                $targetSchedule->row_position = $this->roomRowPositionForSchedule(
+                    $targetDestinationRoom,
+                    $targetSchedule
+                );
+                $requesterSchedule->save();
+                $targetSchedule->save();
+            }
 
             $swap->status = 'approved';
             $swap->save();
@@ -1208,14 +1297,84 @@ if (
 
     }
 
-    $completedSwap = RoomSwapRequest::with(['requester', 'targetUser', 'requesterRoom', 'targetRoom'])
+    $completedSwap = RoomSwapRequest::with(['requester', 'targetUser', 'requesterRoom', 'targetRoom', 'requesterSchedule', 'targetSchedule'])
         ->findOrFail($id);
     $this->markIncomingSwapNotificationRead((int) $completedSwap->target_user_id, (int) $completedSwap->id);
     $completedSwap->requester?->notify(new RoomSwapNotification($completedSwap, 'approved'));
 
+    $studentUpdates = app(\App\Services\StudentScheduleUpdateService::class);
+    $permanent = ($completedSwap->swap_type ?? 'temporary') === 'permanent';
+    if ($permanent) {
+        foreach ([
+            [$completedSwap->requesterSchedule, $completedSwap->targetRoom?->room_name],
+            [$completedSwap->targetSchedule, $completedSwap->requesterRoom?->room_name],
+        ] as [$schedule, $newRoom]) {
+            if (!$schedule) continue;
+            $studentUpdates->recordForSchedule(
+                $schedule,
+                'permanent_room_change',
+                'Permanent room change',
+                trim(($schedule->course_code ?: 'Class') . ' — ' . ($schedule->subject ?: ''))
+                    . ' now meets in ' . ($newRoom ?: 'a different room') . ' on the regular schedule.',
+                ['room_change' => ['type' => 'permanent', 'new_room' => $newRoom]]
+            );
+        }
+    } else {
+        try {
+            $swapDate = $completedSwap->swap_date?->format('Y-m-d');
+            $effectiveAt = $swapDate ? Carbon::parse($swapDate . ' ' . $completedSwap->start_time) : null;
+            $expiresAt = $swapDate ? Carbon::parse($swapDate . ' ' . $completedSwap->end_time) : null;
+        } catch (\Throwable $exception) {
+            $effectiveAt = null;
+            $expiresAt = null;
+        }
+
+        foreach ([
+            [$completedSwap->requesterSchedule, $completedSwap->requesterRoom?->room_name, $completedSwap->targetRoom?->room_name],
+            [$completedSwap->targetSchedule, $completedSwap->targetRoom?->room_name, $completedSwap->requesterRoom?->room_name],
+        ] as [$schedule, $oldRoom, $newRoom]) {
+            if (!$schedule) continue;
+            $dateLabel = $completedSwap->swap_date?->format('F j, Y') ?? 'the selected date';
+            $timeLabel = trim((string) $completedSwap->start_time) . '–' . trim((string) $completedSwap->end_time);
+            $studentUpdates->recordForSchedule(
+                $schedule,
+                'temporary_room_change',
+                'Temporary room change',
+                trim(($schedule->course_code ?: 'Class') . ' — ' . ($schedule->subject ?: ''))
+                    . ' meets in ' . ($newRoom ?: 'a different room') . ' on ' . $dateLabel . ' at ' . $timeLabel . '. The regular room returns afterward.',
+                ['room_change' => ['type' => 'temporary', 'date' => $swapDate ?? null, 'start_time' => $completedSwap->start_time, 'end_time' => $completedSwap->end_time, 'old_room' => $oldRoom, 'new_room' => $newRoom]],
+                $effectiveAt,
+                $expiresAt
+            );
+        }
+    }
+
+    if (($completedSwap->swap_type ?? 'temporary') === 'permanent') {
+        $departmentIds = DB::table('rooms')
+            ->whereIn('id', [$completedSwap->requester_room_id, $completedSwap->target_room_id])
+            ->pluck('department_id')
+            ->merge(DB::table('schedules')
+                ->whereIn('id', [$completedSwap->requester_schedule_id, $completedSwap->target_schedule_id])
+                ->pluck('department_id'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        User::query()
+            ->where('role', 'chair')
+            ->whereIn('department_id', $departmentIds)
+            ->get()
+            ->each(fn (User $chair) => $chair->notify(new RoomSwapNotification($completedSwap, 'permanent_chair')));
+
+        return back()->with(
+            'success',
+            'Permanent room swap accepted. Both saved schedules now use their new rooms, and the affected chair(s) have been notified.'
+        );
+    }
+
     return back()->with(
         'success',
-        'Room swap accepted successfully. The original rooms remain unchanged and the temporary room exchange will become active at the scheduled time.'
+        'Temporary room swap accepted. The schedules will exchange rooms for the selected class meeting and return to their original rooms afterward.'
     );
 }
 
@@ -1226,8 +1385,6 @@ if (
     {
 
         abort_unless(Auth::check(), 403, 'Unauthorized.');
-
-
 
         $swap = RoomSwapRequest::findOrFail($id);
 
@@ -1243,7 +1400,7 @@ if (
 
         if ((int) $swap->target_user_id !== (int) Auth::id() && !$isAssignedTarget) {
 
-            abort(403, 'Only the faculty member assigned to the target schedule can decline this request.');
+            abort(403, 'Only the instructor assigned to the target schedule can decline this request.');
 
         }
 
@@ -1255,9 +1412,22 @@ if (
 
         }
 
+        request()->merge([
+            'decline_reason' => trim((string) request()->input('decline_reason')),
+        ]);
+        $validated = request()->validate([
+            'decline_reason' => ['required', 'string', 'min:10', 'max:1000'],
+        ], [
+            'decline_reason.required' => 'Enter a reason before declining this request.',
+            'decline_reason.min' => 'Please provide a little more detail (at least 10 characters).',
+        ]);
 
 
-        $swap->update(['status' => 'declined']);
+
+        $swap->update([
+            'status' => 'declined',
+            'decline_reason' => trim($validated['decline_reason']),
+        ]);
 
         $swap->load(['requester', 'targetUser', 'requesterRoom', 'targetRoom']);
         $this->markIncomingSwapNotificationRead((int) $swap->target_user_id, (int) $swap->id);
@@ -1287,7 +1457,7 @@ if (
         $swap = RoomSwapRequest::whereKey($id)->lockForUpdate()->firstOrFail();
 
         if ((int) $swap->requester_id !== (int) Auth::id()) {
-            abort(403, 'Only the faculty member who sent this room swap request can cancel it.');
+            abort(403, 'Only the instructor who sent this room swap request can cancel it.');
         }
 
         if (strtolower(trim((string) $swap->status)) !== 'pending') {
@@ -1308,69 +1478,13 @@ if (
     }
 
     /**
-     * Restore room assignments for approved swaps whose end time has passed.
+     * Expire temporary swaps whose end time has passed.
      *
-     * The original room IDs are stored on room_swap_requests, so the schedules
-     * can safely be returned to their pre-swap rooms.
+     * The original room assignments are left unchanged for temporary swaps.
      */
     private function cleanupExpiredSwaps(): void
 {
-    $approvedSwaps = RoomSwapRequest::query()
-        ->where('status', 'approved')
-        ->whereNotNull('swap_date')
-        ->whereNotNull('end_time')
-        ->get();
-
-    foreach ($approvedSwaps as $swap) {
-
-        try {
-            $swapDate = $swap->swap_date instanceof Carbon
-                ? $swap->swap_date->format('Y-m-d')
-                : Carbon::parse($swap->swap_date)->format('Y-m-d');
-
-            $end = Carbon::parse(
-                $swapDate . ' ' . $swap->end_time
-            );
-        } catch (\Throwable $exception) {
-            continue;
-        }
-
-        /*
-         * The schedule room_id is NOT changed when a swap is approved.
-         *
-         * The approved RoomSwapRequest acts as a temporary room
-         * override while the swap is active.
-         *
-         * Once the scheduled end time is reached, simply mark the
-         * request as expired. The original room_id values remain
-         * untouched in the schedules table.
-         */
-        if (now()->lt($end)) {
-            continue;
-        }
-
-        DB::transaction(function () use ($swap) {
-
-            $lockedSwap = RoomSwapRequest::whereKey($swap->id)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$lockedSwap) {
-                return;
-            }
-
-            if (
-                mb_strtolower(
-                    trim((string) $lockedSwap->status)
-                ) !== 'approved'
-            ) {
-                return;
-            }
-
-            $lockedSwap->status = 'expired';
-            $lockedSwap->save();
-        });
-    }
+    RoomSwapRequest::expireElapsedTemporarySwaps();
 }
     private function resolveAcademicTerm(Request $request): ?AcademicTerm
 
@@ -1588,7 +1702,77 @@ if (
 
 
 
-   /**
+private function roomRowPositionForSchedule(Room $room, Schedule $schedule): ?int
+{
+    $scheduleRange = $this->scheduleTimeRange($schedule->time);
+    if (!$scheduleRange) {
+        return $schedule->row_position !== null ? (int) $schedule->row_position : null;
+    }
+
+    $day = strtoupper(substr(trim((string) $schedule->day), 0, 3));
+    if ($day === '') {
+        return $schedule->row_position !== null ? (int) $schedule->row_position : null;
+    }
+
+    $roomSlots = RoomScheduleTimeSlot::query()
+        ->where('room_id', $room->id)
+        ->where('academic_term_id', $schedule->academic_term_id)
+        ->where('is_active', true)
+        ->whereRaw('UPPER(LEFT(TRIM(day), 3)) = ?', [$day])
+        ->orderBy('row_position')
+        ->get(['row_position', 'start_time', 'end_time']);
+
+    foreach ($roomSlots as $slot) {
+        try {
+            $slotStart = Carbon::parse($slot->start_time)->hour * 60
+                + Carbon::parse($slot->start_time)->minute;
+            $slotEnd = Carbon::parse($slot->end_time)->hour * 60
+                + Carbon::parse($slot->end_time)->minute;
+        } catch (\Throwable $exception) {
+            continue;
+        }
+
+        if ($slotStart <= $scheduleRange[0] && $scheduleRange[0] < $slotEnd) {
+            return (int) $slot->row_position;
+        }
+    }
+
+    // Keep the existing row index when the destination room has no matching
+    // custom row. Standard timetable rows are positioned by their clock time.
+    return $schedule->row_position !== null ? (int) $schedule->row_position : null;
+}
+
+private function scheduleConflictsWithOverride(Schedule $schedule, ScheduleOverride $override): bool
+{
+    $overrideRoomId = $override->room_id ?: $override->schedule?->room_id;
+    if (!$overrideRoomId || (int) $overrideRoomId !== (int) $schedule->room_id) {
+        return false;
+    }
+
+    $scheduleRange = $this->scheduleTimeRange($schedule->time);
+    if (!$scheduleRange) {
+        return false;
+    }
+
+    if ($override->start_time && $override->end_time) {
+        $overrideStart = Carbon::parse($override->start_time);
+        $overrideEnd = Carbon::parse($override->end_time);
+        $overrideRange = [
+            $overrideStart->hour * 60 + $overrideStart->minute,
+            $overrideEnd->hour * 60 + $overrideEnd->minute,
+        ];
+    } elseif ($override->schedule) {
+        $overrideRange = $this->scheduleTimeRange($override->schedule->time);
+    } else {
+        return false;
+    }
+
+    return $overrideRange
+        && $scheduleRange[0] < $overrideRange[1]
+        && $scheduleRange[1] > $overrideRange[0];
+}
+
+/**
  * Convert a schedule time string into a [startMinute, endMinute] range.
  */
 private function scheduleTimeRange($time): ?array

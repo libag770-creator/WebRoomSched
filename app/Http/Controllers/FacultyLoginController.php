@@ -8,11 +8,6 @@ use App\Models\Reservation;
 
 class FacultyLoginController extends Controller
 {
-    public function showLogin()
-    {
-        return view('login');
-    }
-
     public function login(Request $request)
 {
     $request->validate([
@@ -39,6 +34,17 @@ class FacultyLoginController extends Controller
                 'error',
                 'Invalid username or password.'
             );
+    }
+
+    $user = Auth::user();
+    if (!$user?->isActive()) {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return back()
+            ->withInput($request->only('username'))
+            ->with('error', 'Your account is inactive. Contact the administrator for assistance.');
     }
 
 

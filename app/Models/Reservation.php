@@ -15,6 +15,7 @@ class Reservation extends Model
         'schedule_id',
         'academic_term_id',
         'faculty_subject_id',
+        'subject_id',
         'date',
         'day',
         'time',
@@ -51,5 +52,10 @@ class Reservation extends Model
             FacultySubject::class,
             'faculty_subject_id'
         );
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class, 'subject_id');
     }
 }

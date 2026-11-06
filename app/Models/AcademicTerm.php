@@ -30,11 +30,4 @@ class AcademicTerm extends Model
         );
     }
 
-    public function drafts()
-    {
-        return $this->hasMany(
-            ScheduleDraft::class,
-            'academic_term_id'
-        );
-    }
 }

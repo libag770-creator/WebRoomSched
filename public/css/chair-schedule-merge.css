@@ -1,0 +1,383 @@
+.schedule-merge-overlay[hidden] {
+    display: none !important;
+}
+
+.schedule-merge-overlay {
+    position: fixed;
+    z-index: 2147483000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+body.schedule-merge-open .excel-sheet-toolbar {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+.schedule-merge-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(15 27 37 / 55%);
+    backdrop-filter: blur(3px);
+}
+
+.schedule-merge-dialog {
+    position: relative;
+    width: min(100%, 600px);
+    max-height: min(92vh, 820px);
+    overflow: auto;
+    padding: 24px;
+    border: 1px solid #dce5e9;
+    border-radius: 16px;
+    background: #fff;
+    color: #22313d;
+    box-shadow: 0 28px 90px rgb(15 27 37 / 28%);
+}
+
+.schedule-merge-dialog-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.schedule-merge-eyebrow {
+    color: #718071;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .14em;
+}
+
+.schedule-merge-dialog h2 {
+    margin: 5px 0 4px;
+    color: #173b33;
+    font-size: 23px;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.schedule-merge-dialog-header p {
+    margin: 0;
+    color: #63716c;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.schedule-merge-close {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e1e8e7;
+    border-radius: 9px;
+    background: #f8faf8;
+    color: #596a62;
+    cursor: pointer;
+    font-size: 23px;
+    line-height: 1;
+}
+
+.schedule-merge-host-card,
+.schedule-merge-course-card {
+    margin-bottom: 16px;
+    padding: 14px 15px;
+    border: 1px solid #dce8dc;
+    border-radius: 11px;
+    background: #f6f9f4;
+}
+
+.schedule-merge-card-label {
+    margin-bottom: 5px;
+    color: #758178;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+
+.schedule-merge-host-card strong {
+    display: block;
+    color: #234836;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.schedule-merge-host-card div:last-child,
+.schedule-merge-course-card {
+    color: #596b60;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.schedule-merge-field {
+    display: grid;
+    gap: 6px;
+    margin: 14px 0;
+}
+
+.schedule-merge-field label {
+    color: #344b3e;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.schedule-merge-field input,
+.schedule-merge-field select {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 11px;
+    border: 1px solid #cfdad2;
+    border-radius: 9px;
+    background: #fff;
+    color: #243b30;
+    font: inherit;
+    font-size: 13px;
+}
+
+.schedule-merge-field select[size] {
+    min-height: 148px;
+    padding: 5px;
+}
+
+.schedule-merge-field select[size] option {
+    padding: 8px;
+    border-radius: 5px;
+}
+
+.schedule-merge-field input:focus,
+.schedule-merge-field select:focus {
+    border-color: #55846a;
+    outline: 3px solid rgb(56 119 79 / 14%);
+}
+
+.schedule-merge-field small {
+    color: #758178;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.schedule-merge-course-card[hidden] {
+    display: none !important;
+}
+
+.schedule-merge-course-card strong {
+    color: #234836;
+}
+
+.schedule-merge-status {
+    min-height: 22px;
+    margin: 8px 0 2px;
+    color: #63716c;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.schedule-merge-status.error {
+    color: #a53d35;
+}
+
+.schedule-merge-status.success {
+    color: #246441;
+    font-weight: 700;
+}
+
+.schedule-merge-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #e8eeea;
+}
+
+.schedule-merge-button {
+    min-height: 41px;
+    padding: 0 14px;
+    border: 1px solid #d6e0d8;
+    border-radius: 9px;
+    background: #fff;
+    color: #41584a;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.schedule-merge-button.primary {
+    border-color: #24543e;
+    background: #24543e;
+    color: #fff;
+}
+
+.schedule-merge-button.primary:hover:not(:disabled) {
+    background: #173b33;
+}
+
+.schedule-merge-button:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.schedule-merge-confirm-overlay,
+.schedule-merge-success-overlay {
+    position: fixed;
+    z-index: 2147483100;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+.schedule-merge-confirm-overlay[hidden],
+.schedule-merge-success-overlay[hidden] { display:none !important; }
+.schedule-merge-success-overlay { z-index:2147483101; }
+.schedule-merge-confirm-backdrop {
+    position:absolute;
+    inset:0;
+    background:rgb(15 27 37 / 58%);
+    backdrop-filter:blur(4px);
+}
+.schedule-merge-confirm-card,
+.schedule-merge-success-card {
+    position:relative;
+    width:min(100%, 460px);
+    padding:25px;
+    border:1px solid #dce5df;
+    border-radius:16px;
+    background:#fff;
+    color:#22313d;
+    box-shadow:0 28px 90px rgb(15 27 37 / 30%);
+}
+.schedule-merge-confirm-card h2,
+.schedule-merge-success-card h2 {
+    margin:5px 0 8px;
+    color:#173b33;
+    font-size:21px;
+    font-weight:850;
+    line-height:1.25;
+}
+.schedule-merge-confirm-card p,
+.schedule-merge-success-card p {
+    margin:0;
+    color:#5b6d62;
+    font-size:13px;
+    line-height:1.55;
+}
+.schedule-merge-confirm-course {
+    margin-top:14px;
+    padding:12px 13px;
+    border:1px solid #dce8dc;
+    border-radius:10px;
+    background:#f6f9f4;
+    color:#284b37;
+    font-size:13px;
+    font-weight:800;
+    line-height:1.5;
+    overflow-wrap:anywhere;
+}
+.schedule-merge-confirm-card .schedule-merge-actions { margin-top:18px; }
+.schedule-merge-success-card { text-align:center; }
+.schedule-merge-success-card .schedule-merge-button { min-width:110px; margin-top:19px; }
+.schedule-merge-success-icon {
+    display:grid;
+    width:48px;
+    height:48px;
+    place-items:center;
+    margin:0 auto 11px;
+    border-radius:50%;
+    background:#e7f3e9;
+    color:#26734a;
+    font-size:26px;
+    font-weight:900;
+}
+
+.schedule-merge-request-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 7px;
+    padding: 5px 8px;
+    border: 1px solid rgb(34 87 60 / 28%);
+    border-radius: 6px;
+    background: rgb(255 255 255 / 88%);
+    color: #24543e;
+    cursor: pointer;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.schedule-merge-request-action:hover {
+    border-color: #24543e;
+    background: #fff;
+}
+
+.merge-class-shared-course {
+    margin-top: 4px;
+    padding: 4px 6px;
+    border-left: 2px solid #568468;
+    background: rgb(255 255 255 / 78%);
+    color: #40584a;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.merge-class-shared-course small {
+    display: block;
+    color: #68776d;
+    font-size: 9px;
+}
+
+.schedule-merge-pending-label {
+    display: inline-flex;
+    margin-top: 5px;
+    padding: 3px 6px;
+    border: 1px solid #ead7a6;
+    border-radius: 5px;
+    background: #fff8e4;
+    color: #735a1d;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.cell-merged-courses {
+    display: grid;
+    gap: 2px;
+    margin-top: 5px;
+    padding: 4px 6px;
+    border-left: 2px solid #568468;
+    border-radius: 0 5px 5px 0;
+    background: rgb(255 255 255 / 76%);
+    color: #40584a;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.cell-merged-courses strong {
+    color: #28543a;
+    font-size: 9px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 580px) {
+    .schedule-merge-overlay {
+        align-items: end;
+        padding: 8px;
+    }
+
+    .schedule-merge-dialog {
+        max-height: 94vh;
+        padding: 18px;
+        border-radius: 15px;
+    }
+
+    .schedule-merge-dialog h2 {
+        font-size: 20px;
+    }
+
+    .schedule-merge-confirm-card,
+    .schedule-merge-success-card { padding:20px; }
+}

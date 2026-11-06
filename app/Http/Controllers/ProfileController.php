@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
 
@@ -43,17 +44,44 @@ class ProfileController extends Controller
     }
 
     /**
+     * Update the username used by the username-and-password login form.
+     */
+    public function updateUsername(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $validated = $request->validateWithBag('updateUsername', [
+            'username' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('users', 'username')->ignore($user->getKey()),
+            ],
+            'current_password' => ['required', 'current_password'],
+        ]);
+
+        $user->username = $validated['username'];
+        $user->save();
+
+        return back()
+            ->with('status', 'username-updated')
+            ->with('account_profile_open', true);
+    }
+
+    /**
      * Upload or replace the authenticated user's profile photo.
      */
     public function updatePhoto(Request $request): RedirectResponse
     {
-        $request->validate([
+        $request->validateWithBag('updatePhoto', [
             'profile_photo' => [
                 'required',
                 'image',
                 'mimes:jpg,jpeg,png,webp',
                 'max:2048',
             ],
+        ], [], [
+            'profile_photo' => 'profile photo',
         ]);
 
         $user = $request->user();
@@ -64,14 +92,18 @@ class ProfileController extends Controller
             $file = $request->file('profile_photo');
 
             if (!$file || !$file->isValid()) {
-                return back()->with('error', 'Hindi valid ang napiling larawan. Pumili ulit ng JPG, PNG, o WebP na hanggang 2 MB.');
+                return back()
+                    ->with('error', 'The selected image is not valid. Choose a JPG, PNG, or WebP image up to 2 MB.')
+                    ->with('account_profile_open', true);
             }
 
             // Save to storage/app/public/profile-photos.
             $newPath = $file->store('profile-photos', 'public');
 
             if (!$newPath || !$disk->exists($newPath)) {
-                return back()->with('error', 'Hindi na-save ang larawan sa storage. Pakisubukan ulit.');
+                return back()
+                    ->with('error', 'The photo could not be saved. Please try again.')
+                    ->with('account_profile_open', true);
             }
 
             $oldPath = $user->profile_photo_path;
@@ -98,10 +130,14 @@ class ProfileController extends Controller
                 $disk->delete($newPath);
             }
 
-            return back()->with('error', 'Hindi ma-update ang profile picture. Pakisuri ang storage at database, pagkatapos ay subukan ulit.');
+            return back()
+                ->with('error', 'The profile photo could not be updated. Please try again.')
+                ->with('account_profile_open', true);
         }
 
-        return back()->with('success', 'Matagumpay na napalitan ang profile picture.');
+        return back()
+            ->with('status', 'photo-updated')
+            ->with('account_profile_open', true);
     }
 
     /**

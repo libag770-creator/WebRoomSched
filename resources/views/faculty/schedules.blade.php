@@ -708,6 +708,56 @@
     overflow: hidden;
 }
 
+.timetable-wrapper {
+    position: relative;
+}
+
+.published-schedule-block-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    pointer-events: none;
+}
+.published-schedule-block.schedule-override-highlight { border-color:#c8473d !important; background:linear-gradient(145deg,#ffe9e7,#fff7f6) !important; box-shadow:inset 4px 0 #c8473d,0 3px 9px rgba(138,36,32,.13) !important; }
+.published-schedule-override-day-highlight { position:absolute; top:0; bottom:0; z-index:0; border-left:4px solid #c8473d; background:rgba(200,71,61,.26); pointer-events:none; }
+.published-schedule-block > :not(.published-schedule-override-day-highlight) { position:relative; z-index:1; }
+
+.published-schedule-source-hidden {
+    visibility: hidden !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-width: 0 !important;
+    overflow: hidden !important;
+}
+
+.published-schedule-block {
+    position: absolute !important;
+    min-height: 0 !important;
+    max-height: none;
+    margin: 0;
+    padding: 5px 7px;
+    overflow: hidden;
+    border: 1px solid rgba(50, 112, 77, .32);
+    border-radius: 8px;
+    box-sizing: border-box;
+    justify-content: flex-start;
+    z-index: 1;
+}
+
+.published-schedule-block[data-duration-minutes="30"] { padding:3px 4px; }
+.published-schedule-block[data-duration-minutes="30"] .class-course { font-size:8px; line-height:1.05; }
+.published-schedule-block[data-duration-minutes="30"] .class-subject,
+.published-schedule-block[data-duration-minutes="30"] .class-instructor,
+.published-schedule-block[data-duration-minutes="30"] .class-program,
+.published-schedule-block[data-duration-minutes="30"] .class-major,
+.published-schedule-block[data-duration-minutes="30"] .class-type,
+.published-schedule-block[data-duration-minutes="30"] .merged-course-details,
+.published-schedule-block[data-duration-minutes="30"] .schedule-override-notice,
+.published-schedule-block[data-duration-minutes="30"] .room-swap-details { display:block !important; margin:1px 0 0; font-size:7px; line-height:1.05; }
+
 
 /* =========================================================
    TABLE CELLS
@@ -986,6 +1036,15 @@
 }
 .schedule-override-notice strong { color: #533c11; font-size: 12px; }
 .schedule-override-notice span { font-size: 12px; }
+
+.room-override-panel { display:grid; gap:10px; margin:18px 0 4px; padding:15px; border:1px solid #e7d49f; border-radius:12px; background:#fff8e8; color:#59451c; }
+.room-override-panel h3 { margin:0; color:#574116; font-size:15px; font-weight:850; }
+.room-override-panel p { margin:0 0 2px; color:#76694d; font-size:12px; line-height:1.45; }
+.room-override-entry { display:grid; gap:4px; padding:10px 12px; border:1px solid #f0e1b9; border-radius:9px; background:#fffdf7; }
+button.room-override-entry { width:100%; font:inherit; text-align:left; cursor:pointer; }
+button.room-override-entry:hover,button.room-override-entry[aria-pressed="true"] { border-color:#c8473d; background:#fff0ef; box-shadow:0 0 0 2px rgba(200,71,61,.12); }
+.room-override-entry strong { color:#5d4719; font-size:13px; font-weight:850; }
+.room-override-entry span { color:#655b40; font-size:12px; line-height:1.45; }
 
 .temporary-reservation-entry {
     width: 100%;
@@ -1328,6 +1387,204 @@
                 .room-reservation-detail-card p { margin:8px 0 3px; color:#34483a; font-size:12px; font-weight:750; }
                 .room-reservation-detail-card small { color:#748178; font-size:10px; }
 
+                /* Faculty schedules refinement: clearer browsing hierarchy and timetable details. */
+                body.portal-shell.faculty-portal .main-layout > .content.faculty-schedules-view {
+                    min-height:100vh;
+                    padding:128px clamp(20px,3vw,42px) 46px !important;
+                    background:
+                        radial-gradient(ellipse at 88% 2%,rgba(215,195,145,.25),transparent 25%),
+                        radial-gradient(ellipse at 8% 96%,rgba(204,224,208,.36),transparent 30%),
+                        linear-gradient(145deg,#edf2ec 0%,#f8f7f2 58%,#f1f0e8 100%);
+                    color:#263a2f;
+                    font-family:'DM Sans',Arial,sans-serif;
+                }
+                .faculty-schedules-view,
+                .faculty-schedules-view * { font-family:'DM Sans',Arial,sans-serif; }
+                .faculty-schedules-view .faculty-schedule-page { width:min(100%,1480px); max-width:1480px; margin:0 auto; padding:0 0 42px; }
+                .faculty-schedules-view .schedule-header {
+                    position:relative;
+                    isolation:isolate;
+                    min-height:210px;
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:center;
+                    margin:0 0 24px;
+                    padding:clamp(30px,4vw,44px) clamp(25px,4vw,46px);
+                    border:1px solid rgba(232,215,175,.22);
+                    border-radius:24px;
+                    background:radial-gradient(circle at 78% 18%,rgba(217,196,143,.17),transparent 25%),linear-gradient(118deg,#153a32 0%,#215440 58%,#37684e 100%);
+                    box-shadow:0 20px 44px rgba(24,58,43,.16);
+                }
+                .faculty-schedules-view .schedule-header::before { position:relative; z-index:1; margin:0 0 12px; color:#e2ca8d; content:"FACULTY WORKSPACE  /  CLASSROOM SCHEDULES"; font-size:11px; font-weight:850; letter-spacing:.16em; }
+                .faculty-schedules-view .schedule-header::after { top:-145px; right:95px; width:330px; height:330px; border-color:rgba(244,232,200,.22); box-shadow:0 0 0 27px rgba(244,232,200,.035),0 0 0 63px rgba(244,232,200,.026),0 0 0 102px rgba(244,232,200,.018); }
+                .faculty-schedules-view .schedule-title { position:relative; z-index:1; margin:0 0 10px; color:#fff !important; font:800 clamp(34px,3.2vw,44px)/1.12 'Manrope','DM Sans',sans-serif; letter-spacing:-.045em; }
+                .faculty-schedules-view .schedule-subtitle { position:relative; z-index:1; max-width:680px; margin:0; color:#e0e9e1; font-size:15px; font-weight:550; line-height:1.65; }
+                .faculty-schedules-view .faculty-schedules-section-heading { display:flex; align-items:center; gap:11px; margin:0 0 13px; color:#294437; font:800 19px/1.3 'Manrope','DM Sans',sans-serif; }
+                .faculty-schedules-view .faculty-schedules-section-heading::before { width:4px; height:24px; border-radius:4px; background:#d1b76f; content:""; }
+                .faculty-schedules-view .department-list { grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:23px; }
+                .faculty-schedules-view .department-card { border-color:#dfe8de; border-radius:17px; background:linear-gradient(155deg,#fff,#fbfcf9); box-shadow:0 7px 20px rgba(31,57,43,.045); }
+                .faculty-schedules-view .department-card:hover { border-color:#9cbda1; box-shadow:0 12px 25px rgba(31,57,43,.08); }
+                .faculty-schedules-view .department-card.active { border:1px solid #32704d; background:#f3f8f0; box-shadow:0 0 0 3px rgba(50,112,77,.1); }
+                .faculty-schedules-view .department-button { min-height:152px; padding:19px 20px; }
+                .faculty-schedules-view .department-icon { width:44px; height:44px; margin-bottom:13px; border:1px solid #e2e9df; border-radius:14px; background:#edf3eb; color:#285940; font-size:18px; }
+                .faculty-schedules-view .department-name { margin-bottom:5px; color:#203d30; font-size:16px; font-weight:850; line-height:1.4; }
+                .faculty-schedules-view .department-info { color:#65756a; font-size:12px; font-weight:600; }
+                .faculty-schedules-view .department-arrow { color:#9a8450; font-size:19px; }
+                .faculty-schedules-view .selected-department-header,
+                .faculty-schedules-view .building-card,
+                .faculty-schedules-view .schedule-panel { border-color:#dce6dc; border-radius:17px; box-shadow:0 8px 24px rgba(31,57,43,.05); }
+                .faculty-schedules-view .selected-department-header { margin-bottom:14px; padding:19px 21px; background:linear-gradient(110deg,#f6f8f3,#fff); }
+                .faculty-schedules-view .selected-department-title { color:#203d30; font:800 21px/1.3 'Manrope','DM Sans',sans-serif; }
+                .faculty-schedules-view .selected-department-subtitle { margin-top:5px; color:#65756a; font-size:13px; font-weight:550; line-height:1.5; }
+                .faculty-schedules-view .building-list { gap:12px; }
+                .faculty-schedules-view .building-card { overflow:hidden; background:#fff; }
+                .faculty-schedules-view .building-button { min-height:72px; padding:15px 19px; background:#fff; }
+                .faculty-schedules-view .building-button:hover,.faculty-schedules-view .building-button.active { background:#f4f8f1; }
+                .faculty-schedules-view .building-left { gap:13px; }
+                .faculty-schedules-view .building-icon { width:42px; height:42px; border:1px solid #e2e9df; border-radius:13px; background:#edf3eb; color:#285940; font-size:17px; }
+                .faculty-schedules-view .building-name { color:#294437; font-size:15px; font-weight:850; }
+                .faculty-schedules-view .building-department { margin-top:4px; color:#65756a; font-size:12px; font-weight:600; }
+                .faculty-schedules-view .building-arrow { color:#84958a; }
+                .faculty-schedules-view .rooms-container { gap:10px; padding:15px 18px 18px; border-top-color:#e6ece5; background:#f7f9f5; }
+                .faculty-schedules-view .room-card { min-height:105px; padding:14px; border-color:#e1e9df; border-radius:12px; background:#fff; box-shadow:0 4px 12px rgba(31,57,43,.035); }
+                .faculty-schedules-view .room-card:hover { border-color:#9cbda1; box-shadow:0 8px 17px rgba(31,57,43,.065); }
+                .faculty-schedules-view .room-card.active { border-color:#32704d; background:#f3f8f0; }
+                .faculty-schedules-view .room-name { color:#294437; font-size:15px; font-weight:850; }
+                .faculty-schedules-view .room-info { margin-top:5px; color:#65756a; font-size:12px; font-weight:550; line-height:1.45; }
+                .faculty-schedules-view .room-action { margin-top:9px; color:#245940; font-size:11px; font-weight:850; letter-spacing:.04em; }
+                .faculty-schedules-view .department-placeholder,
+                .faculty-schedules-view .empty-department { border-color:#dce6dc; border-radius:17px; background:rgba(255,255,255,.9); box-shadow:0 7px 20px rgba(31,57,43,.04); }
+                .faculty-schedules-view .department-placeholder { padding:42px 24px; }
+                .faculty-schedules-view .department-placeholder-icon { width:58px; height:58px; border:1px solid #e2e9df; border-radius:17px; background:#edf3eb; color:#285940; font-size:24px; }
+                .faculty-schedules-view .department-placeholder h3 { color:#294437; font-size:18px; font-weight:850; }
+                .faculty-schedules-view .department-placeholder p { color:#65756a; font-size:13px; line-height:1.6; }
+                .faculty-schedules-view .schedule-panel { margin-top:21px; }
+                .faculty-schedules-view .schedule-panel-header { align-items:center; padding:20px 22px; background:linear-gradient(118deg,#153a32,#285b43); }
+                .faculty-schedules-view .schedule-panel-title { color:#fff; font:800 21px/1.3 'Manrope','DM Sans',sans-serif; }
+                .faculty-schedules-view .schedule-panel-subtitle { margin-top:5px; color:#e0e9e1; font-size:13px; font-weight:550; line-height:1.5; }
+                .faculty-schedules-view .close-schedule { min-height:42px; padding:0 14px; border-color:rgba(255,255,255,.3); border-radius:10px; background:rgba(255,255,255,.11); font-size:12px; font-weight:850; }
+                .faculty-schedules-view .close-schedule:hover { background:rgba(255,255,255,.19); }
+                .faculty-schedules-view .schedule-legend { gap:9px 12px; padding:13px 18px; border-color:#e5ebe5; background:#f8faf6; color:#596d60; font-size:12px; line-height:1.45; }
+                .faculty-schedules-view .schedule-legend-badge { padding:6px 9px; border-color:#ead9ad; background:#fff6df; color:#77571b; font-size:10px; font-weight:850; }
+                .faculty-schedules-view .schedule-legend-badge:not(.reservation-legend-badge) { border-color:#dce6dc; background:#edf3eb; color:#285940; }
+                .faculty-schedules-view .timetable-wrapper { padding:16px; overflow:auto; }
+                .faculty-schedules-view .faculty-timetable { min-width:1280px; border-color:#dfe8de; border-radius:13px; background:#fff; }
+                .faculty-schedules-view .faculty-timetable th,
+                .faculty-schedules-view .faculty-timetable td { border-color:#e3ebe3; }
+                .faculty-schedules-view .faculty-timetable th { position:sticky; top:0; z-index:3; height:52px; padding:11px 8px; background:#edf3eb; color:#245940; font-size:12px; font-weight:850; letter-spacing:.04em; }
+                .faculty-schedules-view .faculty-timetable th:nth-child(1),
+                .faculty-schedules-view .faculty-timetable th:nth-child(5),
+                .faculty-schedules-view .faculty-timetable .time-column { width:120px; min-width:120px; max-width:120px; }
+                .faculty-schedules-view .faculty-timetable .time-column { background:#f5f8f3; color:#405a49; font-size:12px; font-weight:850; }
+                .faculty-schedules-view .faculty-timetable td:not(.time-column) { height:90px; padding:7px; }
+                .faculty-schedules-view .empty-schedule-cell { color:#8b9a8e; font-size:11px; font-style:normal; font-weight:600; }
+                .faculty-schedules-view .class-entry { min-height:78px; padding:9px; border:1px solid #d7e7d9; border-radius:10px; background:linear-gradient(145deg,#f0f7ef,#fbfdf9); box-shadow:inset 3px 0 #32704d; }
+                .faculty-schedules-view .class-entry.room-swapped-temporary { border-color:#c9a7e8 !important; border-left:4px solid #7e22ce !important; background:linear-gradient(145deg,#f6edff,#fcf9ff) !important; box-shadow:inset 0 0 0 1px rgba(126,34,206,.08),0 3px 9px rgba(126,34,206,.1) !important; }
+                .faculty-schedules-view .class-course { color:#245940; font-size:12px; font-weight:850; line-height:1.35; }
+                .faculty-schedules-view .class-subject { color:#294437; font-size:11px; font-weight:750; line-height:1.35; }
+                .faculty-schedules-view .class-instructor { color:#617268; font-size:11px; line-height:1.35; }
+                .faculty-schedules-view .class-program,.faculty-schedules-view .class-major { color:#536a5b; font-size:10px; font-weight:700; line-height:1.35; }
+                .faculty-schedules-view .class-type { color:#617268; font-size:10px; font-weight:800; }
+                .faculty-schedules-view .room-swap-badge { border-color:#dec8f2; background:#f3e8ff; color:#6b21a8; font-size:9px; }
+                .faculty-schedules-view .room-swap-details,.faculty-schedules-view .room-swap-original { color:#65418a; font-size:10px; line-height:1.4; }
+                .faculty-schedules-view .class-entry.room-swapped-temporary .room-swap-badge { border-color:#dec8f2; background:#f3e8ff; color:#6b21a8; }
+                .faculty-schedules-view .schedule-override-notice { padding:10px; border-color:#e6d19b; border-radius:10px; background:#fff7e2; color:#5b451d; font-size:11px; line-height:1.45; }
+                .faculty-schedules-view .schedule-override-notice strong,.faculty-schedules-view .schedule-override-notice span { color:#604819; font-size:11px; }
+                .faculty-schedules-view .temporary-reservation-entry { min-height:78px; padding:9px; border-color:#ead9ad; border-radius:10px; background:#fff8e8; }
+                .faculty-schedules-view .reservation-badge { padding:5px 7px; background:#fff0c7; color:#79551a; font-size:9px; font-weight:850; }
+                .faculty-schedules-view .reservation-course { color:#79551a; font-size:12px; font-weight:850; line-height:1.35; }
+                .faculty-schedules-view .reservation-purpose { color:#5f6d62; font-size:11px; font-weight:700; line-height:1.4; }
+                .faculty-schedules-view .reservation-requester { color:#64746a; font-size:10px; line-height:1.4; }
+                .faculty-schedules-view .reservation-expiration { color:#77571b; font-size:10px; font-weight:800; }
+                .faculty-schedules-view .loading-text { color:#52665a; font-size:13px; font-weight:700; }
+                .faculty-schedules-view .schedule-error-title { color:#294437; font-size:17px; font-weight:850; }
+                .faculty-schedules-view .schedule-error-message { color:#65756a; font-size:13px; line-height:1.6; }
+                .faculty-schedules-view .retry-schedule-btn { min-height:42px; padding:0 15px; border-radius:10px; background:#245940; font-size:13px; font-weight:850; }
+                .faculty-schedules-view .retry-schedule-btn:hover { background:#173b33; }
+                .faculty-schedules-view .room-reservation-details-dialog { border-color:#dce6dc; border-radius:18px; box-shadow:0 24px 70px rgba(17,45,31,.22); }
+                .faculty-schedules-view .room-reservation-details-dialog header { padding:19px 21px; border-color:#e5ebe5; background:#f6f8f3; }
+                .faculty-schedules-view .room-reservation-details-dialog header span { color:#927c49; font-size:10px; font-weight:850; }
+                .faculty-schedules-view .room-reservation-details-dialog h2 { color:#203d30; font:800 20px/1.3 'Manrope','DM Sans',sans-serif; }
+                .faculty-schedules-view .room-reservation-detail-card { border-color:#e2e9df; border-radius:11px; background:#f9fbf8; }
+                .faculty-schedules-view .room-reservation-detail-card > div { color:#315943; font-size:12px; }
+                .faculty-schedules-view .room-reservation-detail-card p { color:#294437; font-size:14px; }
+                .faculty-schedules-view .room-reservation-detail-card small { color:#64746a; font-size:12px; }
+                @media(max-width:900px) { .faculty-schedules-view .department-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+                @media(max-width:760px) {
+                    body.portal-shell.faculty-portal .main-layout > .content.faculty-schedules-view { min-height:calc(100vh - 64px); padding:22px 17px 32px !important; }
+                    .faculty-schedules-view .faculty-schedule-page { padding:0 0 30px; }
+                    .faculty-schedules-view .schedule-header { min-height:0; padding:27px 23px; border-radius:19px; }
+                    .faculty-schedules-view .schedule-header::after { top:-85px; right:-90px; width:260px; height:260px; }
+                    .faculty-schedules-view .schedule-title { font-size:34px; }
+                    .faculty-schedules-view .schedule-subtitle { font-size:14px; }
+                    .faculty-schedules-view .department-button { min-height:138px; }
+                    .faculty-schedules-view .schedule-panel-header { align-items:flex-start; flex-direction:column; }
+                    .faculty-schedules-view .close-schedule { width:100%; }
+                    .faculty-schedules-view .timetable-wrapper { padding:10px; }
+                }
+                @media(max-width:520px) {
+                    .faculty-schedules-view .schedule-header { padding:24px 20px; }
+                    .faculty-schedules-view .schedule-title { font-size:31px; }
+                    .faculty-schedules-view .schedule-header::before { font-size:9px; }
+                    .faculty-schedules-view .department-list { grid-template-columns:1fr; gap:10px; }
+                    .faculty-schedules-view .department-button { min-height:125px; }
+                    .faculty-schedules-view .selected-department-header { padding:16px; }
+                    .faculty-schedules-view .building-button { padding:13px; }
+                    .faculty-schedules-view .rooms-container { padding:12px; }
+                    .faculty-schedules-view .schedule-legend { align-items:flex-start; flex-direction:column; }
+                }
+
+                .faculty-schedules-view .published-schedule-block { display:flex !important; align-items:stretch !important; justify-content:flex-start !important; align-content:flex-start; gap:3px; padding:7px; overflow:hidden; text-align:left !important; }
+                .faculty-schedules-view .published-schedule-block .class-course { width:100%; padding-right:62px; color:#245940; font-size:13px; line-height:1.2; text-align:left !important; }
+                .faculty-schedules-view .published-schedule-block .class-time { position:absolute; top:5px; right:6px; margin:0; padding:2px 4px; border:1px solid #dce6dc; border-radius:5px; background:#fff; color:#344b5d; font-size:10px; font-weight:850; line-height:1.15; white-space:nowrap; }
+                .faculty-schedules-view .published-schedule-block .class-subject { width:100%; color:#294437; font-size:12px; line-height:1.25; text-align:left !important; }
+                .faculty-schedules-view .published-schedule-block .class-instructor { width:100%; margin-top:0; color:#536a5b; font-size:11px; line-height:1.2; text-align:left !important; }
+                .faculty-schedules-view .published-schedule-block .class-program,.faculty-schedules-view .published-schedule-block .class-major,
+                .faculty-schedules-view .published-schedule-block .class-type,.faculty-schedules-view .published-schedule-block .merged-course-details,
+                .faculty-schedules-view .published-schedule-block .schedule-override-notice,.faculty-schedules-view .published-schedule-block .room-swap-details { width:100%; color:#536a5b; font-size:10px; line-height:1.2; text-align:left !important; }
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] { gap:2px; padding:4px 5px; }
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-course { font-size:10px; line-height:1.15; }
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-subject,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-instructor { display:block !important; margin:1px 0 0; font-size:9px; line-height:1.15; }
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-program,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-major,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-type,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .merged-course-details,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .room-swap-details { display:none !important; }
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .schedule-override-notice { display:grid !important; gap:1px; margin-top:2px; padding:2px 3px; font-size:7px; line-height:1.05; }
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .schedule-override-notice strong,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .schedule-override-notice span { font-size:7px; line-height:1.05; }
+
+                /* Let full schedule details adapt to the available cell space. */
+                .faculty-schedules-view .published-schedule-block { container-type:inline-size; overflow:auto; scrollbar-width:thin; scrollbar-color:#b8c8ba transparent; }
+                .faculty-schedules-view .published-schedule-block .class-course { font-size:clamp(9px,3.2cqw,13px); overflow-wrap:anywhere; }
+                .faculty-schedules-view .published-schedule-block .class-subject { font-size:clamp(8px,2.9cqw,12px); line-height:1.2; overflow-wrap:anywhere; }
+                .faculty-schedules-view .published-schedule-block .class-instructor,
+                .faculty-schedules-view .published-schedule-block .class-program,
+                .faculty-schedules-view .published-schedule-block .class-major,
+                .faculty-schedules-view .published-schedule-block .class-type,
+                .faculty-schedules-view .published-schedule-block .merged-course-details,
+                .faculty-schedules-view .published-schedule-block .room-swap-details { font-size:clamp(7px,2.4cqw,10px); line-height:1.15; overflow-wrap:anywhere; }
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-program,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-major,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .class-type,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .merged-course-details,
+                .faculty-schedules-view .published-schedule-block[data-duration-minutes="30"] .room-swap-details { display:block !important; font-size:7px; line-height:1.05; }
+
+                .faculty-schedules-view .shared-reservation-entry { display:grid; align-content:start; gap:4px; width:100%; min-width:0; min-height:82px; padding:8px; overflow:hidden; border-color:#ead9ad; border-left:4px solid #c99736; border-radius:10px; background:linear-gradient(145deg,#fff8e8,#fffdf8); text-align:left; }
+                .faculty-schedules-view .shared-reservation-entry:hover,.faculty-schedules-view .shared-reservation-entry:focus-visible { border-color:#c99736; background:#fff4d8; box-shadow:0 0 0 2px rgba(201,151,54,.14); }
+                .faculty-schedules-view .reservation-entry-top { display:flex; align-items:center; justify-content:space-between; gap:5px; min-width:0; }
+                .faculty-schedules-view .shared-reservation-entry .reservation-badge { min-width:0; max-width:65%; margin:0; padding:4px 6px; overflow:hidden; background:#fff0c7; color:#79551a; font-size:8px; white-space:nowrap; }
+                .faculty-schedules-view .shared-reservation-entry .reservation-time { flex:0 0 auto; color:#47574b; font-size:9px; font-weight:850; white-space:nowrap; }
+                .faculty-schedules-view .shared-reservation-entry .reservation-course { margin:0; color:#79551a; font-size:11px; font-weight:900; line-height:1.2; overflow-wrap:anywhere; }
+                .faculty-schedules-view .shared-reservation-entry .reservation-purpose { display:-webkit-box; margin:0; overflow:hidden; color:#5f6d62; font-size:9px; font-weight:650; line-height:1.25; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+                .faculty-schedules-view .shared-reservation-entry .reservation-requester { margin:0; color:#64746a; font-size:9px; line-height:1.2; }
+                .faculty-schedules-view .shared-reservation-entry .reservation-expiration { margin:0; padding:0; color:#79551a; font-size:8px; font-weight:850; }
+                .faculty-schedules-view .room-reservation-detail-card .reservation-detail-top { display:flex; align-items:center; justify-content:space-between; gap:12px; grid-column:1/-1; }
+                .faculty-schedules-view .room-reservation-detail-card .reservation-detail-code { grid-column:1/-1; color:#79551a; font-size:13px; font-weight:900; }
+                .faculty-schedules-view .room-reservation-detail-card .reservation-detail-title { grid-column:1/-1; margin:0; color:#435449; font-size:12px; line-height:1.45; }
+                .faculty-schedules-view .room-reservation-detail-card .reservation-detail-footer { display:flex; grid-column:1/-1; color:#68776d; font-size:11px; }
+
             </style>
 
 
@@ -1345,13 +1602,13 @@
                     </h1>
 
                     <div class="schedule-subtitle">
-                        Select a department, building, and room
+                        Select a college, building, and room
                         to view the current classroom schedule.
                     </div>
 
                 </div>
 
-                <h2 class="faculty-schedules-section-heading">Browse departments</h2>
+                <h2 class="faculty-schedules-section-heading">Browse colleges</h2>
 
 
                 <!-- =====================================================
@@ -1412,7 +1669,7 @@
 
                         <div class="empty-building">
 
-                            No departments are available.
+                            No colleges are available.
 
                         </div>
 
@@ -1585,7 +1842,7 @@
                                 <div class="empty-department">
 
                                     No buildings are available
-                                    for this department.
+                                    for this college.
 
                                 </div>
 
@@ -1604,11 +1861,11 @@
                         </div>
 
                         <h3>
-                            No Departments Available
+                            No Colleges Available
                         </h3>
 
                         <p>
-                            There are currently no departments
+                            There are currently no colleges
                             with classroom information.
                         </p>
 
@@ -1633,7 +1890,7 @@
                         </div>
 
                         <h3>
-                            Select a Department
+                            Select a College
                         </h3>
 
                         <p>
@@ -1653,6 +1910,7 @@
                 <div
                     id="schedulePanel"
                     class="schedule-panel"
+                    data-schedule-sheet
                 >
 
 
@@ -1678,13 +1936,16 @@
                         </div>
 
 
-                        <button
-                            type="button"
-                            class="close-schedule"
-                            onclick="closeSchedule()"
-                        >
-                            Close Schedule
-                        </button>
+                        <div class="schedule-panel-actions">
+                            @include('components.schedule-sheet-controls')
+                            <button
+                                type="button"
+                                class="close-schedule"
+                                onclick="closeSchedule()"
+                            >
+                                Close Schedule
+                            </button>
+                        </div>
 
                     </div>
 
@@ -1830,6 +2091,10 @@ function loadRoomSchedule(
     buildingName
 ) {
 
+    const publishedSheetUrl = @json(route('schedules.published.room', ['room' => '__ROOM__']));
+    window.location.href = publishedSheetUrl.replace('__ROOM__', encodeURIComponent(roomId));
+    return;
+
     if (roomSwapTransitionTimer) {
         clearTimeout(roomSwapTransitionTimer);
         roomSwapTransitionTimer = null;
@@ -1898,20 +2163,17 @@ function loadRoomSchedule(
 
         roomBuilding.textContent =
             buildingName +
-            ' • Department Chair Schedule';
+            ' • College Chair Schedule';
 
     }
 
     scheduleContent.innerHTML = `
 
         <div class="schedule-loading">
-
             <div class="loading-spinner"></div>
-
             <div class="loading-text">
                 Loading classroom schedule...
             </div>
-
         </div>
 
     `;
@@ -2010,8 +2272,12 @@ function loadRoomSchedule(
 
             renderSchedule(
                 data.schedules || [],
-                data.reservations || []
+                data.reservations || [],
+                data.room_time_slots || data.time_slots || [],
+                data.manual_merges || []
             );
+
+            renderRoomOverrides(data.schedules || [], data.room_overrides || []);
 
             scheduleReservationExpiry(
                 data.reservations || [],
@@ -2259,6 +2525,21 @@ function facultyScheduleMergeSignature(schedule)
 
     }
 
+    const sharedPrograms = Array.isArray(schedule.merged_programs)
+        ? schedule.merged_programs.map(value => String(value ?? '').trim().toLowerCase()).filter(Boolean).sort().join('|')
+        : '';
+    const sharedCourses = Array.isArray(schedule.merged_courses)
+        ? schedule.merged_courses.map(function(course) {
+            return [
+                course.course_code,
+                course.course_title,
+                course.program,
+                course.major,
+                course.share_type
+            ].map(value => String(value ?? '').trim().toLowerCase()).join('::');
+        }).sort().join('|')
+        : '';
+
     return [
 
         schedule.course_code,
@@ -2268,9 +2549,17 @@ function facultyScheduleMergeSignature(schedule)
         schedule.program,
         schedule.instructor,
         schedule.faculty_id,
+        schedule.faculty_subject_id,
         schedule.department_id,
+        schedule.room_id,
         schedule.color,
-        schedule.subject_type
+        schedule.subject_type,
+        schedule.time,
+        schedule.section,
+        schedule.semester,
+        schedule.academic_year,
+        sharedPrograms,
+        sharedCourses
 
     ]
     .map(function(value) {
@@ -2327,8 +2616,12 @@ function buildFacultyScheduleGroup(items)
         const current =
             items[index];
 
-        const currentSchedule =
-            current.schedule;
+        const currentSchedules = Array.isArray(current.schedule)
+            ? current.schedule.filter(Boolean)
+            : (current.schedule ? [current.schedule] : []);
+        const currentSchedule = currentSchedules.length === 1
+            ? currentSchedules[0]
+            : currentSchedules;
 
         const currentReservation =
             current.reservation;
@@ -2362,7 +2655,7 @@ function buildFacultyScheduleGroup(items)
         |--------------------------------------------------------------------------
         */
 
-        if (!currentSchedule) {
+        if (currentSchedules.length === 0) {
 
             html +=
                 buildScheduleCell(
@@ -2382,21 +2675,11 @@ function buildFacultyScheduleGroup(items)
         |--------------------------------------------------------------------------
         */
 
-        const currentOccupied =
-            currentSchedule &&
-            (
-                String(
-                    currentSchedule.course_code || ''
-                ).trim() !== '' ||
-
-                String(
-                    currentSchedule.subject || ''
-                ).trim() !== '' ||
-
-                String(
-                    currentSchedule.instructor || ''
-                ).trim() !== ''
-            );
+        const currentOccupied = currentSchedules.some(function(schedule) {
+            return String(schedule.course_code || '').trim() !== ''
+                || String(schedule.subject || '').trim() !== ''
+                || String(schedule.instructor || '').trim() !== '';
+        });
 
         if (!currentOccupied) {
 
@@ -2418,10 +2701,10 @@ function buildFacultyScheduleGroup(items)
         |--------------------------------------------------------------------------
         */
 
-        const signature =
-            facultyScheduleMergeSignature(
-                currentSchedule
-            );
+        const signature = currentSchedules
+            .map(facultyScheduleMergeSignature)
+            .sort()
+            .join('###');
 
         /*
         |--------------------------------------------------------------------------
@@ -2460,27 +2743,20 @@ function buildFacultyScheduleGroup(items)
             |--------------------------------------------------------------------------
             */
 
-            if (!next.schedule) {
+            const nextSchedules = Array.isArray(next.schedule)
+                ? next.schedule.filter(Boolean)
+                : (next.schedule ? [next.schedule] : []);
+            if (nextSchedules.length === 0) {
 
                 break;
 
             }
 
-            const nextOccupied =
-                next.schedule &&
-                (
-                    String(
-                        next.schedule.course_code || ''
-                    ).trim() !== '' ||
-
-                    String(
-                        next.schedule.subject || ''
-                    ).trim() !== '' ||
-
-                    String(
-                        next.schedule.instructor || ''
-                    ).trim() !== ''
-                );
+            const nextOccupied = nextSchedules.some(function(schedule) {
+                return String(schedule.course_code || '').trim() !== ''
+                    || String(schedule.subject || '').trim() !== ''
+                    || String(schedule.instructor || '').trim() !== '';
+            });
 
             if (!nextOccupied) {
 
@@ -2494,10 +2770,10 @@ function buildFacultyScheduleGroup(items)
             |--------------------------------------------------------------------------
             */
 
-            const nextSignature =
-                facultyScheduleMergeSignature(
-                    next.schedule
-                );
+            const nextSignature = nextSchedules
+                .map(facultyScheduleMergeSignature)
+                .sort()
+                .join('###');
 
             if (
                 nextSignature !==
@@ -2543,13 +2819,12 @@ function buildFacultyScheduleGroup(items)
             colspan > 1
         ) {
 
-            cellHtml =
-                cellHtml.replace(
-                    '<td>',
-                    '<td colspan="' +
-                    colspan +
-                    '" class="merged-schedule-cell">'
-                );
+            cellHtml = cellHtml.replace(/^<td\b([^>]*)>/i, function(match, attributes) {
+                const classMatch = attributes.match(/\sclass=(['"])(.*?)\1/i);
+                const classes = [classMatch ? classMatch[2] : '', 'merged-schedule-cell'].filter(Boolean).join(' ');
+                const cleanAttributes = attributes.replace(/\sclass=(['"])(.*?)\1/i, '');
+                return '<td' + cleanAttributes + ' colspan="' + colspan + '" class="' + classes + '">';
+            });
 
         }
 
@@ -2571,13 +2846,106 @@ function buildFacultyScheduleGroup(items)
 }
 
 
+function renderRoomOverrides(schedules, roomOverrides) {
+    const content = document.getElementById('scheduleContent');
+    const entriesById = new Map();
+    (Array.isArray(roomOverrides) ? roomOverrides : []).forEach(function(item) { entriesById.set(String(item.id), item); });
+    (Array.isArray(schedules) ? schedules : []).forEach(function(schedule) {
+        (Array.isArray(schedule.schedule_overrides) ? schedule.schedule_overrides : []).forEach(function(item) {
+            entriesById.set(String(item.id), Object.assign({}, item, { room_id: item.room_id || schedule.room_id, course_code: schedule.course_code || '' }));
+        });
+    });
+    const entries = Array.from(entriesById.values());
+    if (!content || !entries.length) return;
+
+    const panel = document.createElement('section');
+    panel.className = 'room-override-panel';
+    panel.setAttribute('aria-label', 'Room reservations');
+    const heading = document.createElement('h3');
+    heading.textContent = 'Administrator overrides';
+    panel.appendChild(heading);
+    const hint = document.createElement('p');
+    hint.textContent = 'Select an override to highlight classes only in this room, on its day, and during its time range. Select it again to clear.';
+    panel.appendChild(hint);
+
+    entries.forEach(function (item) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'room-override-entry';
+        card.setAttribute('aria-pressed', 'false');
+        card.dataset.overrideId = item.id || '';
+        card.dataset.overrideDay = String(item.day || '').toUpperCase().slice(0, 3);
+        card.dataset.overrideRoomId = item.room_id || '';
+        card.dataset.overrideStart = item.start_time || '';
+        card.dataset.overrideEnd = item.end_time || '';
+        const date = item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'}) : 'Date unavailable';
+        const start = item.start_time ? new Date('2000-01-01T' + item.start_time).toLocaleTimeString(undefined, {hour:'numeric',minute:'2-digit'}) : '';
+        const end = item.end_time ? new Date('2000-01-01T' + item.end_time).toLocaleTimeString(undefined, {hour:'numeric',minute:'2-digit'}) : '';
+        const range = [start, end].filter(Boolean).join('–');
+        const title = document.createElement('strong');
+        title.textContent = 'Admin override · ' + date + (range ? ' · ' + range : '');
+        const detail = document.createElement('span');
+        detail.textContent = 'Room occupant: ' + (item.occupied_by || 'Students and Faculties');
+        card.append(title, detail);
+        const purpose = document.createElement('span');
+        purpose.textContent = 'Purpose: ' + (item.reason || 'Schedule override');
+        card.appendChild(purpose);
+        if (item.details) {
+            const notes = document.createElement('span');
+            notes.textContent = item.details;
+            card.appendChild(notes);
+        }
+        panel.appendChild(card);
+    });
+
+    const timetable = content.querySelector('.timetable-wrapper');
+    if (timetable) content.insertBefore(panel, timetable);
+    else content.prepend(panel);
+
+    const wrapper = content.querySelector('.timetable-wrapper');
+    panel.querySelectorAll('.room-override-entry').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const wasSelected = button.getAttribute('aria-pressed') === 'true';
+            panel.querySelectorAll('.room-override-entry').forEach(function(entry) { entry.setAttribute('aria-pressed', 'false'); });
+            if (wasSelected) {
+                if (wrapper) wrapper._selectedOverride = null;
+            } else {
+                button.setAttribute('aria-pressed', 'true');
+                const range = publishedScheduleRange(button.dataset.overrideStart + '-' + button.dataset.overrideEnd);
+                if (wrapper) wrapper._selectedOverride = {
+                    day: button.dataset.overrideDay,
+                    roomId: String(button.dataset.overrideRoomId || ''),
+                    start: range?.start,
+                    end: range?.end,
+                };
+            }
+            renderPublishedScheduleBlocks(content);
+        });
+    });
+}
+
 /* =========================================================
    RENDER SCHEDULE
 ========================================================= */
 
+function displayProgramCode(program)
+{
+    return String(program || '')
+        .split(/\s*\/\s*/)
+        .map(function(value) {
+            const label = value.trim();
+            const match = label.match(/\(([^()]*)\)\s*$/);
+            return match ? match[1].trim() : label;
+        })
+        .filter(Boolean)
+        .join(' / ');
+}
+
 function renderSchedule(
     schedules,
-    reservations = []
+    reservations = [],
+    timeSlots = [],
+    manualMerges = []
 ) {
 
     /*
@@ -2609,21 +2977,23 @@ function renderSchedule(
 
     const defaultTimes = [
 
+        '07:00-08:00',
         '08:00-09:00',
         '09:00-10:00',
         '10:00-11:00',
         '11:00-12:00',
-        '12:00-13:00',
         '13:00-14:00',
         '14:00-15:00',
         '15:00-16:00',
-        '16:00-17:00'
+        '16:00-17:00',
+        '17:00-18:00',
+        '18:00-19:00'
 
     ];
 
     /*
     |--------------------------------------------------------------------------
-    | CREATE 9 ROWS
+    | CREATE STANDARD 7 AM–7 PM ROWS
     |--------------------------------------------------------------------------
     */
 
@@ -2631,7 +3001,7 @@ function renderSchedule(
 
     for (
         let position = 0;
-        position < 9;
+        position < defaultTimes.length;
         position++
     ) {
 
@@ -2643,17 +3013,20 @@ function renderSchedule(
             rightTime:
                 defaultTimes[position],
 
-            MON: null,
+            saturdayTime:
+                defaultTimes[position],
 
-            WED: null,
+            MON: [],
 
-            FRI: null,
+            WED: [],
 
-            TUE: null,
+            FRI: [],
 
-            THU: null,
+            TUE: [],
 
-            SAT: null,
+            THU: [],
+
+            SAT: [],
 
             MON_RESERVATION: [],
             WED_RESERVATION: [],
@@ -2665,6 +3038,25 @@ function renderSchedule(
         };
 
     }
+
+    (timeSlots || []).forEach(function(slot) {
+        const position = publishedScheduleRowPosition(
+            slot.time || [slot.start_time, slot.end_time].filter(Boolean).join('-'),
+            timeSlots,
+            slot.day,
+            defaultTimes
+        );
+        if (position === null || position < 0 || position >= defaultTimes.length) return;
+        const day = String(slot.day || '').trim().toUpperCase().slice(0, 3);
+        const label = slot.time || [slot.start_time, slot.end_time].filter(Boolean).join('-');
+        if (!label) return;
+        if (['MON', 'WED', 'FRI'].includes(day)) rows[position].leftTime = label;
+        else if (['TUE', 'THU'].includes(day)) rows[position].rightTime = label;
+        else if (day === 'SAT') rows[position].saturdayTime = label;
+    });
+
+    // Keep the room's saved row labels. Published schedule blocks use the
+    // exact stored start/end times and align over these rows.
 
     /*
     |--------------------------------------------------------------------------
@@ -2679,9 +3071,12 @@ function renderSchedule(
         {
 
             let position =
-                Number(
-                    schedule.row_position
-                );
+                publishedScheduleRowPosition(schedule.time, timeSlots, schedule.day, defaultTimes);
+
+            if (position === null && schedule.row_position !== null && schedule.row_position !== '') {
+                const savedPosition = Number(schedule.row_position);
+                position = Number.isInteger(savedPosition) ? savedPosition : null;
+            }
 
             /*
             |--------------------------------------------------------------------------
@@ -2690,9 +3085,10 @@ function renderSchedule(
             */
 
             if (
+                position === null ||
                 Number.isNaN(position) ||
                 position < 0 ||
-                position > 8
+                position >= defaultTimes.length
             ) {
 
                 const savedTime =
@@ -2716,8 +3112,9 @@ function renderSchedule(
             */
 
             if (
+                position === null ||
                 position < 0 ||
-                position > 8
+                position >= defaultTimes.length
             ) {
 
                 return;
@@ -2749,17 +3146,8 @@ function renderSchedule(
                 day === 'MONDAY'
             ) {
 
-                rows[position].MON =
-                    schedule;
+                rows[position].MON.push(schedule);
 
-                if (
-                    schedule.time
-                ) {
-
-                    rows[position].leftTime =
-                        schedule.time;
-
-                }
 
             }
 
@@ -2774,17 +3162,8 @@ function renderSchedule(
                 day === 'WEDNESDAY'
             ) {
 
-                rows[position].WED =
-                    schedule;
+                rows[position].WED.push(schedule);
 
-                if (
-                    schedule.time
-                ) {
-
-                    rows[position].leftTime =
-                        schedule.time;
-
-                }
 
             }
 
@@ -2799,17 +3178,8 @@ function renderSchedule(
                 day === 'FRIDAY'
             ) {
 
-                rows[position].FRI =
-                    schedule;
+                rows[position].FRI.push(schedule);
 
-                if (
-                    schedule.time
-                ) {
-
-                    rows[position].leftTime =
-                        schedule.time;
-
-                }
 
             }
 
@@ -2824,17 +3194,8 @@ function renderSchedule(
                 day === 'TUESDAY'
             ) {
 
-                rows[position].TUE =
-                    schedule;
+                rows[position].TUE.push(schedule);
 
-                if (
-                    schedule.time
-                ) {
-
-                    rows[position].rightTime =
-                        schedule.time;
-
-                }
 
             }
 
@@ -2849,18 +3210,8 @@ function renderSchedule(
                 day === 'THURSDAY'
             ) {
 
-                rows[position].THU =
-                    schedule;
+                rows[position].THU.push(schedule);
 
-                if (
-                    schedule.time &&
-                    !rows[position].TUE
-                ) {
-
-                    rows[position].rightTime =
-                        schedule.time;
-
-                }
 
             }
 
@@ -2875,24 +3226,23 @@ function renderSchedule(
                 day === 'SATURDAY'
             ) {
 
-                rows[position].SAT =
-                    schedule;
+                rows[position].SAT.push(schedule);
 
-                if (
-                    schedule.time &&
-                    !rows[position].TUE &&
-                    !rows[position].THU
-                ) {
-
-                    rows[position].rightTime =
-                        schedule.time;
-
-                }
 
             }
 
         }
     );
+
+    ['MON', 'WED', 'FRI', 'TUE', 'THU', 'SAT'].forEach(function(day) {
+        Object.values(rows).forEach(function(row) {
+            row[day].sort(function(left, right) {
+                const leftRange = publishedScheduleRange(left.time);
+                const rightRange = publishedScheduleRange(right.time);
+                return (leftRange?.start ?? 0) - (rightRange?.start ?? 0);
+            });
+        });
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -3007,11 +3357,15 @@ function renderSchedule(
     |--------------------------------------------------------------------------
     */
 
+    const hasSaturdaySchedule = (schedules || []).some(function(schedule) {
+        return ['SAT', 'SATURDAY'].includes(String(schedule.day || '').trim().toUpperCase());
+    });
+
     let html = `
 
-        <div class="timetable-wrapper">
+        <div class="timetable-wrapper" data-fit-schedule-container>
 
-            <table class="faculty-timetable">
+            <table class="faculty-timetable" data-fit-schedule>
 
                 <thead>
 
@@ -3031,7 +3385,7 @@ function renderSchedule(
 
                         <th>THU</th>
 
-                        <th>SAT</th>
+                        ${hasSaturdaySchedule ? '<th>TIME</th><th>SAT</th>' : ''}
 
                     </tr>
 
@@ -3043,13 +3397,13 @@ function renderSchedule(
 
     /*
     |--------------------------------------------------------------------------
-    | CREATE 9 ROWS
+    | CREATE STANDARD 7 AM–7 PM ROWS
     |--------------------------------------------------------------------------
     */
 
     for (
         let position = 0;
-        position < 9;
+        position < defaultTimes.length;
         position++
     ) {
 
@@ -3070,7 +3424,7 @@ function renderSchedule(
 
                 <tr class="noon-break-row">
 
-                    <td colspan="8">
+                    <td colspan="${hasSaturdaySchedule ? 9 : 7}">
                         NOON BREAK
                     </td>
 
@@ -3088,9 +3442,9 @@ function renderSchedule(
 
         html += `
 
-            <tr>
+            <tr data-row-position="${position}">
 
-                <td class="time-column">
+                <td class="time-column" data-time-side="left">
 
                     ${escapeHtml(
                         row.leftTime
@@ -3132,7 +3486,7 @@ function renderSchedule(
                 ])}
 
 
-                <td class="time-column">
+                <td class="time-column" data-time-side="right">
 
                     ${escapeHtml(
                         row.rightTime
@@ -3142,7 +3496,7 @@ function renderSchedule(
 
 
                 <!-- =========================================
-                     TUE / THU / SAT
+                     TUE / THU
                 ========================================== -->
 
                 ${buildFacultyScheduleGroup([
@@ -3163,15 +3517,14 @@ function renderSchedule(
                             row.THU_RESERVATION
                     },
 
-                    {
-                        schedule:
-                            row.SAT,
-
-                        reservation:
-                            row.SAT_RESERVATION
-                    }
-
                 ])}
+
+                ${hasSaturdaySchedule
+                    ? '<td class="time-column" data-time-side="sat">' + escapeHtml(row.saturdayTime) + '</td>' + buildFacultyScheduleGroup([{
+                        schedule: row.SAT,
+                        reservation: row.SAT_RESERVATION
+                    }])
+                    : ''}
 
             </tr>
 
@@ -3197,6 +3550,9 @@ function renderSchedule(
 
     content.innerHTML =
         html;
+
+    tagPublishedScheduleCells(content.querySelector('.faculty-timetable'));
+    renderPublishedScheduleBlocks(content, manualMerges);
 
 }
 
@@ -3249,6 +3605,273 @@ function normalizeScheduleStartTime(value)
     );
 }
 
+function publishedClockMinutes(value)
+{
+    const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    if (!match) return null;
+
+    let hour = Number(match[1]);
+    const minute = Number(match[2]);
+    const meridiem = String(match[3] || '').toUpperCase();
+    if (meridiem === 'PM' && hour < 12) hour += 12;
+    if (meridiem === 'AM' && hour === 12) hour = 0;
+    if (!meridiem && hour >= 1 && hour <= 6) hour += 12;
+    if (hour > 23 || minute > 59) return null;
+
+    return hour * 60 + minute;
+}
+
+function publishedScheduleRange(value)
+{
+    const parts = String(value || '').trim().replace(/[–—]/g, '-').split('-');
+    if (parts.length !== 2) return null;
+
+    const start = publishedClockMinutes(parts[0]);
+    const end = publishedClockMinutes(parts[1]);
+    return start !== null && end !== null && end > start ? { start: start, end: end } : null;
+}
+
+function publishedFormatScheduleTime(value)
+{
+    const range = publishedScheduleRange(value);
+    if (!range) return String(value || '');
+    const clock = minute => {
+        const hour = Math.floor(minute / 60) % 24;
+        return (hour % 12 || 12) + ':' + String(minute % 60).padStart(2, '0');
+    };
+    const period = minute => Math.floor(minute / 60) % 24 < 12 ? 'AM' : 'PM';
+    const startPeriod = period(range.start);
+    const endPeriod = period(range.end);
+    return startPeriod === endPeriod
+        ? clock(range.start) + '–' + clock(range.end) + ' ' + endPeriod
+        : clock(range.start) + ' ' + startPeriod + '–' + clock(range.end) + ' ' + endPeriod;
+}
+
+function publishedScheduleRowPosition(value, timeSlots, day, defaultTimes)
+{
+    const scheduleRange = publishedScheduleRange(value);
+    if (!scheduleRange) return null;
+
+    const normalizedDay = String(day || '').trim().toUpperCase().slice(0, 3);
+    const matchingSlot = (timeSlots || []).find(function(item) {
+        const slotDay = String(item.day || '').trim().toUpperCase().slice(0, 3);
+        const slotRange = publishedScheduleRange(item.time || [item.start_time, item.end_time].filter(Boolean).join('-'));
+        return slotDay === normalizedDay && slotRange
+            && scheduleRange.start >= slotRange.start && scheduleRange.start < slotRange.end;
+    });
+
+    const targetStart = matchingSlot
+        ? publishedScheduleRange(matchingSlot.time || [matchingSlot.start_time, matchingSlot.end_time].filter(Boolean).join('-'))?.start
+        : scheduleRange.start;
+
+    for (let index = 0; index < defaultTimes.length; index++) {
+        const slot = publishedScheduleRange(defaultTimes[index]);
+        if (slot && targetStart >= slot.start && targetStart < slot.end) {
+            return index;
+        }
+    }
+
+    return null;
+}
+
+function tagPublishedScheduleCells(table)
+{
+    if (!table) return;
+    const dayLists = { left: ['MON', 'WED', 'FRI'], right: ['TUE', 'THU'], sat: ['SAT'] };
+    Array.from(table.tBodies[0]?.rows || []).forEach(function(row) {
+        if (row.classList.contains('noon-break-row')) return;
+        const rowPosition = row.dataset.rowPosition || '';
+        const nextDay = { left: 0, right: 0, sat: 0 };
+        const rowTime = {};
+        let side = 'left';
+        Array.from(row.cells).forEach(function(cell) {
+            if (cell.classList.contains('time-column')) {
+                side = cell.dataset.timeSide || side;
+                rowTime[side] = cell.textContent.trim();
+                return;
+            }
+            const span = Math.max(1, Number(cell.colSpan || 1));
+            cell.dataset.manualDays = dayLists[side].slice(nextDay[side], nextDay[side] + span).join(',');
+            cell.dataset.manualSide = side;
+            cell.dataset.manualRowPosition = rowPosition;
+            cell.dataset.manualRowTime = rowTime[side] || '';
+            nextDay[side] += span;
+        });
+    });
+}
+
+function renderPublishedScheduleBlocks(content, manualMerges = null)
+{
+    const wrapper = content?.querySelector('.timetable-wrapper');
+    const table = wrapper?.querySelector('.faculty-timetable');
+    if (!wrapper || !table) return;
+    if (Array.isArray(manualMerges)) wrapper._manualMerges = manualMerges;
+    manualMerges = wrapper._manualMerges || [];
+
+    if (window.ResizeObserver && !wrapper._publishedScheduleResizeObserver) {
+        wrapper._publishedScheduleResizeObserver = new ResizeObserver(function() {
+            renderPublishedScheduleBlocks(content);
+        });
+        wrapper._publishedScheduleResizeObserver.observe(wrapper);
+    }
+
+    let layer = wrapper.querySelector('.published-schedule-block-layer');
+    if (!layer) {
+        layer = document.createElement('div');
+        layer.className = 'published-schedule-block-layer';
+        layer.setAttribute('aria-hidden', 'true');
+        wrapper.appendChild(layer);
+    }
+    layer.replaceChildren();
+
+    function yAtMinute(side, minute, edge)
+    {
+        const rows = Array.from(table.tBodies[0]?.rows || []).filter(function(row) {
+            return !row.classList.contains('noon-break-row');
+        });
+
+        for (const row of rows) {
+            const timeCell = row.querySelector('[data-time-side="' + side + '"]');
+            const range = publishedScheduleRange(timeCell?.textContent || '');
+            if (!range) continue;
+
+            if (edge === 'start' && minute === range.end) continue;
+            if (edge === 'end' && minute === range.start) continue;
+            if (minute < range.start || minute > range.end) continue;
+
+            const rect = timeCell.getBoundingClientRect();
+            const fraction = (minute - range.start) / (range.end - range.start);
+            return rect.top + rect.height * fraction;
+        }
+
+        return null;
+    }
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const tableRect = table.getBoundingClientRect();
+    layer.style.position = 'absolute';
+    layer.style.inset = 'auto';
+    layer.style.left = (tableRect.left - wrapperRect.left - wrapper.clientLeft + wrapper.scrollLeft) + 'px';
+    layer.style.top = (tableRect.top - wrapperRect.top - wrapper.clientTop + wrapper.scrollTop) + 'px';
+    layer.style.width = tableRect.width + 'px';
+    layer.style.height = tableRect.height + 'px';
+    const sideByDay = { MON: 'left', WED: 'left', FRI: 'left', TUE: 'right', THU: 'right', SAT: 'sat' };
+
+    const usedHorizontalMerges = new Set();
+    Array.from(table.querySelectorAll('.class-entry[data-view-schedule-time]')).forEach(function(source) {
+        const range = publishedScheduleRange(source.dataset.viewScheduleTime);
+        const cell = source.closest('td');
+        const side = sideByDay[String(source.dataset.viewScheduleDay || '').toUpperCase().slice(0, 3)];
+        if (!range || !cell || !side) return;
+
+        let top = yAtMinute(side, range.start, 'start');
+        let bottom = yAtMinute(side, range.end, 'end');
+        if (top === null || bottom === null || bottom <= top) return;
+
+        const cellRect = cell.getBoundingClientRect();
+        const day = String(source.dataset.viewScheduleDay || '').trim().toUpperCase().slice(0, 3);
+        const rowPosition = Number(source.closest('tr')?.dataset.rowPosition);
+        const rowTime = cell.dataset.manualRowTime || '';
+        const mergeIndex = manualMerges.findIndex(function(merge) {
+            return merge.axis === 'horizontal' && (merge.cells || []).some(function(coordinate) {
+                if (String(coordinate.day || '').toUpperCase() !== day) return false;
+                const coordinatePosition = Number(coordinate.row_position);
+                if (Number.isFinite(coordinatePosition) && coordinatePosition === rowPosition) return true;
+                const coordinateRange = publishedScheduleRange(coordinate.time || '');
+                const rowRange = publishedScheduleRange(rowTime);
+                return coordinateRange && rowRange && coordinateRange.start === rowRange.start;
+            });
+        });
+        let mergedCells = [];
+        let geometryAxis = '';
+        if (mergeIndex >= 0) {
+            geometryAxis = 'horizontal';
+            const merge = manualMerges[mergeIndex];
+            if (usedHorizontalMerges.has(mergeIndex)) {
+                source.classList.add('published-schedule-source-hidden');
+                return;
+            }
+            mergedCells = (merge.cells || []).map(function(coordinate) {
+                const coordinateRange = publishedScheduleRange(coordinate.time || '');
+                return Array.from(table.querySelectorAll('td[data-manual-row-position]')).find(function(candidate) {
+                    if (candidate.dataset.manualSide !== String(coordinate.side || '')) return false;
+                    if (!(candidate.dataset.manualDays || '').split(',').includes(String(coordinate.day || '').toUpperCase())) return false;
+                    const samePosition = Number(candidate.dataset.manualRowPosition) === Number(coordinate.row_position);
+                    const candidateRange = publishedScheduleRange(candidate.dataset.manualRowTime || '');
+                    return samePosition || (coordinateRange && candidateRange && coordinateRange.start === candidateRange.start);
+                });
+            }).filter(Boolean);
+            if (mergedCells.length > 1) usedHorizontalMerges.add(mergeIndex);
+        } else {
+            const verticalIndex = manualMerges.findIndex(function(merge) {
+                return merge.axis === 'vertical' && (merge.cells || []).some(function(coordinate) {
+                    if (String(coordinate.day || '').toUpperCase() !== day) return false;
+                    const coordinatePosition = Number(coordinate.row_position);
+                    if (Number.isFinite(coordinatePosition) && coordinatePosition === rowPosition) return true;
+                    const coordinateRange = publishedScheduleRange(coordinate.time || '');
+                    const rowRange = publishedScheduleRange(rowTime);
+                    return coordinateRange && rowRange && coordinateRange.start === rowRange.start;
+                });
+            });
+            if (verticalIndex >= 0) {
+                geometryAxis = 'vertical';
+                mergedCells = (manualMerges[verticalIndex].cells || []).map(function(coordinate) {
+                    const coordinateRange = publishedScheduleRange(coordinate.time || '');
+                    return Array.from(table.querySelectorAll('td[data-manual-row-position]')).find(function(candidate) {
+                        if (candidate.dataset.manualSide !== String(coordinate.side || '')) return false;
+                        if (!(candidate.dataset.manualDays || '').split(',').includes(String(coordinate.day || '').toUpperCase())) return false;
+                        const samePosition = Number(candidate.dataset.manualRowPosition) === Number(coordinate.row_position);
+                        const candidateRange = publishedScheduleRange(candidate.dataset.manualRowTime || '');
+                        return samePosition || (coordinateRange && candidateRange && coordinateRange.start === candidateRange.start);
+                    });
+                }).filter(Boolean);
+            }
+        }
+        const block = source.cloneNode(true);
+        block.classList.add('published-schedule-block');
+        block.classList.remove('published-schedule-source-hidden');
+        block.style.visibility = 'visible';
+        block.dataset.durationMinutes = String(range.end - range.start);
+        const mergeRects = mergedCells.map(function(item) { return item.getBoundingClientRect(); });
+        const mergedLeft = mergeRects.length ? Math.min(...mergeRects.map(function(rect) { return rect.left; })) : cellRect.left;
+        const mergedRight = mergeRects.length ? Math.max(...mergeRects.map(function(rect) { return rect.right; })) : cellRect.right;
+        if (mergeRects.length && geometryAxis === 'vertical') {
+            top = Math.min(...mergeRects.map(function(rect) { return rect.top; }));
+            bottom = Math.max(...mergeRects.map(function(rect) { return rect.bottom; }));
+        }
+        block.style.left = (mergedLeft - tableRect.left) + 'px';
+        block.style.top = (top - tableRect.top) + 'px';
+        block.style.width = (mergedRight - mergedLeft) + 'px';
+        block.style.height = (bottom - top) + 'px';
+        const selectedOverride = wrapper._selectedOverride;
+        const cellDays = (cell.dataset.manualDays || day).split(',').map(function(value) { return value.trim().toUpperCase(); }).filter(Boolean);
+        if (selectedOverride && String(cell.dataset.viewScheduleRoomId || '') === String(selectedOverride.roomId || '')
+            && cellDays.includes(selectedOverride.day)
+            && range.start < selectedOverride.end && range.end > selectedOverride.start) {
+            const matchingDayCell = mergedCells.find(function(candidate) {
+                return (candidate.dataset.manualDays || '').split(',').map(function(value) { return value.trim().toUpperCase(); }).includes(selectedOverride.day);
+            });
+            if (geometryAxis === 'horizontal' && matchingDayCell && cellDays.length > 1) {
+                const matchingRect = matchingDayCell.getBoundingClientRect();
+                const segment = document.createElement('span');
+                segment.className = 'published-schedule-override-day-highlight';
+                segment.style.left = (matchingRect.left - mergedLeft) + 'px';
+                segment.style.width = matchingRect.width + 'px';
+                block.appendChild(segment);
+            } else {
+                block.classList.add('schedule-override-highlight');
+            }
+        }
+        block.title = [cell.dataset.viewScheduleTime || '', source.innerText || ''].filter(Boolean).join(' · ');
+        layer.appendChild(block);
+        source.classList.add('published-schedule-source-hidden');
+    });
+}
+
+window.addEventListener('resize', function() {
+    document.querySelectorAll('#scheduleContent').forEach(renderPublishedScheduleBlocks);
+});
+
 
 /* =========================================================
    BUILD RESERVATION CELL
@@ -3256,28 +3879,39 @@ function normalizeScheduleStartTime(value)
 
 function buildReservationCell(reservations)
 {
-    const faculty = Array.from(new Set(reservations.map(item => item.user_id || item.user_name || 'Faculty')));
+    const first = reservations[0] || {};
     // Keep JSON safe inside the generated HTML attribute. Text escaping does
     // not escape quotes for an attribute, while URI encoding does.
     const encoded = encodeURIComponent(JSON.stringify(reservations));
-    const countLabel = faculty.length === 1 ? '1 faculty member' : faculty.length + ' faculty members';
-    const dateLabel = reservations.length === 1 && reservations[0].date
-        ? new Date(reservations[0].date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
-        : reservations.length + ' reserved dates';
+    const dateLabel = reservations.length === 1 && first.date
+        ? new Date(first.date + 'T12:00:00').toLocaleDateString(undefined, {month:'short',day:'numeric',year:'numeric'})
+        : reservations.length + ' reservation dates';
+    const timeLabel = [formatReservationClock(first.start_time), formatReservationClock(first.end_time)].filter(Boolean).join(' – ');
+    const courseCode = first.course_code || 'Room reservation';
+    const courseTitle = first.subject || (reservations.length > 1 ? 'Open to review all reserved dates' : (first.purpose || 'Room reservation'));
 
     return `
         <td class="shared-reservation-cell">
             <button type="button" class="temporary-reservation-entry shared-reservation-entry"
                 data-reservations="${encoded}"
-                aria-label="View ${reservations.length} room reservation${reservations.length === 1 ? '' : 's'}">
-                <span class="reservation-badge"><i class="fa-solid fa-calendar-check"></i> Room Reserved</span>
-                <span class="reservation-course">Reserved by ${countLabel}</span>
-                <span class="reservation-purpose">${escapeHtml(dateLabel || 'View reserved dates')}</span>
-                <span class="reservation-requester">${escapeHtml(reservations[0].start_time || '')} - ${escapeHtml(reservations[0].end_time || '')}</span>
+                aria-label="${escapeHtml(courseCode)}. ${escapeHtml(dateLabel)}. Open reservation details.">
+                <span class="reservation-entry-top"><span class="reservation-badge"><i class="fa-solid fa-calendar-check"></i> Room reserved</span><time class="reservation-time">${escapeHtml(timeLabel)}</time></span>
+                <span class="reservation-course">${escapeHtml(courseCode)}</span>
+                <span class="reservation-purpose">${escapeHtml(courseTitle)}</span>
+                <span class="reservation-requester">${escapeHtml(dateLabel)}</span>
                 <span class="reservation-expiration"><i class="fa-solid fa-arrow-up-right-from-square"></i> View details</span>
             </button>
         </td>
     `;
+}
+
+function formatReservationClock(value)
+{
+    const match = String(value || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return String(value || '');
+    const hour = Number(match[1]);
+    const suffix = hour >= 12 ? 'PM' : 'AM';
+    return `${hour % 12 || 12}:${match[2]} ${suffix}`;
 }
 
 window.openRoomReservationDetails = function(button)
@@ -3291,8 +3925,10 @@ window.openRoomReservationDetails = function(button)
     }
     const items = reservations.map(item => {
         const date = item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'}) : 'Date unavailable';
-        const purpose = item.course_code ? item.course_code + (item.subject ? ' — ' + item.subject : '') : (item.purpose || 'Room reservation');
-        return `<article class="room-reservation-detail-card"><div><strong>${escapeHtml(date)}</strong><span>${escapeHtml(item.start_time || '')} – ${escapeHtml(item.end_time || '')}</span></div><p>${escapeHtml(item.user_name || 'Faculty')}</p><small>${escapeHtml(purpose)}</small></article>`;
+        const time = [formatReservationClock(item.start_time), formatReservationClock(item.end_time)].filter(Boolean).join(' – ');
+        const code = item.course_code || 'Room reservation';
+        const title = item.subject || item.purpose || 'General room use';
+        return `<article class="room-reservation-detail-card"><div class="reservation-detail-top"><strong>${escapeHtml(date)}</strong><span>${escapeHtml(time)}</span></div><strong class="reservation-detail-code">${escapeHtml(code)}</strong><p class="reservation-detail-title">${escapeHtml(title)}</p><div class="reservation-detail-footer"><span><i class="fa-solid fa-user"></i> ${escapeHtml(item.user_name || 'Instructor')}</span></div></article>`;
     }).join('');
 
     let modal = document.getElementById('roomReservationDetailsModal');
@@ -3300,7 +3936,7 @@ window.openRoomReservationDetails = function(button)
         modal = document.createElement('div');
         modal.id = 'roomReservationDetailsModal';
         modal.className = 'room-reservation-details-overlay';
-        modal.innerHTML = `<section class="room-reservation-details-dialog" role="dialog" aria-modal="true" aria-labelledby="roomReservationDetailsTitle"><header><div><span>ROOM RESERVATIONS</span><h2 id="roomReservationDetailsTitle">Reserved dates and faculty</h2></div><button type="button" data-close-room-reservation-details aria-label="Close">×</button></header><div class="room-reservation-details-list"></div></section>`;
+        modal.innerHTML = `<section class="room-reservation-details-dialog" role="dialog" aria-modal="true" aria-labelledby="roomReservationDetailsTitle"><header><div><span>ROOM RESERVATIONS</span><h2 id="roomReservationDetailsTitle">Reservation details</h2></div><button type="button" data-close-room-reservation-details aria-label="Close">×</button></header><div class="room-reservation-details-list"></div></section>`;
         document.body.appendChild(modal);
     }
     modal.querySelector('.room-reservation-details-list').innerHTML = items || '<p>No active reservations.</p>';
@@ -3348,22 +3984,6 @@ function buildScheduleCell(
     |--------------------------------------------------------------------------
     */
 
-    const scheduleOccupied =
-        schedule &&
-        (
-            String(
-                schedule.course_code || ''
-            ).trim() !== '' ||
-
-            String(
-                schedule.subject || ''
-            ).trim() !== '' ||
-
-            String(
-                schedule.instructor || ''
-            ).trim() !== ''
-        );
-
     /*
     |--------------------------------------------------------------------------
     | RESERVATION
@@ -3378,6 +3998,14 @@ function buildScheduleCell(
             reservation
         );
 
+    }
+
+    if (Array.isArray(schedule)) {
+        const scheduleCards = schedule.map(function(item) {
+            return buildScheduleCell(item).replace(/^\s*<td[^>]*>/i, '').replace(/<\/td>\s*$/i, '');
+        }).join('');
+
+        return `<td class="schedule-entry-stack">${scheduleCards}</td>`;
     }
 
     /*
@@ -3419,15 +4047,15 @@ function buildScheduleCell(
     */
 
     if (
-        schedule.program &&
+        (schedule.program_code || schedule.program) &&
         String(
-            schedule.program
+            schedule.program_code || schedule.program
         ).trim() !== ''
     ) {
 
         programs.push(
             String(
-                schedule.program
+                schedule.program_code || schedule.program
             ).trim()
         );
 
@@ -3481,6 +4109,8 @@ function buildScheduleCell(
     |--------------------------------------------------------------------------
     */
 
+    programs = Array.from(new Set(programs.map(displayProgramCode).filter(Boolean)));
+
     let programHtml = '';
 
     if (
@@ -3500,6 +4130,21 @@ function buildScheduleCell(
         `;
 
     }
+
+    const mergedCourses = Array.isArray(schedule.merged_courses) ? schedule.merged_courses : [];
+    const primaryMajor = String(schedule.major || '').trim().toLowerCase();
+    const sharedMajors = [...new Set(mergedCourses
+        .filter(course => String(course.share_type || '').toLowerCase() === 'same_faculty')
+        .map(course => String(course.major || '').trim())
+        .filter(major => major && major.toLowerCase() !== primaryMajor))];
+    const mergedCoursesHtml = [
+        sharedMajors.length ? `<div class="merged-course-details cell-shared-majors" style="margin-top:4px;padding:4px 6px;border-left:2px solid #568468;background:rgba(255,255,255,.78);color:#40584a;font-size:10px;line-height:1.35"><strong>Also shared with</strong><span>${sharedMajors.map(escapeHtml).join(' · ')}</span></div>` : '',
+        ...mergedCourses.filter(course => String(course.share_type || '').toLowerCase() !== 'same_faculty').map(function(course) {
+            const label = [course.course_code, course.course_title].filter(Boolean).join(' — ');
+            if (!label) return '';
+            return `<div class="merged-course-details" style="margin-top:4px;padding:4px 6px;border-left:2px solid #568468;background:rgba(255,255,255,.78);color:#40584a;font-size:10px;line-height:1.35"><strong>${escapeHtml(label)}</strong>${course.program ? `<span style="display:block;color:#68776d">${escapeHtml(displayProgramCode(course.program))}</span>` : ''}</div>`;
+        })
+    ].filter(Boolean).join('');
 
     /*
     |--------------------------------------------------------------------------
@@ -3566,8 +4211,6 @@ function buildScheduleCell(
     |--------------------------------------------------------------------------
     */
 
-    let scheduleOverrideHtml = '';
-
     if (Array.isArray(schedule.schedule_overrides) && schedule.schedule_overrides.length) {
         if (!window.scheduleOverrideRefreshTimer) {
             const now = new Date();
@@ -3576,27 +4219,13 @@ function buildScheduleCell(
                 window.location.reload();
             }, Math.min(nextMidnight.getTime() - now.getTime(), 2147480000));
         }
-        scheduleOverrideHtml = schedule.schedule_overrides.map(function (override) {
-            const date = override.date
-                ? new Date(override.date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'})
-                : 'Scheduled date';
-            const title = override.state === 'today' ? 'Occupied today' : 'Schedule override';
-            return `
-                <div class="schedule-override-notice" role="status">
-                    <strong><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> ${escapeHtml(title)}</strong>
-                    <span>Date: ${escapeHtml(date)}</span>
-                    <span>Occupant: ${escapeHtml(override.occupied_by || 'Administrator')}</span>
-                    ${override.reason ? `<span>Reason: ${escapeHtml(override.reason)}</span>` : ''}
-                    <span>Your regular schedule returns after this day.</span>
-                </div>
-            `;
-        }).join('');
     }
 
     let roomSwapHtml = '';
 
     if (
         schedule.room_swap &&
+        schedule.room_swap.swap_type !== 'permanent' &&
         (schedule.room_swap.active || schedule.room_swap.scheduled)
     ) {
 
@@ -3616,7 +4245,7 @@ function buildScheduleCell(
             ? new Date(schedule.room_swap.swap_date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'short',day:'numeric'})
             : 'Scheduled date';
 
-        const swapState = schedule.room_swap.active ? 'Room Swap Active' : 'Room Swap Scheduled';
+        const swapState = schedule.room_swap.active ? 'Temporary room swap active' : 'Temporary room swap scheduled';
 
         roomSwapHtml = `
 
@@ -3633,7 +4262,7 @@ function buildScheduleCell(
                     ? `
                         <div class="room-swap-details">
 
-                            Temporary Room:
+                            Now in room:
                             ${escapeHtml(swappedRoom)}
 
                         </div>
@@ -3643,15 +4272,7 @@ function buildScheduleCell(
 
             <div class="room-swap-details">
 
-                Date:
-                ${escapeHtml(swapDate)}
-
-            </div>
-
-            <div class="room-swap-details">
-
-                Until
-                ${escapeHtml(endTime)}
+                ${escapeHtml(swapDate)} · ${escapeHtml(schedule.room_swap.start_time || '')}–${escapeHtml(endTime)}
 
             </div>
 
@@ -3672,9 +4293,14 @@ function buildScheduleCell(
     |--------------------------------------------------------------------------
     */
 
-    const background =
-        schedule.color ||
-        '#eaf6ef';
+    const isTemporaryRoomSwap = Boolean(
+        schedule.room_swap &&
+        schedule.room_swap.swap_type !== 'permanent' &&
+        (schedule.room_swap.active || schedule.room_swap.scheduled)
+    );
+    const background = isTemporaryRoomSwap
+        ? '#f3e8ff'
+        : (schedule.color || '#eaf6ef');
 
     /*
     |--------------------------------------------------------------------------
@@ -3684,10 +4310,17 @@ function buildScheduleCell(
 
     return `
 
-        <td>
+        <td
+            data-view-schedule-time="${escapeHtml(schedule.time || '')}"
+            data-view-schedule-day="${escapeHtml(schedule.day || '')}"
+            data-view-schedule-room-id="${escapeHtml(schedule.room_id || '')}"
+        >
 
             <div
-                class="class-entry"
+                class="class-entry${isTemporaryRoomSwap ? ' room-swapped-temporary' : ''}"
+                data-view-schedule-time="${escapeHtml(schedule.time || '')}"
+                data-view-schedule-day="${escapeHtml(schedule.day || '')}"
+                data-view-schedule-room-id="${escapeHtml(schedule.room_id || '')}"
                 style="
                     background:
                         ${escapeHtml(
@@ -3704,6 +4337,10 @@ function buildScheduleCell(
 
                 </div>
 
+                <div class="class-time">
+                    ${escapeHtml(publishedFormatScheduleTime(schedule.time || ''))}
+                </div>
+
                 <div class="class-subject">
 
                     ${escapeHtml(
@@ -3711,6 +4348,8 @@ function buildScheduleCell(
                     )}
 
                 </div>
+
+                ${mergedCoursesHtml}
 
                 ${typeHtml}
 
@@ -3725,8 +4364,6 @@ function buildScheduleCell(
                 ${programHtml}
 
                 ${majorHtml}
-
-                ${scheduleOverrideHtml}
 
                 ${roomSwapHtml}
 
@@ -3889,4 +4526,3 @@ function escapeHtml(value)
 
 </div>
 
-@include('footerheader.footer')

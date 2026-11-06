@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\ChairController;
 use App\Http\Controllers\FacultyLoginController;
 use App\Http\Controllers\ManageUserController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RoomSwapRequestController;
 use App\Http\Controllers\RoomReassignmentController;
 use App\Http\Controllers\UserNotificationController;
+use App\Http\Controllers\DepartmentLogoController;
+use App\Http\Controllers\ProfilePhotoController;
 
 use App\Http\Controllers\StudentController;
 
@@ -23,6 +26,14 @@ use App\Http\Controllers\StudentController;
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
+
+Route::get('/departments/{department}/logo', DepartmentLogoController::class)
+    ->whereNumber('department')
+    ->name('departments.logo');
+
+Route::get('/users/{user}/profile-photo', ProfilePhotoController::class)
+    ->whereNumber('user')
+    ->name('profile.photo.show');
 
 
 /*
@@ -236,6 +247,11 @@ Route::get(
 )->name('admin.roomreassignment.rooms');
 
 Route::get(
+    '/admin/room-reassignment/conflicts',
+    [RoomReassignmentController::class, 'conflicts']
+)->name('admin.roomreassignment.conflicts');
+
+Route::get(
     '/admin/room-reassignment',
     [RoomReassignmentController::class, 'index']
 )->name('admin.roomreassignment');
@@ -304,6 +320,7 @@ Route::get(
     '/student/schedule/data',
     [StudentController::class, 'getSchedules']
 )->name('student.schedule.data');
+
 /*
 |--------------------------------------------------------------------------
 | FACULTY
@@ -381,6 +398,16 @@ Route::get('/faculty/my-reservations', [
     FacultyController::class,
     'myReservations'
 ])->name('faculty.bookings');
+
+Route::patch('/faculty/my-reservations/{reservation}/cancel', [
+    FacultyController::class,
+    'cancelReservation'
+])->whereNumber('reservation')->name('faculty.bookings.cancel');
+
+Route::delete('/faculty/my-reservations/{reservation}', [
+    FacultyController::class,
+    'deleteReservation'
+])->whereNumber('reservation')->name('faculty.bookings.destroy');
 
 
     // =====================================================
@@ -478,6 +505,11 @@ Route::middleware('auth')->group(function () {
         'dashboard'
     ])->name('chair.dashboard.page');
 
+    Route::get('/chair/requests', [
+        ChairController::class,
+        'requests'
+    ])->name('chair.requests');
+
  Route::put('/chair/room/{room}/permission', [
     ChairController::class,
     'updateRoomPermission'
@@ -511,25 +543,40 @@ Route::get(
     [ChairController::class, 'mergePrograms']
 )->name('chair.merge.programs');
 
+Route::get(
+    '/chair/merge-subjects',
+    [ChairController::class, 'mergeSubjects']
+)->name('chair.merge.subjects');
+
 Route::post(
     '/chair/merge-request',
-    [ChairController::class, 'createMergeRequest']
+    [ChairController::class, 'createCourseMergeRequest']
 )->name('chair.merge.request');
+
+Route::post(
+    '/chair/merge-local-course',
+    [ChairController::class, 'mergeLocalCourse']
+)->name('chair.merge.local');
 
 
 Route::post(
     '/chair/merge-request/{merge}/approve',
-    [ChairController::class, 'approveMergeRequest']
+    [ChairController::class, 'approveCourseMergeRequest']
 )->name('chair.merge.approve');
 
 Route::post(
     '/chair/merge-request/{merge}/reject',
-    [ChairController::class, 'rejectMergeRequest']
+    [ChairController::class, 'rejectCourseMergeRequest']
 )->name('chair.merge.reject');
 
 Route::delete(
+    '/chair/merge-request/{merge}/cancel',
+    [ChairController::class, 'cancelCourseMergeRequest']
+)->name('chair.merge.cancel');
+
+Route::delete(
     '/chair/merge-request/{merge}/remove',
-    [ChairController::class, 'removeMergeRequest']
+    [ChairController::class, 'removeCourseMergeRequest']
 )->name('chair.merge.remove');
 
 
@@ -592,15 +639,40 @@ Route::delete('/chair/import-faculty/{facultyId}', [
         'lookupCatalogSubjects'
     ])->name('chair.subjects.lookup');
 
-    Route::get('/chair/manage-subjects/{program?}/{year?}', [
+    Route::get('/chair/manage-subjects', [
         ChairController::class,
         'manageSubjects'
-    ])->where(['program' => '[0-9]+', 'year' => '[^/]+'])->name('chair.managesubjects');
+    ])->name('chair.managesubjects');
+
+    Route::get('/chair/manage-subjects/programs/{program}', [
+        ChairController::class,
+        'manageSubjects'
+    ])->whereNumber('program')->name('chair.managesubjects.program');
+
+    Route::get('/chair/manage-subjects/programs/{program}/memoranda/{memorandum}', [
+        ChairController::class,
+        'manageSubjects'
+    ])->whereNumber(['program', 'memorandum'])->name('chair.managesubjects.memorandum');
 
     Route::post('/chair/manage-subjects/programs', [
         ChairController::class,
         'storeProgram'
     ])->name('chair.managesubjects.program.store');
+
+    Route::post('/chair/manage-subjects/programs/{program}/memoranda', [
+        ChairController::class,
+        'storeProgramMemorandum'
+    ])->whereNumber('program')->name('chair.managesubjects.memorandum.store');
+
+    Route::put('/chair/manage-subjects/programs/{program}/memoranda/{memorandum}', [
+        ChairController::class,
+        'updateProgramMemorandum'
+    ])->whereNumber(['program', 'memorandum'])->name('chair.managesubjects.memorandum.update');
+
+    Route::delete('/chair/manage-subjects/programs/{program}/memoranda/{memorandum}', [
+        ChairController::class,
+        'deleteProgramMemorandum'
+    ])->whereNumber(['program', 'memorandum'])->name('chair.managesubjects.memorandum.delete');
 
     Route::put('/chair/manage-subjects/programs/{program}', [
         ChairController::class,
@@ -611,6 +683,11 @@ Route::delete('/chair/import-faculty/{facultyId}', [
         ChairController::class,
         'deleteProgram'
     ])->name('chair.managesubjects.program.delete');
+
+    Route::put('/chair/manage-subjects/programs/{program}/memoranda/{memorandum}/years/{year}/subjects', [
+        ChairController::class,
+        'saveCurriculumSheet'
+    ])->whereNumber(['program', 'memorandum'])->where('year', '[^/]+')->name('chair.managesubjects.sheet.save');
 
     Route::post('/chair/manage-subjects/programs/{program}/years/{year}/subjects', [
         ChairController::class,
@@ -640,6 +717,11 @@ Route::delete('/chair/import-faculty/{facultyId}', [
         'setschedule'
     ])->name('chair.setschedule');
 
+    Route::get('/chair/room-availability', [
+        ChairController::class,
+        'roomAvailability'
+    ])->name('chair.roomavailability');
+
 
     /*
     |--------------------------------------------------------------------------
@@ -652,6 +734,21 @@ Route::delete('/chair/import-faculty/{facultyId}', [
         ChairController::class,
         'index'
     ])->name('chair.excel');
+
+    Route::get('/schedules/room/{room}/published', [
+        ChairController::class,
+        'index'
+    ])->defaults('readonly', true)->name('schedules.published.room');
+
+    Route::post('/chair/schedule/conflict-check', [
+        ChairController::class,
+        'checkScheduleFacultyConflict'
+    ])->name('chair.schedule.conflict-check');
+
+    Route::post('/chair/schedule/clear-cells', [
+        ChairController::class,
+        'clearScheduleCells'
+    ])->name('chair.schedule.clear-cells');
 
 
     /*
@@ -678,49 +775,6 @@ Route::delete('/chair/import-faculty/{facultyId}', [
     ])->name('chair.schedule.delete');
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | SAVE SCHEDULE AS DRAFT
-    |--------------------------------------------------------------------------
-    */
-
-    Route::post('/chair/save-draft', [
-        ChairController::class,
-        'saveDraft'
-    ])->name('chair.save.draft');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | VIEW DRAFTS
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get('/chair/drafts', [
-        ChairController::class,
-        'drafts'
-    ])->name('chair.drafts');
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | EDIT DRAFT
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get('/chair/drafts/{room}/edit', [
-        ChairController::class,
-        'editDraft'
-    ])->name('chair.drafts.edit');
-
-    Route::post('/chair/drafts/{room}/publish', [
-    ChairController::class,
-    'publishDraft'
-])->name('chair.drafts.publish');
-
-
-
-   
 /*
 |--------------------------------------------------------------------------
 | MODIFY SCHEDULE
@@ -764,6 +818,11 @@ Route::post('/chair/modifyschedule/clear', [
         'activateAcademicTerm'
     ])->name('chair.academic.terms.activate');
 
+    Route::post('/chair/academic-terms/activate-selected', [
+        ChairController::class,
+        'activateSelectedAcademicTerm'
+    ])->name('chair.academic.terms.activate-selected');
+
     Route::delete('/chair/academic-terms/{termId}', [
         ChairController::class,
         'deleteAcademicTerm'
@@ -776,8 +835,20 @@ Route::post('/chair/modifyschedule/clear', [
 
 });
 
-// Profile photo upload (available to any authenticated user).
-Route::middleware('auth')->post('/profile/photo', [
-    ProfileController::class,
-    'updatePhoto',
-])->name('profile.photo');
+// Account profile and sign-in settings (available to any authenticated user).
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
+
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+
+    Route::put('/profile/username', [ProfileController::class, 'updateUsername'])
+        ->name('profile.username.update');
+
+    Route::put('/profile/password', [PasswordController::class, 'update'])
+        ->name('profile.password.update');
+
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])
+        ->name('profile.photo');
+});

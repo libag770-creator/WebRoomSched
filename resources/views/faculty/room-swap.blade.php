@@ -440,16 +440,162 @@
 .admin-override-grid-note { margin-top:7px; color:#69451a; font-size:12px; font-weight:800; line-height:1.45; }
 .admin-override-grid-note i { margin-right:4px; color:#9a631d; }
 @media(max-width:760px) { .swap-override-item { grid-template-columns:1fr; gap:9px; } .swap-override-panel { padding:15px; } }
+
+/* Faculty room-swap refinement: stronger brand, clearer steps, and larger readable controls. */
+body.portal-shell.faculty-portal .main-layout > .content.faculty-room-swap-view {
+    min-height:100vh;
+    padding:128px clamp(20px,3vw,42px) 46px !important;
+    background:
+        radial-gradient(ellipse at 88% 2%,rgba(215,195,145,.25),transparent 25%),
+        radial-gradient(ellipse at 8% 96%,rgba(204,224,208,.36),transparent 30%),
+        linear-gradient(145deg,#edf2ec 0%,#f8f7f2 58%,#f1f0e8 100%);
+    color:#263a2f;
+    font-family:'DM Sans',Arial,sans-serif;
+}
+.faculty-room-swap-view .swap-container,
+.faculty-room-swap-view .swap-container * { font-family:'DM Sans',Arial,sans-serif; }
+.faculty-room-swap-view .swap-container { --swap-green:#245940; --swap-green-dark:#173b33; --swap-green-soft:#edf5eb; --swap-ink:#203d30; --swap-muted:#617268; --swap-line:#dce6dc; width:min(100%,1440px); padding:0 0 46px; }
+.faculty-room-swap-view .swap-hero { position:relative; isolation:isolate; min-height:210px; display:flex; flex-direction:column; justify-content:center; margin:0 0 20px; padding:clamp(30px,4vw,44px) clamp(25px,4vw,46px); border:1px solid rgba(232,215,175,.22); border-radius:24px; background:radial-gradient(circle at 78% 18%,rgba(217,196,143,.17),transparent 25%),linear-gradient(118deg,#153a32 0%,#215440 58%,#37684e 100%); box-shadow:0 20px 44px rgba(24,58,43,.16); }
+.faculty-room-swap-view .swap-hero::after { top:-145px; right:90px; width:330px; height:330px; border-color:rgba(244,232,200,.22); box-shadow:0 0 0 27px rgba(244,232,200,.035),0 0 0 63px rgba(244,232,200,.026),0 0 0 102px rgba(244,232,200,.018); }
+.faculty-room-swap-view .swap-eyebrow { margin:0 0 12px 58px; color:#e2ca8d; font-size:11px; font-weight:850; letter-spacing:.16em; }
+.faculty-room-swap-view .swap-title { margin:0 0 10px; color:#fff !important; font:800 clamp(34px,3.2vw,44px)/1.12 'Manrope','DM Sans',sans-serif; letter-spacing:-.045em; }
+.faculty-room-swap-view .swap-title::before { border:1px solid rgba(255,255,255,.16); border-radius:14px; background:rgba(255,255,255,.12); color:#e6d39f; box-shadow:none; }
+.faculty-room-swap-view .swap-subtitle { max-width:680px; margin:0 0 0 58px; color:#e0e9e1; font-size:15px; font-weight:550; line-height:1.65; }
+.faculty-room-swap-view .active-academic-term-banner { margin:0 0 18px; padding:14px 17px; border-color:#dce6dc; border-radius:15px; background:linear-gradient(110deg,#edf5eb,#fff 85%); box-shadow:0 5px 16px rgba(31,57,43,.04); }
+.faculty-room-swap-view .active-academic-term-icon { background:#245940; }
+.faculty-room-swap-view .active-academic-term-label { color:#617268; font-size:11px; font-weight:850; }
+.faculty-room-swap-view .active-academic-term-copy strong { color:#203d30; font-size:15px; font-weight:850; }
+.faculty-room-swap-view .active-academic-term-status { border-color:#d9e6d8; color:#245940; font-size:11px; }
+.faculty-room-swap-view .swap-override-panel { margin-bottom:18px; padding:19px; border-color:#dce6dc; border-radius:17px; background:linear-gradient(135deg,#f2f6ef,#fff); box-shadow:0 7px 20px rgba(31,57,43,.045); }
+.faculty-room-swap-view .swap-override-head-icon { background:#e8efe4; color:#285940; }
+.faculty-room-swap-view .swap-override-heading { color:#203d30; font:800 19px/1.3 'Manrope','DM Sans',sans-serif; }
+.faculty-room-swap-view .swap-override-intro { color:#617268; font-size:13px; line-height:1.6; }
+.faculty-room-swap-view .swap-override-item { border-color:#e1e9df; border-radius:12px; background:#fff; box-shadow:0 3px 10px rgba(31,57,43,.035); }
+.faculty-room-swap-view .swap-override-item small { color:#64746a; font-size:11px; font-weight:800; }
+.faculty-room-swap-view .swap-override-item strong { color:#294437; font-size:13px; font-weight:800; }
+.faculty-room-swap-view .swap-override-empty { border-color:#d6e2d5; color:#617268; font-size:13px; }
+.faculty-room-swap-view .alert-success,.faculty-room-swap-view .alert-error { padding:14px 16px; border-radius:12px; font-size:14px; font-weight:700; }
+.faculty-room-swap-view #swapForm { gap:16px; }
+.faculty-room-swap-view #swapForm > .step { padding:clamp(20px,2.5vw,28px); border-color:#dce6dc; border-radius:18px; background:#fff; box-shadow:0 8px 24px rgba(31,57,43,.05); }
+.faculty-room-swap-view .step-title { gap:13px; margin-bottom:9px; color:#203d30; font:800 20px/1.35 'Manrope','DM Sans',sans-serif; }
+.faculty-room-swap-view .step-title::before { flex-basis:38px; width:38px; height:38px; border-radius:12px; background:#245940; box-shadow:0 5px 12px rgba(36,89,64,.16); font-size:15px; }
+.faculty-room-swap-view .step-description { margin:0 0 19px 51px; color:#617268; font-size:14px; font-weight:550; line-height:1.65; }
+.faculty-room-swap-view .swap-search-box { margin-bottom:18px; padding:16px; border-color:#e1e9df; border-radius:13px; background:#f7faf5; box-shadow:none; }
+.faculty-room-swap-view .swap-search-label,.faculty-room-swap-view .swap-navigation-title { color:#294437; font-size:15px; font-weight:850; }
+.faculty-room-swap-view .swap-search-label i,.faculty-room-swap-view .swap-navigation-title i { color:#32704d; }
+.faculty-room-swap-view .swap-search-input,.faculty-room-swap-view .swap-input,.faculty-room-swap-view .swap-date-field input,.faculty-room-swap-view #otherReason { min-height:48px; border-color:#d3dfd3 !important; border-radius:10px; background:#fff !important; color:#203d30 !important; font-size:15px !important; box-shadow:none; }
+.faculty-room-swap-view .swap-search-input::placeholder,.faculty-room-swap-view #otherReason::placeholder { color:#738278; opacity:1; }
+.faculty-room-swap-view .swap-search-input:focus,.faculty-room-swap-view .swap-date-field input:focus { border-color:#4f8663 !important; box-shadow:0 0 0 4px rgba(50,112,77,.12); }
+.faculty-room-swap-view .swap-search-help { margin-top:9px; color:#64746a; font-size:12px; font-weight:550; line-height:1.6; }
+.faculty-room-swap-view .swap-navigation-title { margin-top:20px; margin-bottom:12px; font-size:15px; }
+.faculty-room-swap-view .swap-navigation-list,.faculty-room-swap-view .swap-room-grid,.faculty-room-swap-view .swap-room-search-results,.faculty-room-swap-view .my-room-schedule-list { gap:13px; }
+.faculty-room-swap-view .swap-navigation-card,.faculty-room-swap-view .swap-room-card,.faculty-room-swap-view .my-room-schedule-card { border-color:#dfe8de; border-radius:14px; background:#fff; color:#203d30; box-shadow:0 4px 13px rgba(31,57,43,.04); }
+.faculty-room-swap-view .swap-navigation-card:hover,.faculty-room-swap-view .swap-room-card:hover,.faculty-room-swap-view .my-room-schedule-card:hover { border-color:#92b69a; background:#fbfdf9; box-shadow:0 8px 20px rgba(31,57,43,.075); }
+.faculty-room-swap-view .swap-navigation-icon,.faculty-room-swap-view .swap-room-icon,.faculty-room-swap-view .swap-search-room-icon { border:1px solid #e2e9df; background:#edf3eb; color:#285940; }
+.faculty-room-swap-view .swap-navigation-name { color:#294437; font-size:15px; font-weight:850; }
+.faculty-room-swap-view .swap-navigation-description { color:#65756a; font-size:12px; line-height:1.55; }
+.faculty-room-swap-view .swap-room-card .swap-room-name { color:#203d30; font-size:17px; font-weight:850; }
+.faculty-room-swap-view .swap-room-card .swap-room-building { color:#64746a; font-size:13px; }
+.faculty-room-swap-view .swap-room-info-item,.faculty-room-swap-view .selected-requester-item { border-color:#e2e9df; border-radius:10px; background:#f8faf6; box-shadow:none; }
+.faculty-room-swap-view .swap-room-info-label,.faculty-room-swap-view .selected-requester-item span { color:#64746a; font-size:10px; font-weight:850; }
+.faculty-room-swap-view .swap-room-info-value,.faculty-room-swap-view .selected-requester-item strong { color:#294437; font-size:13px; font-weight:800; line-height:1.5; }
+.faculty-room-swap-view .swap-room-card .swap-view-room-button,.faculty-room-swap-view .swap-view-room-button { border-color:#d7e5d5; border-radius:9px; background:#edf5eb; color:#245940; font-size:13px; font-weight:850; }
+.faculty-room-swap-view .my-room-schedule-card { min-height:180px; padding:17px; }
+.faculty-room-swap-view .my-room-schedule-card::after { border-color:#d7e5d5; background:#edf5eb; color:#245940; font-size:12px; }
+.faculty-room-swap-view .my-room-schedule-card.selected { border-color:#4d805f; background:#f2f7ef; box-shadow:0 0 0 2px rgba(50,112,77,.1); }
+.faculty-room-swap-view .my-room-schedule-card .my-room-schedule-course { background:#e7f0e4; color:#245940; font-size:12px; font-weight:850; }
+.faculty-room-swap-view .my-room-schedule-card .my-room-schedule-day { background:#f1f5ee; color:#405a49; font-size:11px; font-weight:800; }
+.faculty-room-swap-view .my-room-schedule-card .my-room-schedule-subject { color:#203d30; font-size:16px; font-weight:850; }
+.faculty-room-swap-view .my-room-schedule-card .my-room-schedule-details { color:#617268; font-size:13px; line-height:1.55; }
+.faculty-room-swap-view .my-room-schedule-card .my-room-schedule-details i { color:#32704d; }
+.faculty-room-swap-view .swap-schedule-filter { border-color:#dce6dc; border-radius:10px; background:#f2f6ef; color:#294437; font-size:13px; }
+.faculty-room-swap-view .swap-excel-wrapper { border-color:#dce6dc; border-radius:12px; box-shadow:0 4px 12px rgba(31,57,43,.035); }
+.faculty-room-swap-view .swap-excel-table { color:#294437; font-size:13px; }
+.faculty-room-swap-view .swap-excel-table th { border-color:rgba(255,255,255,.12); background:#245940; color:#fff; font-size:12px; font-weight:850; }
+.faculty-room-swap-view .swap-excel-table td { border-color:#e3ebe3; }
+.faculty-room-swap-view .swap-excel-table tr:nth-child(even) td { background:#f8faf6; }
+.faculty-room-swap-view .swap-excel-time { color:#405a49; font-size:12px; font-weight:850; }
+.faculty-room-swap-view .swap-excel-course { color:#245940; font-size:13px; font-weight:850; }
+.faculty-room-swap-view .swap-excel-subject { color:#294437; font-size:12px; }
+.faculty-room-swap-view .swap-excel-instructor { color:#617268; font-size:11px; }
+.faculty-room-swap-view .swap-excel-program,.faculty-room-swap-view .swap-merge-program { background:#eaf2e7; color:#315943; font-size:10px; font-weight:850; }
+.faculty-room-swap-view .swap-merge-badge { background:#fff2d6; color:#79551a; font-size:10px; font-weight:850; }
+.faculty-room-swap-view .swap-excel-occupied { border-color:#cadfc9; border-radius:8px; background:#edf5eb; color:#245940; font-size:12px; font-weight:750; }
+.faculty-room-swap-view .swap-excel-occupied:hover { border-color:#7da486; background:#e3efdf; }
+.faculty-room-swap-view .swap-excel-occupied.disabled-swap { border-color:#e4e9e2; background:#f3f5f1; color:#77847a; }
+.faculty-room-swap-view .swap-excel-empty { color:#859388; }
+.faculty-room-swap-view .swap-noon-break { background:#f2f5ef !important; color:#64746a; font-size:11px; }
+.faculty-room-swap-view .swap-schedule-instruction { border-color:#dae5d8; border-radius:11px; background:#f5f8f2; color:#52665a; font-size:13px; }
+.faculty-room-swap-view .auto-matching-department-filter { border-color:#dce6dc; background:#f2f6ef; color:#405a49; font-size:13px; }
+.faculty-room-swap-view .auto-matching-department-filter.active,.faculty-room-swap-view .auto-matching-department-filter:hover { border-color:#245940; background:#245940; }
+.faculty-room-swap-view .auto-swap-match-card { border-color:#dfe8de; border-radius:14px; background:#f8faf6; box-shadow:0 4px 13px rgba(31,57,43,.04); }
+.faculty-room-swap-view .auto-swap-match-card strong { color:#294437; font-size:15px; }
+.faculty-room-swap-view .auto-swap-match-card .auto-swap-match-meta { color:#617268; font-size:13px; }
+.faculty-room-swap-view .auto-swap-match-card .auto-swap-match-time { background:#eaf2e7; color:#315943; font-size:12px; }
+.faculty-room-swap-view .auto-swap-match-card button { border-color:#245940; border-radius:9px; background:#245940; font-size:13px; font-weight:850; }
+.faculty-room-swap-view .auto-swap-match-card button:hover { background:#173b33; }
+.faculty-room-swap-view .swap-override-warning,.faculty-room-swap-view .admin-override-lock-note { font-size:13px; line-height:1.55; }
+.faculty-room-swap-view .selected-requester-detail,.faculty-room-swap-view .selected-target-schedule { border-color:#d9e6d8; border-radius:14px; background:linear-gradient(135deg,#f4f8f1,#fff 72%); color:#294437; }
+.faculty-room-swap-view .selected-requester-eyebrow { color:#245940; font-size:11px; }
+.faculty-room-swap-view .selected-requester-header h3 { color:#203d30; font-weight:850; }
+.faculty-room-swap-view .selected-requester-header p { color:#617268; font-size:13px; }
+.faculty-room-swap-view .reason-option { min-height:56px; border-color:#dce6dc; border-radius:11px; background:#fff; color:#405a49; font-size:14px; font-weight:750; box-shadow:0 3px 10px rgba(31,57,43,.035); }
+.faculty-room-swap-view .reason-option:hover { border-color:#92b69a; background:#f8faf6; }
+.faculty-room-swap-view .reason-option.selected,.faculty-room-swap-view .reason-option.active { border-color:#245940; background:#edf5eb; color:#245940; box-shadow:0 0 0 1px #245940 inset; }
+.faculty-room-swap-view .reason-option.selected::before,.faculty-room-swap-view .reason-option.active::before { border-color:#245940; }
+.faculty-room-swap-view .swap-modal-overlay { background:rgba(16,43,31,.56); }
+.faculty-room-swap-view .swap-modal-card,.faculty-room-swap-view .swap-confirm-card { border-color:#dce6dc; border-radius:19px; background:#fff; box-shadow:0 24px 75px rgba(17,45,31,.24); }
+.faculty-room-swap-view .swap-modal-icon { background:#edf3eb; color:#285940; }
+.faculty-room-swap-view .swap-modal-heading { color:#203d30; font-family:'Manrope','DM Sans',sans-serif; font-size:22px; font-weight:850; }
+.faculty-room-swap-view .swap-modal-copy { color:#617268; font-size:14px; }
+.faculty-room-swap-view .swap-modal-summary { border-color:#e1e9df; background:#f8faf6; }
+.faculty-room-swap-view .swap-modal-summary-row { font-size:13px; }
+.faculty-room-swap-view .swap-modal-summary-row strong { color:#294437; }
+.faculty-room-swap-view .swap-modal-actions button { border-color:#dce6dc; color:#405a49; font-size:13px; }
+.faculty-room-swap-view .swap-modal-actions .swap-modal-primary { border-color:#245940; background:#245940; color:#fff; }
+.faculty-room-swap-view .swap-modal-actions .swap-modal-primary:hover { background:#173b33; }
+.faculty-room-swap-view .buttons { border-color:#e4ebe2; }
+.faculty-room-swap-view .btn-reset { border-color:#d7e2d7; background:#f2f6ef; color:#405a49; }
+.faculty-room-swap-view .btn-reset:hover { background:#e9f0e5; }
+.faculty-room-swap-view .btn-send { background:#245940; box-shadow:0 4px 12px rgba(36,89,64,.16); }
+.faculty-room-swap-view .btn-send:hover { background:#173b33; }
+.faculty-room-swap-view .btn:focus-visible { outline-color:rgba(50,112,77,.25); }
+@media(max-width:760px) {
+    body.portal-shell.faculty-portal .main-layout > .content.faculty-room-swap-view { min-height:calc(100vh - 64px); padding:22px 17px 32px !important; }
+    .faculty-room-swap-view .swap-container { padding-bottom:30px; }
+    .faculty-room-swap-view .swap-hero { min-height:0; padding:27px 23px; border-radius:19px; }
+    .faculty-room-swap-view .swap-hero::after { top:-85px; right:-90px; width:260px; height:260px; }
+    .faculty-room-swap-view .swap-title { font-size:34px; }
+    .faculty-room-swap-view .swap-subtitle,.faculty-room-swap-view .swap-eyebrow { margin-left:0; }
+    .faculty-room-swap-view #swapForm > .step { padding:20px; }
+    .faculty-room-swap-view .step-description { margin-left:0; }
+    .faculty-room-swap-view .swap-override-item { grid-template-columns:1fr; gap:10px; }
+}
+@media(max-width:520px) {
+    .faculty-room-swap-view .swap-hero { padding:24px 20px; }
+    .faculty-room-swap-view .swap-title { align-items:flex-start; font-size:31px; }
+    .faculty-room-swap-view .swap-title::before { flex-basis:40px; width:40px; height:40px; font-size:23px; }
+    .faculty-room-swap-view .swap-subtitle { font-size:14px; }
+    .faculty-room-swap-view #swapForm > .step { padding:17px 14px; border-radius:15px; }
+    .faculty-room-swap-view .step-title { align-items:flex-start; font-size:18px; }
+    .faculty-room-swap-view .swap-navigation-list,.faculty-room-swap-view .swap-room-grid,.faculty-room-swap-view .swap-room-search-results,.faculty-room-swap-view .my-room-schedule-list { grid-template-columns:1fr; }
+    .faculty-room-swap-view .swap-room-information { grid-template-columns:1fr 1fr; }
+    .faculty-room-swap-view .swap-override-panel { padding:15px; }
+    .faculty-room-swap-view .active-academic-term-banner { align-items:flex-start; padding:12px; }
+    .faculty-room-swap-view .active-academic-term-status { align-self:flex-start; }
+    .faculty-room-swap-view .buttons { flex-direction:column-reverse; align-items:stretch; }
+    .faculty-room-swap-view .buttons .btn { width:100%; }
+}
 </style>
 
 
             <div class="swap-container">
 
                 <div class="swap-hero">
-                    <p class="swap-eyebrow">FACULTY WORKSPACE / ROOM COORDINATION</p>
+                    <p class="swap-eyebrow">INSTRUCTOR WORKSPACE / ROOM COORDINATION</p>
                     <h1 class="swap-title">Room Swap Request</h1>
                     <p class="swap-subtitle">
-                        Exchange your scheduled room with another faculty member. Both schedules must have the same day and time.
+                        Exchange your scheduled room with another instructor. Both schedules must have the same day and time.
                     </p>
                 </div>
 
@@ -509,9 +655,9 @@
                                     <strong>{{ $override->occupied_by }}</strong>
                                 </div>
                                 <div>
-                                    <small>Reason and affected faculty</small>
+                                    <small>Reason and affected instructor</small>
                                     <strong>{{ $override->reason }}</strong>
-                                    <strong>{{ $override->faculty?->name ?: 'Faculty member' }}</strong>
+                                    <strong>{{ $override->faculty?->name ?: 'Instructor' }}</strong>
                                 </div>
                             </article>
                         @empty
@@ -711,13 +857,13 @@
                     <div class="step">
 
                         <div class="step-title">
-                            Step 2 — Select Another Faculty Schedule
+                            Step 2 — Select Another Instructor Schedule
                         </div>
 
                         <div class="step-description">
-                            Matching schedules from other faculty are loaded automatically
+                            Matching schedules from other instructor are loaded automatically
                             based on the same day and time you selected in Step 1.
-                            Review the faculty and room details below, then select a matching schedule to continue.
+                            Review the instructor and room details below, then select a matching schedule to continue.
                         </div>
 
 
@@ -725,12 +871,12 @@
                         <div id="autoMatchingSchedulesPanel" style="display:none; margin-bottom:20px;">
                             <div class="swap-navigation-title">
                                 <i class="fa-solid fa-calendar-check"></i>
-                                Other Faculty Schedules With the Same Day and Time
+                                Other Instructor Schedules With the Same Day and Time
                             </div>
                             <div class="swap-search-help" style="margin:0 0 12px;">
-                                All schedules with the same day and time are loaded automatically. Choose a department below to narrow the results, or select All Departments to view every match.
+                                All schedules with the same day and time are loaded automatically. Choose a college below to narrow the results, or select All Colleges to view every match.
                             </div>
-                            <div id="autoMatchingDepartmentFilters" class="auto-matching-department-filters" role="group" aria-label="Filter matching schedules by department"></div>
+                            <div id="autoMatchingDepartmentFilters" class="auto-matching-department-filters" role="group" aria-label="Filter matching schedules by college"></div>
                             <div id="autoMatchingSchedules" class="swap-room-search-results"></div>
                         </div>
 
@@ -742,7 +888,7 @@
                         <div class="swap-confirm-card">
                             <div class="swap-modal-icon"><i class="fa-solid fa-right-left"></i></div>
                             <h2 id="targetConfirmTitle" class="swap-modal-heading">Confirm Schedule Selection</h2>
-                            <p class="swap-modal-copy">Do you want to select this faculty schedule for your room swap? Confirming will open Step 3 so you can choose the reason for the swap.</p>
+                            <p class="swap-modal-copy">Do you want to select this instructor schedule for your room swap? Confirming will open Step 3 so you can choose the reason for the swap.</p>
                             <div id="targetConfirmSummary" class="swap-modal-summary"></div>
                             <div class="swap-modal-actions">
                                 <button type="button" onclick="cancelTargetScheduleConfirmation()">Cancel</button>
@@ -763,10 +909,22 @@
                         </div>
 
                         <div class="step-description">
-                            Choose a date for the temporary swap, then select a reason.
+                            Choose how long the room change should last, then select a reason.
                         </div>
 
-                        <div class="swap-date-field" style="margin:14px 0 18px;padding:13px;border:1px solid #dce9df;border-radius:12px;background:#f7fbf8;">
+                        <fieldset style="display:grid;gap:9px;margin:14px 0;padding:14px;border:1px solid #dce9df;border-radius:12px;background:#f7fbf8;">
+                            <legend style="padding:0 6px;color:#345342;font-size:12px;font-weight:800;">Room swap type</legend>
+                            <label style="display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid #d6e4d8;border-radius:10px;background:#fff;cursor:pointer;">
+                                <input type="radio" name="swap_type" value="temporary" checked onchange="updateRoomSwapTypeFields()" style="margin-top:3px;accent-color:#245940;">
+                                <span><strong style="display:block;color:#294437;font-size:13px;">Temporary</strong><small style="display:block;margin-top:3px;color:#64746a;font-size:11px;line-height:1.5;">Swap for one selected class meeting. The original rooms return afterward.</small></span>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid #d6e4d8;border-radius:10px;background:#fff;cursor:pointer;">
+                                <input type="radio" name="swap_type" value="permanent" onchange="updateRoomSwapTypeFields()" style="margin-top:3px;accent-color:#245940;">
+                                <span><strong style="display:block;color:#294437;font-size:13px;">Permanent</strong><small style="display:block;margin-top:3px;color:#64746a;font-size:11px;line-height:1.5;">After approval, exchange the rooms on both saved schedules going forward.</small></span>
+                            </label>
+                        </fieldset>
+
+                        <div class="swap-date-field" id="temporarySwapDateFields" style="margin:14px 0 18px;padding:13px;border:1px solid #dce9df;border-radius:12px;background:#f7fbf8;">
                             <label for="swap_date" style="display:block;margin-bottom:6px;color:#345342;font-size:12px;font-weight:800;">Room swap date</label>
                             <input type="date" name="swap_date" id="swap_date" min="{{ now()->toDateString() }}" required style="width:100%;min-height:42px;padding:9px 11px;border:1px solid #cfded2;border-radius:9px;background:#fff;color:#253b2e;">
                             <small style="display:block;margin-top:6px;color:#748178;font-size:10px;">The date must fall on the selected schedules’ weekday. The room swap ends automatically at the selected end time.</small>
@@ -1131,11 +1289,31 @@ const swapScheduleOverrideData =
                     return first;
                 }
 
+                function selectedRoomSwapType() {
+                    return document.querySelector('input[name="swap_type"]:checked')?.value || 'temporary';
+                }
+
+                function updateRoomSwapTypeFields() {
+                    const isTemporary = selectedRoomSwapType() === 'temporary';
+                    const dateFields = document.getElementById('temporarySwapDateFields');
+                    const dateField = document.getElementById('swap_date');
+                    if (dateFields) dateFields.hidden = !isTemporary;
+                    if (dateField) dateField.required = isTemporary;
+                    updateRoomSwapOverrideWarning();
+                }
+
                 function updateRoomSwapOverrideWarning() {
                     const dateField = document.getElementById('swap_date');
                     const warning = document.getElementById('swapOverrideWarning');
                     const submitButton = document.getElementById('sendRoomSwapRequest');
                     if (!dateField || !warning) return false;
+
+                    if (selectedRoomSwapType() === 'permanent') {
+                        warning.textContent = '';
+                        warning.classList.remove('visible');
+                        if (submitButton) submitButton.disabled = false;
+                        return false;
+                    }
 
                     const roomIds = [selectedRequesterSchedule?.room_id, selectedTargetSchedule?.room_id];
                     const overrides = selectedRequesterSchedule && selectedTargetSchedule
@@ -1693,8 +1871,8 @@ const swapScheduleOverrideData =
                                     <div class="my-room-schedule-details">
                                         <div>
                                             <i class="fa-solid fa-user"></i>
-                                            <strong>Faculty:</strong>
-                                            ${escapeSwapHtml(schedule.instructor || 'Unknown Faculty')}
+                                            <strong>Instructor:</strong>
+                                            ${escapeSwapHtml(schedule.instructor || 'Unknown Instructor')}
                                         </div>
 
                                         ${
@@ -1814,7 +1992,7 @@ const swapScheduleOverrideData =
                         building: buildingName,
                         department:
                             room?.department?.name ||
-                            'Department',
+                            'College',
                         instructor: schedule.instructor || '',
                         faculty_id: schedule.faculty_id || schedule.user_id || schedule.teacher_id || null
                     };
@@ -1878,12 +2056,12 @@ const swapScheduleOverrideData =
                             </button>
                         </div>
                         <div class="selected-requester-grid">
-                            <div class="selected-requester-item"><span>Department</span><strong>${escapeSwapHtml(room?.department?.name || 'Department')}</strong></div>
+                            <div class="selected-requester-item"><span>College</span><strong>${escapeSwapHtml(room?.department?.name || 'College')}</strong></div>
                             <div class="selected-requester-item"><span>Building</span><strong>${escapeSwapHtml(buildingName)}</strong></div>
                             <div class="selected-requester-item"><span>Room</span><strong>${escapeSwapHtml(room?.room_name || 'Room')}</strong></div>
                             <div class="selected-requester-item"><span>Day</span><strong>${escapeSwapHtml(schedule.day || '-')}</strong></div>
                             <div class="selected-requester-item"><span>Time</span><strong>${escapeSwapHtml(schedule.time || '-')}</strong></div>
-                            <div class="selected-requester-item"><span>Faculty</span><strong>${escapeSwapHtml(schedule.instructor || 'Unknown Faculty')}</strong></div>
+                            <div class="selected-requester-item"><span>Instructor</span><strong>${escapeSwapHtml(schedule.instructor || 'Unknown Instructor')}</strong></div>
                             ${programs.length ? `<div class="selected-requester-item"><span>Program</span><strong>${escapeSwapHtml(programs.join(' / '))}</strong></div>` : ''}
                             ${schedule.year_level ? `<div class="selected-requester-item"><span>Year level</span><strong>${escapeSwapHtml(schedule.year_level)}</strong></div>` : ''}
                             ${schedule.major ? `<div class="selected-requester-item"><span>Major</span><strong>${escapeSwapHtml(schedule.major)}</strong></div>` : ''}
@@ -2116,7 +2294,7 @@ if (selectedTargetBox) {
                                         <div class="my-room-schedule-details">
                                             <span><i class="fa-solid fa-building"></i><strong>Building:</strong> ${escapeSwapHtml(buildingData.name || 'Building')}</span>
                                             <span><i class="fa-solid fa-door-open"></i><strong>Room:</strong> ${escapeSwapHtml(roomData.room_name || 'Room')}</span>
-                                            <span><i class="fa-solid fa-user"></i><strong>Faculty:</strong> ${escapeSwapHtml(schedule.instructor || 'Unknown Faculty')}</span>
+                                            <span><i class="fa-solid fa-user"></i><strong>Instructor:</strong> ${escapeSwapHtml(schedule.instructor || 'Unknown Instructor')}</span>
                                             ${programs.length ? `<span><i class="fa-solid fa-graduation-cap"></i><strong>Program:</strong> ${escapeSwapHtml(programs.join(' / '))}</span>` : ''}
                                             ${schedule.year_level ? `<span><i class="fa-solid fa-layer-group"></i><strong>Year:</strong> ${escapeSwapHtml(schedule.year_level)}</span>` : ''}
                                         </div>
@@ -2565,7 +2743,7 @@ if (selectedTargetBox) {
                 name:
                     String(
                         item.department.name ||
-                        'Unknown Department'
+                        'Unknown College'
                     )
             });
         }
@@ -2587,7 +2765,7 @@ if (selectedTargetBox) {
         const filterOptions = [
             {
                 key: 'all',
-                name: 'All Departments'
+                name: 'All Colleges'
             },
             ...departments
         ];
@@ -2758,16 +2936,16 @@ if (selectedTargetBox) {
 
                 <div>
                     <i class="fa-solid fa-user"></i>
-                    <b>Faculty:</b>
+                    <b>Instructor:</b>
                     ${escapeSwapHtml(
                         schedule.instructor ||
-                        'Unknown Faculty'
+                        'Unknown Instructor'
                     )}
                 </div>
 
                 <div>
                     <i class="fa-solid fa-building-columns"></i>
-                    <b>Department:</b>
+                    <b>College:</b>
                     ${escapeSwapHtml(
                         departmentName
                     )}
@@ -4418,7 +4596,7 @@ function normalizeSwapTime(time)
 
                                 ${escapeSwapHtml(
                                     schedule.instructor ||
-                                    'Unknown Faculty'
+                                    'Unknown Instructor'
                                 )}
 
                             </div>
@@ -4580,14 +4758,14 @@ function normalizeSwapTime(time)
             </div>
 
             <div class="swap-modal-summary-row">
-                <span>Faculty</span>
+                <span>Instructor</span>
                 <strong>
-                    ${escapeSwapHtml(schedule.instructor || 'Unknown Faculty')}
+                    ${escapeSwapHtml(schedule.instructor || 'Unknown Instructor')}
                 </strong>
             </div>
 
             <div class="swap-modal-summary-row">
-                <span>Department</span>
+                <span>College</span>
                 <strong>
                     ${escapeSwapHtml(departmentName)}
                 </strong>
@@ -4884,17 +5062,17 @@ function applyTargetSwapSchedule(scheduleId)
             <div class="selected-requester-grid">
 
                 <div class="selected-requester-item">
-                    <span>Faculty</span>
+                    <span>Instructor</span>
                     <strong>
                         ${escapeSwapHtml(
                             schedule.instructor ||
-                            'Unknown Faculty'
+                            'Unknown Instructor'
                         )}
                     </strong>
                 </div>
 
                 <div class="selected-requester-item">
-                    <span>Department</span>
+                    <span>College</span>
                     <strong>
                         ${escapeSwapHtml(
                             departmentName
@@ -5168,6 +5346,8 @@ function applyTargetSwapSchedule(scheduleId)
                         )
                         .reset();
 
+                    updateRoomSwapTypeFields();
+
 
                     selectedRequesterSchedule =
                         null;
@@ -5327,7 +5507,7 @@ function applyTargetSwapSchedule(scheduleId)
                                 event.preventDefault();
 
                                 alert(
-                                    'Please select another faculty schedule.'
+                                    'Please select another instructor schedule.'
                                 );
 
                                 return;
@@ -5491,4 +5671,3 @@ function applyTargetSwapSchedule(scheduleId)
 
 </div>
 
-@include('footerheader.footer')

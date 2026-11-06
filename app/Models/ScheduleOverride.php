@@ -8,9 +8,12 @@ class ScheduleOverride extends Model
 {
     protected $fillable = [
         'schedule_id',
+        'room_id',
         'faculty_id',
         'created_by',
         'override_date',
+        'start_time',
+        'end_time',
         'reason',
         'occupied_by',
         'details',
@@ -26,6 +29,11 @@ class ScheduleOverride extends Model
     public function schedule()
     {
         return $this->belongsTo(Schedule::class);
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class, 'room_id');
     }
 
     public function faculty()

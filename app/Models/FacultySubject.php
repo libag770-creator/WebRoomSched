@@ -31,4 +31,14 @@ class FacultySubject extends Model
     {
         return $this->hasMany(ScheduleMerge::class, 'faculty_subject_id');
     }
+
+    public function sharedCohorts()
+    {
+        return $this->belongsToMany(
+            Subject::class,
+            'faculty_subject_cohorts',
+            'faculty_subject_id',
+            'subject_id'
+        )->with('program');
+    }
 }

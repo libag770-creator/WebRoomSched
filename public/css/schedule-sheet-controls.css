@@ -1,0 +1,74 @@
+.schedule-sheet-controls { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:7px; }
+.schedule-sheet-control { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:36px; padding:0 12px; border:1px solid #d5e0d5; border-radius:9px; background:#fff; color:#315540; font:750 12px/1.2 'DM Sans',sans-serif; cursor:pointer; box-shadow:0 2px 7px rgba(28,60,40,.05); transition:background .15s ease,border-color .15s ease,transform .15s ease; }
+.schedule-sheet-control:hover { border-color:#8eaf94; background:#f2f7f0; transform:translateY(-1px); }
+.schedule-sheet-control:focus-visible { outline:3px solid rgba(49,104,76,.24); outline-offset:2px; }
+.schedule-sheet-control[hidden] { display:none !important; }
+.schedule-panel-actions,.schedule-header-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+
+[data-fit-schedule-container] { width:100% !important; max-width:100% !important; min-width:0 !important; max-height:none !important; overflow:visible !important; scrollbar-width:none !important; }
+[data-fit-schedule-container]::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
+[data-fit-schedule] { width:100% !important; max-width:100% !important; min-width:0 !important; table-layout:fixed !important; }
+[data-fit-schedule] th,[data-fit-schedule] td { min-width:0 !important; max-width:none !important; overflow-wrap:anywhere; word-break:normal; }
+[data-fit-schedule] td:not(.time-column):not(.time-cell) { height:auto !important; }
+
+.faculty-timetable[data-fit-schedule] th:nth-child(1),
+.faculty-timetable[data-fit-schedule] th:nth-child(5),
+.faculty-timetable[data-fit-schedule] th:nth-child(8),
+.faculty-timetable[data-fit-schedule] .time-column,
+.excel-table[data-fit-schedule] .time-column,
+.excel-schedule[data-fit-schedule] th.time-header,
+.excel-schedule[data-fit-schedule] td.time-cell,
+#scheduleTable[data-fit-schedule] th.time-header,
+#scheduleTable[data-fit-schedule] td.time-cell { width:8% !important; min-width:0 !important; max-width:none !important; padding-right:3px !important; padding-left:3px !important; white-space:normal !important; }
+.faculty-timetable[data-fit-schedule] .class-entry,
+.excel-table[data-fit-schedule] .class-entry { min-width:0 !important; max-width:100% !important; overflow-wrap:anywhere; }
+
+.schedule-table[data-fit-schedule] .course-code-column { width:8% !important; }
+.schedule-table[data-fit-schedule] .description-column { width:20% !important; }
+.schedule-table[data-fit-schedule] .type-column { width:6% !important; }
+.schedule-table[data-fit-schedule] .instructor-column { width:14% !important; }
+.schedule-table[data-fit-schedule] .major-column { width:8% !important; }
+.schedule-table[data-fit-schedule] .room-column { width:6% !important; }
+.schedule-table[data-fit-schedule] .time-column { width:8% !important; }
+.schedule-table[data-fit-schedule] .day-column { width:2.5% !important; padding-right:1px !important; padding-left:1px !important; }
+.schedule-table[data-fit-schedule] .remarks-column { width:17.5% !important; }
+.schedule-table[data-fit-schedule] th,.schedule-table[data-fit-schedule] td { padding:6px 4px !important; font-size:clamp(7px, .72vw, 10px) !important; }
+.schedule-table[data-fit-schedule] .subject-text { overflow-wrap:anywhere; }
+
+[data-schedule-sheet].is-schedule-maximized { position:fixed !important; inset:0 !important; z-index:2147482000 !important; display:block !important; width:100vw !important; max-width:none !important; min-width:0 !important; height:100vh !important; height:100dvh !important; max-height:100vh !important; max-height:100dvh !important; margin:0 !important; padding:0 !important; overflow:auto !important; border:0 !important; border-radius:0 !important; background:#fff !important; box-shadow:0 18px 70px rgba(16,36,25,.28) !important; scrollbar-width:none !important; }
+[data-schedule-sheet].is-schedule-maximized::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
+[data-schedule-sheet].is-schedule-maximized .schedule-sheet-controls { position:sticky; top:0; z-index:100; padding:9px 14px; border-bottom:1px solid #e7ece5; background:rgba(255,255,255,.97); }
+    [data-schedule-sheet].is-schedule-maximized [data-fit-schedule-container] { max-height:none !important; overflow:visible !important; }
+.schedule-cell-stack { max-height:none !important; overflow:visible !important; scrollbar-width:none !important; }
+.schedule-cell-stack::-webkit-scrollbar { width:0 !important; height:0 !important; display:none !important; }
+.excel-schedule[data-fit-schedule] .schedule-cell { height:auto !important; }
+#scheduleTable[data-fit-schedule] td.schedule-cell { height:104px !important; min-height:104px !important; max-height:104px !important; overflow:hidden !important; }
+.merge-room-schedule-table[data-fit-schedule] th:nth-child(1),
+.merge-room-schedule-table[data-fit-schedule] th:nth-child(5),
+.merge-room-schedule-table[data-fit-schedule] th:nth-child(8),
+.merge-room-schedule-table[data-fit-schedule] td.merge-time-cell { width:8% !important; }
+body.schedule-sheet-active { overflow:hidden !important; }
+
+@media(max-width:850px) {
+    .schedule-sheet-control { min-height:34px; padding:0 10px; font-size:11px; }
+    [data-fit-schedule] th,[data-fit-schedule] td { padding:4px 2px !important; font-size:8px !important; }
+    .faculty-timetable[data-fit-schedule] .class-entry,
+    .excel-table[data-fit-schedule] .class-entry { padding:4px !important; overflow-wrap:anywhere; }
+    .faculty-timetable[data-fit-schedule] .class-course,
+    .excel-table[data-fit-schedule] .class-course { font-size:8px !important; overflow-wrap:anywhere; }
+    .faculty-timetable[data-fit-schedule] .class-subject,
+    .excel-table[data-fit-schedule] .class-subject { font-size:7px !important; overflow-wrap:anywhere; }
+    .faculty-timetable[data-fit-schedule] .schedule-cell-stack { max-height:none !important; overflow:visible !important; scrollbar-width:none !important; }
+}
+
+@media(max-width:520px) {
+    .schedule-panel-actions,.schedule-header-actions { justify-content:flex-start; width:100%; }
+    .schedule-table[data-fit-schedule] th,.schedule-table[data-fit-schedule] td { padding:3px 1px !important; font-size:7px !important; }
+    .schedule-table[data-fit-schedule] .day-column { font-size:6px !important; }
+}
+
+@media print {
+    .schedule-sheet-controls { display:none !important; }
+    [data-schedule-sheet].is-schedule-maximized { position:static !important; width:auto !important; height:auto !important; max-height:none !important; overflow:visible !important; box-shadow:none !important; }
+    body.schedule-sheet-active { overflow:visible !important; }
+}

@@ -44,6 +44,20 @@ class UserNotificationController extends Controller
             return redirect()->route('faculty.myschedules');
         }
 
+        if (($notification->data['type'] ?? '') === 'schedule_merge') {
+            $event = $notification->data['event'] ?? '';
+            $anchor = in_array($event, ['requested', 'cancelled'], true)
+                ? '#merge-requests'
+                : '#my-merge-requests';
+
+            return redirect()->to(route('chair.dashboard') . $anchor);
+        }
+
+        if (($notification->data['type'] ?? '') === 'room_swap_chair') {
+            abort_unless(Auth::user()->role === 'chair', 403);
+            return redirect()->route('chair.modifyschedule');
+        }
+
         $event = $notification->data['event'] ?? '';
         $panel = $event === 'requested'
             ? '#receivedSwapPanel'

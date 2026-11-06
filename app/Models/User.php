@@ -5,12 +5,37 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::updated(function (User $user): void {
+            if (!$user->wasChanged('name')) {
+                return;
+            }
+
+            DB::table('schedules')
+                ->where(function ($query) use ($user): void {
+                    $query->where('faculty_id', $user->getKey())
+                        ->orWhere(function ($legacySchedules) use ($user): void {
+                            $legacySchedules->whereNull('faculty_id')
+                                ->whereIn('faculty_subject_id', function ($subjects) use ($user): void {
+                                    $subjects->select('id')
+                                        ->from('faculty_subjects')
+                                        ->where('faculty_id', $user->getKey());
+                                });
+                        });
+                })
+                ->update(['instructor' => $user->name]);
+        });
+    }
 
     protected $fillable = [
         'name',
@@ -60,7 +85,7 @@ class User extends Authenticatable
             return null;
         }
 
-        return Storage::disk('public')->url($path);
+        return route('profile.photo.show', $this) . '?v=' . rawurlencode($path);
     }
 
     public function department()
@@ -71,5 +96,18 @@ class User extends Authenticatable
     public function facultySubjects()
     {
         return $this->hasMany(FacultySubject::class, 'faculty_id', 'id');
+    }
+
+    /** Treat legacy accounts with no saved status as active. */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where(function (Builder $active) {
+            $active->where('status', 'active')->orWhereNull('status');
+        });
+    }
+
+    public function isActive(): bool
+    {
+        return strtolower(trim((string) ($this->status ?? 'active'))) === 'active';
     }
 }

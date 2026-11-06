@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Building;
 use App\Models\Room;
+use App\Models\RoomScheduleTimeSlot;
+use App\Models\ScheduleCellMerge;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -13,6 +15,7 @@ use App\Models\User;
 use App\Models\Reservation;
 use App\Models\RoomSwapRequest;
 use App\Models\ScheduleMerge;
+use App\Models\ScheduleOverride;
 use App\Models\AcademicTerm;
 use Carbon\Carbon;
 
@@ -65,12 +68,15 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
         ]);
 
-        Building::create([
+          $building = Building::create([
             'department_id' => $request->department_id,
             'name' => $request->name,
         ]);
 
-        return back()->with('success', 'Building added successfully.');
+          return back()->with('success', 'Building added successfully.')
+              ->with('building_added', true)
+              ->with('building_department_id', $building->department_id)
+              ->with('building_id', $building->id);
     }
 
 
@@ -131,7 +137,7 @@ public function storeRoom(Request $request)
 
     $building = Building::findOrFail($request->building_id);
 
-    Room::create([
+      $room = Room::create([
         'department_id' => $request->department_id,
         'building_id' => $building->id,
         'building' => $building->name,
@@ -147,10 +153,11 @@ public function storeRoom(Request $request)
         'description' => $request->description,
     ]);
 
-    return back()->with(
-        'success',
-        'Room added successfully.'
-    );
+      return back()->with('success', 'Room added successfully.')
+          ->with('room_added', true)
+          ->with('room_department_id', $building->department_id)
+          ->with('room_building_id', $building->id)
+          ->with('room_id', $room->id);
 }
 
 // Update Room
@@ -209,6 +216,20 @@ public function updateRoom(Request $request, $id)
         'Room updated successfully.'
     );
 }
+
+// Delete Room
+public function destroyRoom($id)
+{
+    if (!Auth::check() || Auth::user()->role !== 'admin') {
+        abort(403, 'Unauthorized.');
+    }
+
+    $room = Room::findOrFail($id);
+    $room->delete();
+
+    return back()->with('success', 'Room deleted successfully.');
+}
+
 public function schedules()
 {
     // Only admin can access this page
@@ -238,7 +259,16 @@ public function schedules()
     */
 
     $departments = Department::with([
-        'buildings.rooms.schedules'
+        'buildings.rooms.schedules' => function ($query) {
+            $query->with([
+                'merges' => function ($mergeQuery) {
+                    $mergeQuery->where('status', 'approved')->with([
+                        'subject.program.department',
+                        'facultySubject.subjectCatalog.program.department',
+                    ]);
+                },
+            ]);
+        },
     ])
     ->orderBy('name')
     ->get();
@@ -250,6 +280,8 @@ public function viewSchedule(Room $room)
     if (!Auth::check() || Auth::user()->role !== 'admin') {
         abort(403, 'Unauthorized.');
     }
+
+    RoomSwapRequest::expireElapsedTemporarySwaps();
 
     $room->load(['department', 'building']);
 
@@ -274,10 +306,12 @@ public function viewSchedule(Room $room)
 
     $schedules = Schedule::query()
         ->where('room_id', $room->id)
-        ->when($activeTerm, fn ($query) => $query->where('academic_term_id', $activeTerm->id))
+        ->where('academic_term_id', $activeTerm?->id ?? 0)
         ->orderByRaw('CASE WHEN row_position IS NULL THEN 999 ELSE row_position END')
         ->orderBy('id')
         ->get();
+
+    $schedules->loadMissing('facultySubject.subjectCatalog.program');
 
     if (request()->ajax() || request()->wantsJson()) {
         $today = Carbon::today()->format('Y-m-d');
@@ -301,10 +335,13 @@ public function viewSchedule(Room $room)
             'targetSchedule',
         ])
             ->whereRaw('LOWER(TRIM(status)) = ?', ['approved'])
+            ->where('swap_type', 'temporary')
             ->where(function ($query) use ($room) {
                 $query->where('requester_room_id', $room->id)
                     ->orWhere('target_room_id', $room->id);
             })
+            ->whereHas('requesterSchedule', fn ($query) => $query->where('academic_term_id', $activeTerm?->id ?? 0))
+            ->whereHas('targetSchedule', fn ($query) => $query->where('academic_term_id', $activeTerm?->id ?? 0))
             ->whereDate('swap_date', '>=', $today)
             ->get();
 
@@ -326,6 +363,7 @@ public function viewSchedule(Room $room)
             }
 
             $swapInfo = [
+                'swap_type' => 'temporary',
                 'active' => $now->greaterThanOrEqualTo($start),
                 'scheduled' => $now->lessThan($start),
                 'swap_id' => $swap->id,
@@ -338,10 +376,12 @@ public function viewSchedule(Room $room)
             ];
 
             if ((int) $swap->requester_room_id === (int) $room->id) {
+                $leavingSchedule = $swap->requesterSchedule;
                 $swappedSchedule = $swap->targetSchedule;
                 $originalRoom = $swap->targetRoom;
                 $displayRoom = $swap->requesterRoom;
             } else {
+                $leavingSchedule = $swap->targetSchedule;
                 $swappedSchedule = $swap->requesterSchedule;
                 $originalRoom = $swap->requesterRoom;
                 $displayRoom = $swap->targetRoom;
@@ -349,6 +389,12 @@ public function viewSchedule(Room $room)
 
             if (!$swappedSchedule || ($activeTerm && (int) $swappedSchedule->academic_term_id !== (int) $activeTerm->id)) {
                 continue;
+            }
+
+            if ($leavingSchedule) {
+                $schedules = $schedules
+                    ->reject(fn ($item) => (int) $item->id === (int) $leavingSchedule->id)
+                    ->values();
             }
 
             if (!$schedules->contains(fn ($item) => (int) $item->id === (int) $swappedSchedule->id)) {
@@ -370,25 +416,124 @@ public function viewSchedule(Room $room)
 
         // Include merged program labels for both room-owned and swapped classes.
         $mergedPrograms = [];
-        $allMerges = ScheduleMerge::with('facultySubject')
+        $allMerges = ScheduleMerge::with([
+            'subject.program.department',
+            'facultySubject.subjectCatalog.program.department',
+        ])
             ->whereIn('schedule_id', $schedules->pluck('id'))
             ->where('status', 'approved')
             ->get();
 
+        $mergedCourses = [];
         foreach ($allMerges as $merge) {
-            $program = trim((string) $merge->facultySubject?->program);
-            if ($program === '') {
-                continue;
+            $subject = $merge->subject ?? $merge->facultySubject?->subjectCatalog;
+            $program = $subject?->program?->code
+                ?? $merge->facultySubject?->subjectCatalog?->program?->code
+                ?? $merge->facultySubject?->program;
+            if ($program) {
+                $mergedPrograms[$merge->schedule_id] ??= [];
+                if (!in_array($program, $mergedPrograms[$merge->schedule_id], true)) {
+                    $mergedPrograms[$merge->schedule_id][] = $program;
+                }
             }
 
-            $mergedPrograms[$merge->schedule_id] ??= [];
-            if (!in_array($program, $mergedPrograms[$merge->schedule_id], true)) {
-                $mergedPrograms[$merge->schedule_id][] = $program;
+            if ($subject) {
+                $mergedCourses[$merge->schedule_id] ??= [];
+                $mergedCourses[$merge->schedule_id][] = [
+                    'course_code' => $subject->course_code ?? $merge->facultySubject?->course_code,
+                    'course_title' => $subject->course_title ?? $merge->facultySubject?->subject,
+                    'program' => $program,
+                    'major' => $subject->program?->major ?? $merge->facultySubject?->major,
+                    'share_type' => $merge->share_type ?? 'merge',
+                ];
             }
         }
 
-        $scheduleData = $schedules->map(function ($schedule) use ($mergedPrograms, $roomSwapsBySchedule, $room) {
+        $programCodesByName = \App\Models\Program::query()
+            ->whereIn('name', $schedules->pluck('program')->filter()->unique()->values())
+            ->pluck('code', 'name')
+            ->all();
+        $programCodeForSchedule = static function ($schedule) use ($programCodesByName) {
+            $code = trim((string) ($schedule->facultySubject?->subjectCatalog?->program?->code ?? ''));
+            if ($code !== '') return $code;
+            $label = trim((string) ($schedule->program ?? ''));
+            if (preg_match('/\(([^()]*)\)\s*$/u', $label, $matches) === 1) return trim($matches[1]);
+            return trim((string) ($programCodesByName[$label] ?? $label));
+        };
+
+        $overrideCandidates = ScheduleOverride::query()
+            ->where(function ($query) use ($schedules, $room) {
+                $query->whereIn('schedule_id', $schedules->pluck('id')->unique())
+                    ->orWhere('room_id', $room->id);
+            })
+            ->where('status', 'active')
+            ->whereDate('override_date', '>=', $today)
+            ->where('expires_at', '>', now())
+            ->orderBy('override_date')
+            ->orderBy('start_time')
+            ->get();
+
+        $parseOverrideMinute = static function ($value): ?int {
+            if ($value instanceof \DateTimeInterface) {
+                return ((int) $value->format('H') * 60) + (int) $value->format('i');
+            }
+
+            $raw = trim((string) $value);
+            if ($raw === '') return null;
+
+            try {
+                $time = Carbon::parse(str_contains($raw, 'T') ? $raw : '2000-01-01 ' . $raw);
+                return ($time->hour * 60) + $time->minute;
+            } catch (\Throwable $exception) {
+                return null;
+            }
+        };
+
+        $scheduleOverridesBySchedule = [];
+        foreach ($schedules as $schedule) {
+            $scheduleDay = strtoupper(substr(trim((string) ($schedule->day_of_week ?: $schedule->day)), 0, 3));
+            $scheduleStart = $parseOverrideMinute($schedule->start_time);
+            $scheduleEnd = $parseOverrideMinute($schedule->end_time);
+            if (($scheduleStart === null || $scheduleEnd === null) && preg_match('/^\s*(.+?)\s*(?:-|–|—|to)\s*(.+?)\s*$/i', (string) $schedule->time, $timeParts)) {
+                $scheduleStart = $parseOverrideMinute($timeParts[1]);
+                $scheduleEnd = $parseOverrideMinute($timeParts[2]);
+            }
+
+            $scheduleOverridesBySchedule[$schedule->id] = $overrideCandidates
+                ->filter(function (ScheduleOverride $override) use ($schedule, $room, $scheduleDay, $scheduleStart, $scheduleEnd, $parseOverrideMinute) {
+                    $directScheduleMatch = (int) $override->schedule_id === (int) $schedule->id;
+                    if ($override->room_id && (int) $override->room_id !== (int) $room->id) return false;
+                    if (!$directScheduleMatch && (int) $override->room_id !== (int) $room->id) return false;
+                    if (!$override->override_date) return false;
+                    if (strtoupper($override->override_date->format('D')) !== $scheduleDay) return false;
+
+                    $overrideStart = $parseOverrideMinute($override->start_time);
+                    $overrideEnd = $parseOverrideMinute($override->end_time);
+                    if ($scheduleStart === null || $scheduleEnd === null || $overrideStart === null || $overrideEnd === null) return false;
+
+                    return $scheduleStart < $overrideEnd && $scheduleEnd > $overrideStart;
+                })
+                ->values();
+        }
+
+        $scheduleData = $schedules->map(function ($schedule) use ($mergedPrograms, $mergedCourses, $roomSwapsBySchedule, $scheduleOverridesBySchedule, $room, $programCodeForSchedule) {
             $roomSwap = $roomSwapsBySchedule[$schedule->id] ?? null;
+            $scheduleOverrides = ($scheduleOverridesBySchedule[$schedule->id] ?? collect())
+                ->map(function (ScheduleOverride $override) use ($room) {
+                    return [
+                        'id' => (int) $override->id,
+                        'room_id' => (int) ($override->room_id ?: $room->id),
+                        'day' => strtoupper($override->override_date?->format('D') ?? ''),
+                        'date' => $override->override_date?->format('Y-m-d'),
+                        'start_time' => $override->start_time ? Carbon::parse($override->start_time)->format('H:i') : null,
+                        'end_time' => $override->end_time ? Carbon::parse($override->end_time)->format('H:i') : null,
+                        'occupied_by' => $override->occupied_by,
+                        'reason' => $override->reason,
+                        'details' => $override->details,
+                        'state' => $override->override_date?->isToday() ? 'today' : 'scheduled',
+                    ];
+                })
+                ->values();
 
             return [
                 'id' => $schedule->id,
@@ -396,6 +541,7 @@ public function viewSchedule(Room $room)
                 'subject' => $schedule->subject,
                 'subject_type' => $schedule->subject_type,
                 'program' => $schedule->program,
+                'program_code' => $programCodeForSchedule($schedule),
                 'major' => $schedule->major,
                 'year_level' => $schedule->year_level,
                 'day' => strtoupper(trim((string) $schedule->day)),
@@ -404,17 +550,20 @@ public function viewSchedule(Room $room)
                 'instructor' => $schedule->instructor,
                 'color' => $schedule->color ?? '#ffffff',
                 'merged_programs' => $mergedPrograms[$schedule->id] ?? [],
+                'merged_courses' => $mergedCourses[$schedule->id] ?? [],
                 'room_id' => $roomSwap['swapped_to_room_id'] ?? $room->id,
                 'room_name' => $roomSwap['swapped_to_room_name'] ?? $room->room_name,
                 'original_room_id' => $roomSwap['original_room_id'] ?? $room->id,
                 'original_room_name' => $roomSwap['original_room_name'] ?? null,
                 'room_swap' => $roomSwap,
                 'is_room_swap_active' => (bool) ($roomSwap['active'] ?? false),
+                'schedule_overrides' => $scheduleOverrides,
             ];
         })->values();
 
-        $reservations = Reservation::with(['user', 'facultySubject'])
+        $reservations = Reservation::with(['user', 'facultySubject', 'subject.program'])
             ->where('room_id', $room->id)
+            ->where('academic_term_id', $activeTerm?->id ?? 0)
             ->whereRaw('LOWER(TRIM(status)) = ?', ['reserved'])
             ->whereDate('date', '>=', $today)
             ->whereNotNull('start_time')
@@ -433,9 +582,33 @@ public function viewSchedule(Room $room)
                     'start_time' => $reservation->start_time ? Carbon::parse($reservation->start_time)->format('H:i') : null,
                     'end_time' => $reservation->end_time ? Carbon::parse($reservation->end_time)->format('H:i') : null,
                     'purpose' => $reservation->purpose ?? 'Room Reservation',
-                    'course_code' => $reservation->facultySubject?->course_code,
-                    'subject' => $reservation->facultySubject?->subject,
-                    'user_name' => $reservation->user?->name ?? 'Faculty',
+                    'course_code' => $reservation->subject?->course_code ?? $reservation->facultySubject?->course_code,
+                    'subject' => $reservation->subject?->course_title ?? $reservation->facultySubject?->subject,
+                    'user_name' => $reservation->user?->name ?? 'Instructor',
+                ];
+            })
+            ->values();
+
+        $roomOverrides = ScheduleOverride::query()
+            ->where('room_id', $room->id)
+            ->whereNull('schedule_id')
+            ->where('status', 'active')
+            ->whereDate('override_date', '>=', $today)
+            ->where('expires_at', '>', now())
+            ->orderBy('override_date')
+            ->orderBy('start_time')
+            ->get()
+            ->map(function (ScheduleOverride $override) {
+                return [
+                    'id' => (int) $override->id,
+                    'room_id' => (int) $override->room_id,
+                    'day' => strtoupper($override->override_date?->format('D') ?? ''),
+                    'date' => $override->override_date?->format('Y-m-d'),
+                    'start_time' => $override->start_time ? Carbon::parse($override->start_time)->format('H:i') : null,
+                    'end_time' => $override->end_time ? Carbon::parse($override->end_time)->format('H:i') : null,
+                    'reason' => $override->reason,
+                    'occupied_by' => $override->occupied_by,
+                    'details' => $override->details,
                 ];
             })
             ->values();
@@ -444,16 +617,52 @@ public function viewSchedule(Room $room)
             ? ($room->building->name ?? $room->building->building_name ?? 'Building')
             : ($room->building ?: 'Building');
 
+        $roomTimeSlots = RoomScheduleTimeSlot::query()
+            ->where('room_id', $room->id)
+            ->where('academic_term_id', $activeTerm?->id ?? 0)
+            ->where('is_active', true)
+            ->orderByRaw('CASE WHEN row_position IS NULL THEN 999999 ELSE row_position END')
+            ->orderBy('start_time')
+            ->get()
+            ->map(function ($slot) {
+                return [
+                    'id' => (int) $slot->id,
+                    'day' => strtoupper(trim((string) $slot->day)),
+                    'start_time' => Carbon::parse($slot->start_time)->format('H:i'),
+                    'end_time' => Carbon::parse($slot->end_time)->format('H:i'),
+                    'time' => Carbon::parse($slot->start_time)->format('g:i')
+                        . '-'
+                        . Carbon::parse($slot->end_time)->format('g:i'),
+                    'row_position' => $slot->row_position !== null ? (int) $slot->row_position : null,
+                ];
+            })
+            ->values();
+
+        $manualMerges = $activeTerm
+            ? ScheduleCellMerge::where('room_id', $room->id)
+                ->where('academic_term_id', $activeTerm->id)
+                ->orderBy('id')
+                ->get(['axis', 'cells'])
+                ->map(fn ($merge) => [
+                    'axis' => $merge->axis,
+                    'cells' => $merge->cells,
+                ])
+                ->values()
+            : collect();
+
         return response()->json([
             'success' => true,
             'room' => [
                 'id' => $room->id,
                 'room_name' => $room->room_name,
                 'building' => $buildingName,
-                'department' => $room->department?->name ?? 'Department',
+                'department' => $room->department?->name ?? 'College',
             ],
             'schedules' => $scheduleData,
             'reservations' => $reservations,
+            'room_overrides' => $roomOverrides,
+            'room_time_slots' => $roomTimeSlots,
+            'manual_merges' => $manualMerges,
             'active_term' => $activeTerm ? [
                 'id' => $activeTerm->id,
                 'academic_year' => $activeTerm->academic_year,
@@ -503,7 +712,7 @@ public function moveRoom(Request $request)
         return back()
             ->withErrors([
                 'building_id' =>
-                    'The selected building does not belong to the selected department.'
+                    'The selected building does not belong to the selected college.'
             ]);
     }
 
@@ -578,24 +787,8 @@ public function storeDepartment(Request $request)
         ->route('admin.departments')
         ->with(
             'success',
-            'Department added successfully.'
+            'College added successfully.'
         );
-}
-
-
-// Edit Department
-public function editDepartment($id)
-{
-    if (!Auth::check() || Auth::user()->role !== 'admin') {
-        abort(403, 'Unauthorized.');
-    }
-
-    $department = Department::findOrFail($id);
-
-    return view(
-        'admin.edit-department',
-        compact('department')
-    );
 }
 
 
@@ -638,7 +831,7 @@ public function updateDepartment(
         ->route('admin.departments')
         ->with(
             'success',
-            'Department updated successfully.'
+            'College updated successfully.'
         );
 }
 
@@ -673,7 +866,7 @@ public function destroyDepartment($id)
         ->route('admin.departments')
         ->with(
             'success',
-            'Department deleted successfully.'
+            'College deleted successfully.'
         );
 }
 }

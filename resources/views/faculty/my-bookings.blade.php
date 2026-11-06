@@ -1,7 +1,6 @@
 @php
     use Illuminate\Support\Facades\Auth;
     use App\Models\Reservation;
-    use App\Models\RoomSwapRequest;
     use Carbon\Carbon;
 
     /*
@@ -31,9 +30,8 @@
     | RESERVATION HISTORY
     |--------------------------------------------------------------------------
     |
-    | Room reservations now use only Reserved and Expired.
-    | Legacy Declined records are hidden because rejection is no longer
-    | part of the room-reservation workflow.
+    | Keep cancelled reservations in history so the user can see what was
+    | cancelled. Legacy Declined records remain hidden.
     |--------------------------------------------------------------------------
     */
 
@@ -42,7 +40,7 @@
             ->filter(function ($reservation) {
                 return in_array(
                     $reservation->status,
-                    ['Reserved', 'Expired'],
+                    ['Reserved', 'Expired', 'Cancelled'],
                     true
                 );
             })
@@ -64,6 +62,11 @@
     $expiredReservationsCount =
         $reservationHistory
             ->where('status', 'Expired')
+            ->count();
+
+    $cancelledReservationsCount =
+        $reservationHistory
+            ->where('status', 'Cancelled')
             ->count();
 $todayDate = Carbon::today();
 
@@ -150,65 +153,6 @@ $todayDate = Carbon::today();
         })
         ->first();
 
-    /*
-    |--------------------------------------------------------------------------
-    | ROOM SWAP REQUESTS
-    |--------------------------------------------------------------------------
-    */
-
-    $roomSwapRequests = RoomSwapRequest::with([
-        'requester',
-        'requesterSchedule',
-        'targetSchedule',
-        'requesterRoom',
-        'targetRoom',
-    ])
-        ->where(
-            'target_user_id',
-            $facultyUserId
-        )
-        ->where(
-            'status',
-            'pending'
-        )
-        ->latest()
-        ->get();
-
-    /*
-    |--------------------------------------------------------------------------
-    | ROOM SWAP HISTORY
-    |--------------------------------------------------------------------------
-    */
-
-    $roomSwapHistory = RoomSwapRequest::with([
-        'requester',
-        'targetUser',
-        'requesterSchedule',
-        'targetSchedule',
-        'requesterRoom',
-        'targetRoom',
-    ])
-        ->where(function ($query) use ($facultyUserId) {
-            $query
-                ->where(
-                    'requester_id',
-                    $facultyUserId
-                )
-                ->orWhere(
-                    'target_user_id',
-                    $facultyUserId
-                );
-        })
-        ->whereIn(
-            'status',
-            [
-                'approved',
-                'declined',
-                'expired',
-            ]
-        )
-        ->latest()
-        ->get();
 @endphp
 
 @include('footerheader.header')
@@ -669,6 +613,23 @@ $todayDate = Carbon::today();
             font-size: 12px;
             line-height: 1.45;
         }
+
+        .reservation-remove-actions { display:flex; justify-content:flex-end; margin-top:13px; }
+        .reservation-remove-button { display:inline-flex; min-height:38px; align-items:center; justify-content:center; gap:8px; padding:0 13px; border:1px solid #e5c9c5; border-radius:9px; background:#fff7f6; color:#9a433d; font:inherit; font-size:11px; font-weight:850; cursor:pointer; transition:background .15s ease,border-color .15s ease; }
+        .reservation-remove-button:hover { border-color:#d7a7a1; background:#ffefed; }
+        .reservation-delete-overlay[hidden] { display:none !important; }
+        .reservation-delete-overlay { position:fixed; inset:0; z-index:100100; display:grid; place-items:center; padding:18px; background:rgba(17,39,27,.56); backdrop-filter:blur(4px); }
+        .reservation-delete-dialog { width:min(100%,480px); padding:23px; border:1px solid #eadedb; border-radius:18px; background:#fff; box-shadow:0 24px 75px rgba(17,45,31,.24); }
+        .reservation-delete-heading { display:flex; align-items:flex-start; gap:13px; }
+        .reservation-delete-icon { display:grid; width:42px; height:42px; flex:0 0 42px; place-items:center; border:1px solid #f1d7d3; border-radius:13px; background:#fff2f0; color:#a94740; font-size:16px; }
+        .reservation-delete-heading h2 { margin:1px 0 5px; color:#243d30; font:800 18px/1.3 'Manrope','DM Sans',sans-serif; }
+        .reservation-delete-heading p { margin:0; color:#65756a; font-size:12px; line-height:1.55; }
+        .reservation-delete-summary { margin-top:16px; padding:12px 13px; border:1px solid #e7ece5; border-radius:11px; background:#f8faf7; color:#40564a; font-size:12px; font-weight:750; line-height:1.5; }
+        .reservation-delete-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:18px; }
+        .reservation-delete-actions button { min-height:40px; padding:0 14px; border:1px solid #dfe6de; border-radius:9px; background:#f7f9f6; color:#40564a; font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+        .reservation-delete-actions .reservation-delete-confirm { border-color:#a94740; background:#a94740; color:#fff; }
+        .reservation-delete-actions .reservation-delete-confirm:hover { background:#873a35; }
+        body.reservation-delete-open { overflow:hidden; }
 
         .reservation-message i {
             margin-top: 2px;
@@ -1535,11 +1496,211 @@ $todayDate = Carbon::today();
         }
     </style>
 
+    <style>
+        /* My Bookings visual system: stronger hierarchy with the Faculty portal palette. */
+        body.portal-shell.faculty-portal .main-layout > .content.faculty-my-bookings-view {
+            min-height:100vh;
+            padding:128px clamp(20px,3vw,42px) 46px !important;
+            background:
+                radial-gradient(ellipse at 88% 2%,rgba(215,195,145,.25),transparent 25%),
+                radial-gradient(ellipse at 8% 96%,rgba(204,224,208,.36),transparent 30%),
+                linear-gradient(145deg,#edf2ec 0%,#f8f7f2 58%,#f1f0e8 100%);
+            color:#263a2f;
+            font-family:'DM Sans',Arial,sans-serif;
+        }
+        .faculty-my-bookings-view,
+        .faculty-my-bookings-view * { font-family:'DM Sans',Arial,sans-serif; }
+        .faculty-my-bookings-view > *:not(style) { width:min(100%,1480px); margin-right:auto; margin-left:auto; }
+        .faculty-my-bookings-view .dashboard-cards { gap:0; margin-bottom:22px; }
+        .faculty-my-bookings-view .reservation-summary-card {
+            position:relative;
+            isolation:isolate;
+            min-height:205px;
+            display:flex;
+            align-items:center;
+            padding:clamp(30px,4vw,46px) clamp(25px,4vw,48px);
+            border:1px solid rgba(232,215,175,.22);
+            border-radius:24px;
+            background:radial-gradient(circle at 78% 18%,rgba(217,196,143,.17),transparent 25%),linear-gradient(118deg,#153a32 0%,#215440 58%,#37684e 100%);
+            box-shadow:0 20px 44px rgba(24,58,43,.16);
+        }
+        .faculty-my-bookings-view .reservation-summary-card::before {
+            z-index:-1;
+            width:5px;
+            background:#d8c18c;
+        }
+        .faculty-my-bookings-view .reservation-summary-card::after {
+            content:"";
+            position:absolute;
+            z-index:-1;
+            top:-155px;
+            right:100px;
+            width:340px;
+            height:340px;
+            border:1px solid rgba(244,232,200,.23);
+            border-radius:50%;
+            box-shadow:0 0 0 27px rgba(244,232,200,.035),0 0 0 63px rgba(244,232,200,.026),0 0 0 102px rgba(244,232,200,.018);
+            pointer-events:none;
+        }
+        .faculty-my-bookings-view .reservation-summary-top { position:relative; z-index:1; align-items:center; gap:24px; width:100%; }
+        .faculty-my-bookings-view .reservation-summary-title { gap:16px; }
+        .faculty-my-bookings-view .reservation-summary-icon { width:54px; height:54px; flex:0 0 54px; border:1px solid rgba(255,255,255,.16); border-radius:16px; background:rgba(255,255,255,.12); color:#e6d39f; font-size:22px; }
+        .faculty-my-bookings-view .reservation-summary-eyebrow { margin:0 0 7px; color:#e2ca8d; font-size:10px; font-weight:850; letter-spacing:.15em; text-transform:uppercase; }
+        .faculty-my-bookings-view .reservation-summary-title h1 { margin:0 0 9px; color:#fff; font:800 clamp(32px,3.1vw,43px)/1.12 'Manrope','DM Sans',sans-serif; letter-spacing:-.04em; }
+        .faculty-my-bookings-view .reservation-summary-title p { max-width:650px; margin:0; color:#e0e9e1; font-size:15px; font-weight:550; line-height:1.65; }
+        .faculty-my-bookings-view .reservation-summary-actions { display:flex; flex:0 0 auto; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:9px; }
+        .faculty-my-bookings-view .reservation-summary-total { flex:0 0 auto; display:inline-flex; align-items:center; gap:10px; padding:13px 16px; border:1px solid rgba(255,255,255,.2); border-radius:14px; background:rgba(255,255,255,.09); color:#fff; font-size:16px; font-weight:800; }
+        .faculty-my-bookings-view .reservation-summary-total i { color:#e6d39f; }
+        .faculty-my-bookings-view .reservation-create-link { display:inline-flex; min-height:43px; align-items:center; justify-content:center; gap:8px; padding:0 14px; border:1px solid rgba(255,255,255,.35); border-radius:10px; background:#f5f1e5; color:#214533; font-size:12px; font-weight:850; text-decoration:none; white-space:nowrap; transition:transform .15s ease,background .15s ease; }
+        .faculty-my-bookings-view .reservation-create-link:hover { transform:translateY(-1px); background:#fff; color:#173b33; }
+
+        .faculty-my-bookings-view .faculty-overview { grid-template-columns:minmax(0,1.4fr) minmax(310px,.8fr); gap:16px; margin-bottom:22px; }
+        .faculty-my-bookings-view .overview-panel,
+        .faculty-my-bookings-view .reservation-section { border:1px solid #dce6dc; border-radius:19px; background:#fff; box-shadow:0 9px 26px rgba(31,57,43,.05); }
+        .faculty-my-bookings-view .overview-panel-header { align-items:center; gap:14px; padding:20px 22px; border-color:#e9eee8; background:linear-gradient(110deg,#f6f8f3,#fff); }
+        .faculty-my-bookings-view .overview-panel-title { gap:12px; }
+        .faculty-my-bookings-view .overview-panel-title-icon { width:42px; height:42px; flex-basis:42px; border:1px solid #e2e9df; border-radius:13px; background:#edf3eb; color:#285940; font-size:16px; }
+        .faculty-my-bookings-view .overview-panel-title h3 { color:#203d30; font:800 18px/1.25 'Manrope','DM Sans',sans-serif; }
+        .faculty-my-bookings-view .overview-panel-title p { margin-top:5px; color:#65756a; font-size:13px; font-weight:550; line-height:1.5; }
+        .faculty-my-bookings-view .overview-date { padding:8px 11px; border-color:#e2e9df; border-radius:10px; background:#f5f8f3; color:#3e5b49; font-size:12px; font-weight:800; }
+        .faculty-my-bookings-view .overview-metrics { gap:10px; padding:16px 19px 19px; }
+        .faculty-my-bookings-view .overview-metric { min-height:105px; padding:13px; border-color:#e2e9e0; border-radius:12px; background:#f8faf6; }
+        .faculty-my-bookings-view .overview-metric-label { color:#506557; font-size:11px; font-weight:850; line-height:1.4; }
+        .faculty-my-bookings-view .overview-metric-label i { color:#32704d; }
+        .faculty-my-bookings-view .overview-metric strong { margin-top:8px; color:#173b33; font:800 30px/1 'Manrope','DM Sans',sans-serif; }
+        .faculty-my-bookings-view .overview-metric span { margin-top:6px; color:#64746a; font-size:11px; font-weight:600; line-height:1.45; }
+        .faculty-my-bookings-view .next-reservation-body { padding:17px 19px 19px; }
+        .faculty-my-bookings-view .next-reservation-empty { min-height:145px; }
+        .faculty-my-bookings-view .next-reservation-empty i { width:44px; height:44px; border:1px solid #e3e9df; border-radius:13px; background:#edf3eb; color:#78917e; font-size:18px; }
+        .faculty-my-bookings-view .next-reservation-empty strong { color:#294437; font-size:15px; font-weight:850; }
+        .faculty-my-bookings-view .next-reservation-empty span { color:#65756a; font-size:12px; font-weight:550; line-height:1.5; }
+        .faculty-my-bookings-view .next-reservation-card { padding:15px; border-color:#dce8d9; border-radius:14px; background:#f5f9f3; }
+        .faculty-my-bookings-view .next-reservation-room-icon { width:42px; height:42px; flex-basis:42px; border-radius:13px; background:#e7f0e4; color:#285940; font-size:16px; }
+        .faculty-my-bookings-view .next-reservation-room strong { color:#203d30; font-size:15px; font-weight:850; }
+        .faculty-my-bookings-view .next-reservation-room span { color:#65756a; font-size:12px; font-weight:600; }
+        .faculty-my-bookings-view .next-reservation-badge { padding:6px 10px; font-size:11px; font-weight:850; }
+        .faculty-my-bookings-view .next-reservation-details { gap:9px; margin-top:13px; }
+        .faculty-my-bookings-view .next-reservation-detail { padding:11px; border-color:#e2e9df; border-radius:10px; }
+        .faculty-my-bookings-view .next-reservation-detail small { color:#627369; font-size:10px; font-weight:850; }
+        .faculty-my-bookings-view .next-reservation-detail strong { margin-top:5px; color:#294437; font-size:12px; font-weight:800; line-height:1.45; }
+
+        .faculty-my-bookings-view .reservation-section { overflow:hidden; }
+        .faculty-my-bookings-view .reservation-tabs { gap:4px; padding:0 14px; border-color:#e6ece5; background:#f8faf7; }
+        .faculty-my-bookings-view .tab-btn { min-height:59px; padding:15px 17px; border-bottom-width:3px; color:#596c60; font-size:13px; font-weight:800; }
+        .faculty-my-bookings-view .tab-btn:hover { background:#f0f5ed; color:#24563d; }
+        .faculty-my-bookings-view .tab-btn.active { border-bottom-color:#d1b76f; background:#fff; color:#1e553a; }
+        .faculty-my-bookings-view .tab-count { min-width:22px; padding:4px 7px; border-radius:999px; background:#e8efe5; color:#315943; font-size:11px; font-weight:850; }
+        .faculty-my-bookings-view .reservation-status-filter { gap:9px; margin:18px 22px 0; padding:12px 13px; border:1px solid #e4ebe2; border-radius:12px; background:#f8faf7; }
+        .faculty-my-bookings-view .reservation-status-filter-label { color:#4e6355; font-size:12px; font-weight:850; }
+        .faculty-my-bookings-view .reservation-filter-btn { min-height:38px; padding:0 12px; border-radius:9px; color:#586b5d; font-size:12px; font-weight:800; }
+        .faculty-my-bookings-view .reservation-filter-btn.active { border-color:#c7dbc8; background:#eaf3e8; color:#1e553a; }
+        .faculty-my-bookings-view .reservation-filter-count { min-width:20px; font-size:11px; font-weight:850; }
+        .faculty-my-bookings-view .reservation-list { padding:21px 22px 24px; }
+        .faculty-my-bookings-view .reservation-list-header { align-items:center; gap:14px; margin-bottom:15px; }
+        .faculty-my-bookings-view .reservation-list-header h3 { margin:0 0 5px; color:#203d30; font:800 20px/1.25 'Manrope','DM Sans',sans-serif; }
+        .faculty-my-bookings-view .reservation-list-header p { margin:0; color:#65756a; font-size:13px; font-weight:550; line-height:1.5; }
+        .faculty-my-bookings-view .reservation-total { padding:7px 11px; border:1px solid #e2e9df; border-radius:999px; background:#f5f8f3; color:#3e5b49; font-size:12px; font-weight:850; }
+        .faculty-my-bookings-view .reservation-card { margin-bottom:13px; padding:19px; border-color:#dfe8de; border-radius:15px; background:#fff; box-shadow:0 5px 17px rgba(31,57,43,.04); }
+        .faculty-my-bookings-view .reservation-card-top { gap:14px; }
+        .faculty-my-bookings-view .reservation-room-heading { gap:12px; }
+        .faculty-my-bookings-view .reservation-room-icon { width:44px; height:44px; flex:0 0 44px; border-radius:13px; background:#edf3eb; color:#285940; font-size:17px; }
+        .faculty-my-bookings-view .reservation-card h3 { margin:0 0 5px; color:#203d30; font-size:17px; font-weight:850; line-height:1.35; }
+        .faculty-my-bookings-view .reservation-building { color:#64746a; font-size:13px; font-weight:600; }
+        .faculty-my-bookings-view .reservation-status-badge { padding:7px 11px; border-radius:999px; font-size:11px; font-weight:850; }
+        .faculty-my-bookings-view .reservation-details { gap:10px; margin-top:15px; }
+        .faculty-my-bookings-view .reservation-detail { min-height:74px; padding:12px; border:1px solid #e8eee6; border-radius:11px; background:#f9fbf8; }
+        .faculty-my-bookings-view .detail-label { margin-bottom:6px; color:#64746a; font-size:10px; font-weight:850; }
+        .faculty-my-bookings-view .detail-label i { color:#32704d; }
+        .faculty-my-bookings-view .reservation-detail strong { color:#294437; font-size:13px; font-weight:800; line-height:1.45; }
+        .faculty-my-bookings-view .reservation-message { padding:12px 14px; border-radius:11px; font-size:12px; font-weight:700; line-height:1.55; }
+        .faculty-my-bookings-view .reservation-remove-button { min-height:40px; padding:0 14px; border-radius:10px; font-size:12px; }
+        .faculty-my-bookings-view .reservation-empty { min-height:280px; }
+        .faculty-my-bookings-view .empty-room { min-height:340px; padding:36px 24px; }
+        .faculty-my-bookings-view .empty-room .empty-icon { width:60px; height:60px; margin-bottom:14px; border:1px solid #e3e9df; border-radius:17px; background:#edf3eb; color:#78917e; font-size:24px; }
+        .faculty-my-bookings-view .empty-room h3 { color:#294437; font-size:17px; font-weight:850; }
+        .faculty-my-bookings-view .empty-room p { max-width:480px; color:#65756a; font-size:13px; font-weight:550; line-height:1.6; }
+
+        .faculty-my-bookings-view .swap-request-container { padding:20px 22px; }
+        .faculty-my-bookings-view .swap-request-title { margin-bottom:15px; color:#203d30; font-size:18px; font-weight:850; }
+        .faculty-my-bookings-view .swap-request-title i { color:#285940; }
+        .faculty-my-bookings-view .swap-request-card-item,
+        .faculty-my-bookings-view .swap-history-card { padding:18px; border-color:#dfe8de; border-radius:15px; background:#fff; box-shadow:0 5px 17px rgba(31,57,43,.04); }
+        .faculty-my-bookings-view .swap-request-header h3 { color:#203d30; font-size:16px; font-weight:850; }
+        .faculty-my-bookings-view .swap-request-header p { color:#64746a; font-size:13px; font-weight:550; line-height:1.5; }
+        .faculty-my-bookings-view .swap-pending,.faculty-my-bookings-view .swap-status { padding:7px 10px; font-size:11px; font-weight:850; }
+        .faculty-my-bookings-view .swap-side { padding:15px; border-color:#e1e9df; border-radius:12px; background:#f8faf6; }
+        .faculty-my-bookings-view .swap-side-title { color:#32704d; font-size:11px; font-weight:850; }
+        .faculty-my-bookings-view .swap-side h4 { color:#294437; font-size:15px; font-weight:850; }
+        .faculty-my-bookings-view .swap-side p { color:#5d7064; font-size:13px; line-height:1.55; }
+        .faculty-my-bookings-view .swap-approve-btn,.faculty-my-bookings-view .swap-decline-btn { min-height:42px; padding:0 15px; border-radius:10px; font-size:12px; font-weight:850; }
+        .faculty-my-bookings-view .swap-history-grid { gap:13px; padding:20px 22px; }
+        .faculty-my-bookings-view .swap-history-top h3 { color:#203d30; font-size:16px; font-weight:850; }
+        .faculty-my-bookings-view .swap-history-top p { color:#64746a; font-size:12px; line-height:1.5; }
+        .faculty-my-bookings-view .swap-time-box { padding:12px; border:1px solid #e8eee6; border-radius:11px; background:#f8faf6; color:#405a49; font-size:13px; font-weight:700; }
+        .faculty-my-bookings-view .swap-room-box { padding:12px; border-color:#e2e9df; border-radius:10px; background:#f9fbf8; }
+        .faculty-my-bookings-view .swap-room-box span { color:#637368; font-size:10px; font-weight:850; }
+        .faculty-my-bookings-view .swap-room-box strong { color:#294437; font-size:13px; font-weight:850; }
+
+        @media(max-width:1100px) {
+            .faculty-my-bookings-view .faculty-overview { grid-template-columns:1fr; }
+        }
+        @media(max-width:760px) {
+            body.portal-shell.faculty-portal .main-layout > .content.faculty-my-bookings-view { min-height:calc(100vh - 64px); padding:22px 17px 32px !important; }
+            .faculty-my-bookings-view .reservation-summary-card { min-height:0; padding:28px 24px; }
+            .faculty-my-bookings-view .reservation-summary-top { align-items:flex-start; flex-direction:column; }
+            .faculty-my-bookings-view .reservation-summary-actions { width:100%; justify-content:flex-start; }
+            .faculty-my-bookings-view .overview-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .faculty-my-bookings-view .reservation-details { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .faculty-my-bookings-view .reservation-tabs { padding:0 8px; }
+            .faculty-my-bookings-view .tab-btn { flex:0 0 auto; min-width:160px; }
+        }
+        @media(max-width:520px) {
+            .faculty-my-bookings-view .reservation-summary-card { padding:24px 20px; }
+            .faculty-my-bookings-view .reservation-summary-card::after { top:-90px; right:-100px; width:250px; height:250px; }
+            .faculty-my-bookings-view .reservation-summary-title { align-items:flex-start; gap:12px; }
+            .faculty-my-bookings-view .reservation-summary-icon { width:44px; height:44px; flex-basis:44px; border-radius:13px; font-size:18px; }
+            .faculty-my-bookings-view .reservation-summary-title h1 { font-size:32px; }
+            .faculty-my-bookings-view .reservation-summary-title p { font-size:14px; }
+            .faculty-my-bookings-view .reservation-summary-total { padding:10px 13px; font-size:14px; }
+            .faculty-my-bookings-view .reservation-summary-actions { align-items:stretch; flex-direction:column; }
+            .faculty-my-bookings-view .reservation-create-link { width:100%; }
+            .faculty-my-bookings-view .overview-panel-header { align-items:flex-start; flex-direction:column; padding:17px; }
+            .faculty-my-bookings-view .overview-metrics { gap:8px; padding:13px; }
+            .faculty-my-bookings-view .overview-metric { min-height:110px; padding:11px; }
+            .faculty-my-bookings-view .overview-metric-label { font-size:10px; }
+            .faculty-my-bookings-view .overview-metric strong { font-size:27px; }
+            .faculty-my-bookings-view .overview-metric span { font-size:10px; }
+            .faculty-my-bookings-view .reservation-tabs { gap:0; }
+            .faculty-my-bookings-view .tab-btn { min-width:145px; padding:13px 12px; font-size:12px; }
+            .faculty-my-bookings-view .reservation-status-filter { align-items:flex-start; flex-wrap:wrap; margin:14px 12px 0; padding:10px; }
+            .faculty-my-bookings-view .reservation-status-filter-label { flex-basis:100%; }
+            .faculty-my-bookings-view .reservation-list { padding:17px 12px 19px; }
+            .faculty-my-bookings-view .reservation-list-header { align-items:flex-start; flex-direction:column; }
+            .faculty-my-bookings-view .reservation-list-header h3 { font-size:18px; }
+            .faculty-my-bookings-view .reservation-card { padding:14px; }
+            .faculty-my-bookings-view .reservation-card-top { align-items:flex-start; flex-direction:column; }
+            .faculty-my-bookings-view .reservation-details { grid-template-columns:1fr; }
+            .faculty-my-bookings-view .reservation-detail { min-height:0; }
+            .faculty-my-bookings-view .reservation-remove-actions { justify-content:stretch; }
+            .faculty-my-bookings-view .reservation-remove-button { width:100%; }
+            .faculty-my-bookings-view .reservation-delete-dialog { padding:19px; }
+            .faculty-my-bookings-view .reservation-delete-actions { flex-direction:column-reverse; }
+            .faculty-my-bookings-view .reservation-delete-actions button { width:100%; }
+            .faculty-my-bookings-view .swap-request-container,.faculty-my-bookings-view .swap-history-grid { padding:14px 12px; }
+            .faculty-my-bookings-view .swap-request-header { align-items:flex-start; flex-direction:column; }
+            .faculty-my-bookings-view .swap-request-comparison { grid-template-columns:1fr; gap:9px; }
+            .faculty-my-bookings-view .swap-arrow { justify-self:center; transform:rotate(90deg); }
+            .faculty-my-bookings-view .swap-request-actions { align-items:stretch; flex-direction:column; }
+            .faculty-my-bookings-view .swap-request-actions form,.faculty-my-bookings-view .swap-request-actions button { width:100%; }
+            .faculty-my-bookings-view .swap-history-grid { grid-template-columns:1fr; }
+        }
+    </style>
+
   <div class="main-layout">
 
     @include('faculty.sidebar')
 
-    <main class="content">
+    <main class="content faculty-my-bookings-view">
 
 
         
@@ -1561,22 +1722,28 @@ $todayDate = Carbon::today();
                         </span>
 
                         <div>
-                            <h3>
+                            <div class="reservation-summary-eyebrow">Room coordination</div>
+                            <h1>
                                 My Reservations
-                            </h3>
+                            </h1>
 
                             <p>
-                                Track all your room reservation requests in one place.
+                                Review your reserved rooms, upcoming bookings, and reservation history in one place.
                             </p>
                         </div>
 
                     </div>
 
-                    <span class="reservation-summary-total">
-                        <i class="fas fa-layer-group"></i>
-                        {{ $reservationHistory->count() }}
-                        {{ $reservationHistory->count() === 1 ? 'reservation' : 'reservations' }}
-                    </span>
+                    <div class="reservation-summary-actions">
+                        <span class="reservation-summary-total">
+                            <i class="fas fa-layer-group"></i>
+                            {{ $reservationHistory->count() }}
+                            {{ $reservationHistory->count() === 1 ? 'reservation' : 'reservations' }}
+                        </span>
+                        <a class="reservation-create-link" href="{{ route('faculty.vacant') }}">
+                            <i class="fas fa-plus" aria-hidden="true"></i> Reserve a room
+                        </a>
+                    </div>
 
                 </div>
 
@@ -1688,7 +1855,7 @@ $todayDate = Carbon::today();
 
                         <div>
                             <h3>
-                                Faculty Overview
+                                Instructor Overview
                             </h3>
 
                             <p>
@@ -1920,7 +2087,10 @@ $todayDate = Carbon::today();
                                 <div class="next-reservation-detail">
                                     <small>Subject</small>
                                     <strong>
-                                        @if($nextReservedReservation->facultySubject)
+                                        @if($nextReservedReservation->subject)
+                                            {{ $nextReservedReservation->subject->course_code }}
+                                            - {{ $nextReservedReservation->subject->course_title }}
+                                        @elseif($nextReservedReservation->facultySubject)
                                             {{ $nextReservedReservation->facultySubject->course_code }}
                                             - {{ $nextReservedReservation->facultySubject->subject }}
                                         @else
@@ -1986,38 +2156,6 @@ $todayDate = Carbon::today();
         <div class="reservation-section" id="my-reservations">
 
 
-            <!-- TABS -->
-
-            <div class="reservation-tabs">
-
-                <button
-                    class="tab-btn active"
-                    onclick="showTab('allReservations', this)"
-                >
-                    <i class="fas fa-calendar-days"></i>
-                    My Reservations
-                </button>
-
-                <button
-                    class="tab-btn"
-                    onclick="showTab('swapRequests', this)"
-                >
-                    <i class="fas fa-right-left"></i>
-                    Room Swap Requests
-                </button>
-
-                <button
-                    class="tab-btn"
-                    onclick="showTab('swapped', this)"
-                >
-                    <i class="fas fa-right-left"></i>
-                    Room Swap History
-                </button>
-
-               
-
-            </div>
-
             <div
                 id="reservationStatusFilter"
                 class="reservation-status-filter"
@@ -2066,6 +2204,19 @@ $todayDate = Carbon::today();
                     </span>
                 </button>
 
+                <button
+                    type="button"
+                    class="reservation-filter-btn"
+                    data-filter="cancelledReservations"
+                    onclick="filterReservations('cancelledReservations', this)"
+                >
+                    <i class="fas fa-ban"></i>
+                    Cancelled
+                    <span class="reservation-filter-count">
+                        {{ $cancelledReservationsCount ?? 0 }}
+                    </span>
+                </button>
+
             </div>
 
 
@@ -2087,6 +2238,9 @@ $todayDate = Carbon::today();
                     ),
                     'expiredReservations' => $displayReservations->filter(
                         fn($r) => $r->status === 'Expired'
+                    ),
+                    'cancelledReservations' => $displayReservations->filter(
+                        fn($r) => $r->status === 'Cancelled'
                     ),
                 ];
             @endphp
@@ -2156,12 +2310,14 @@ $todayDate = Carbon::today();
                                     $statusClass = match ($reservation->status) {
                                         'Reserved' => $isExpired ? 'expired' : 'approved',
                                         'Expired' => 'expired',
+                                        'Cancelled' => 'cancelled',
                                         default => 'expired',
                                     };
 
                                     $statusLabel = match ($reservation->status) {
                                         'Reserved' => $isExpired ? 'Expired' : 'Reserved',
                                         'Expired' => 'Expired',
+                                        'Cancelled' => 'Cancelled',
                                         default => 'Expired',
                                     };
 
@@ -2203,6 +2359,8 @@ $todayDate = Carbon::today();
                                         <span class="reservation-status-badge {{ $statusClass }}">
                                             @if($statusClass === 'approved')
                                                 <i class="fas fa-circle-check"></i>
+                                            @elseif($statusClass === 'cancelled')
+                                                <i class="fas fa-ban"></i>
                                             @else
                                                 <i class="fas fa-calendar-xmark"></i>
                                             @endif
@@ -2250,7 +2408,9 @@ $todayDate = Carbon::today();
                                                 Subject
                                             </span>
                                             <strong>
-                                                @if($reservation->facultySubject)
+                                                @if($reservation->subject)
+                                                    {{ $reservation->subject->course_code }} - {{ $reservation->subject->course_title }}
+                                                @elseif($reservation->facultySubject)
                                                     {{ $reservation->facultySubject->course_code }} - {{ $reservation->facultySubject->subject }}
                                                 @else
                                                     {{ $reservation->purpose ?? 'Room use' }}
@@ -2284,7 +2444,29 @@ $todayDate = Carbon::today();
                                                 This reservation has ended and the room is available again.
                                             </span>
                                         </div>
+                                    @elseif($reservation->status === 'Cancelled')
+                                        <div class="reservation-message expired-message">
+                                            <i class="fas fa-ban"></i>
+                                            <span>This reservation was cancelled. The room is available again.</span>
+                                        </div>
                                     @endif
+
+                                    <div class="reservation-remove-actions">
+                                        <button
+                                            type="button"
+                                            class="reservation-remove-button"
+                                            data-skip-system-confirm
+                                            data-reservation-action
+                                            data-action-url="{{ $reservation->status === 'Reserved' && !$isExpired ? route('faculty.bookings.cancel', $reservation->id) : route('faculty.bookings.destroy', $reservation->id) }}"
+                                            data-action-type="{{ $reservation->status === 'Reserved' && !$isExpired ? 'cancel' : 'remove' }}"
+                                            data-room="{{ $reservation->room->room_name ?? 'Room unavailable' }}"
+                                            data-date="{{ $reservation->date ? \Carbon\Carbon::parse($reservation->date)->format('M j, Y') : 'Date unavailable' }}"
+                                            data-time="{{ $reservation->time ?? 'Time unavailable' }}"
+                                        >
+                                            <i class="fas {{ $reservation->status === 'Reserved' && !$isExpired ? 'fa-ban' : 'fa-trash-can' }}" aria-hidden="true"></i>
+                                            {{ $reservation->status === 'Reserved' && !$isExpired ? 'Cancel reservation' : 'Remove from history' }}
+                                        </button>
+                                    </div>
 
                                 </div>
 
@@ -2297,8 +2479,10 @@ $todayDate = Carbon::today();
                                 <div class="empty-icon">
                                     @if($tabId === 'reservedReservations')
                                         <i class="fas fa-clock"></i>
-                                                                        @elseif($tabId === 'expiredReservations')
+                                    @elseif($tabId === 'expiredReservations')
                                         <i class="fas fa-circle-xmark"></i>
+                                    @elseif($tabId === 'cancelledReservations')
+                                        <i class="fas fa-ban"></i>
                                     @else
                                         <i class="fas fa-calendar-plus"></i>
                                     @endif
@@ -2309,7 +2493,8 @@ $todayDate = Carbon::today();
                                         No Room Reservations Yet
                                     @elseif($tabId === 'reservedReservations')
                                         No Reserved Rooms
-                                    
+                                    @elseif($tabId === 'cancelledReservations')
+                                        No Cancelled Reservations
                                     @else
                                         No Expired Reservations
                                     @endif
@@ -2321,6 +2506,8 @@ $todayDate = Carbon::today();
 
                                     @elseif($tabId === 'expiredReservations')
                                         Expired reservations will appear here.
+                                    @elseif($tabId === 'cancelledReservations')
+                                        Cancelled reservations will remain here for your reference.
                                     @else
                                         Your room reservation requests will appear here.
                                     @endif
@@ -2337,356 +2524,30 @@ $todayDate = Carbon::today();
             @endforeach
 
 
-            <!-- ================================================= -->
-            <!-- SWAPPED ROOMS -->
-            <!-- ================================================= -->
 
-            <div
-                id="swapped"
-                class="tab-content"
-            >
-
-                @if(isset($roomSwapHistory) && $roomSwapHistory->count() > 0)
-
-                    <div class="swap-history-grid">
-
-                        @foreach($roomSwapHistory as $swap)
-
-                            @php
-                                $status = strtolower((string) $swap->status);
-                                $isApproved = $status === 'approved';
-                                $isDeclined = $status === 'declined';
-                                $isExpired = $status === 'expired';
-                                $isActive = false;
-
-                                if ($isApproved) {
-                                    try {
-                                        $isActive = $swap->isActive();
-                                        $isExpired = $swap->isExpired();
-                                    } catch (\Throwable $e) {
-                                        $isActive = false;
-                                    }
-                                }
-                            @endphp
-
-                            <div class="swap-history-card">
-
-                                <div class="swap-history-top">
-                                    <div>
-                                        <h3>
-                                            <i class="fas fa-right-left" style="color:#2e7d32;"></i>
-                                            Room Swap
-                                        </h3>
-
-                                        <p>
-                                            With {{ $swap->requester->name ?? 'Unknown Faculty' }}
-                                        </p>
-                                    </div>
-
-                                    @if($isActive)
-                                        <span class="swap-status active">
-                                            <i class="fas fa-circle"></i>
-                                            Active
-                                        </span>
-                                    @elseif($isExpired)
-                                        <span class="swap-status expired">
-                                            <i class="fas fa-clock"></i>
-                                            Expired
-                                        </span>
-                                    @elseif($isDeclined)
-                                        <span class="swap-status declined">
-                                            <i class="fas fa-xmark"></i>
-                                            Declined
-                                        </span>
-                                    @else
-                                        <span class="swap-status expired">
-                                            {{ ucfirst($swap->status) }}
-                                        </span>
-                                    @endif
-                                </div>
-
-                                <div class="swap-time-box">
-                                    <i class="fas fa-calendar-day"></i>
-                                    <strong>{{ $swap->swap_date ? $swap->swap_date->format('M d, Y') : '-' }}</strong>
-                                    <span>•</span>
-                                    <span>{{ $swap->start_time ? \Carbon\Carbon::parse($swap->start_time)->format('g:i A') : '-' }} – {{ $swap->end_time ? \Carbon\Carbon::parse($swap->end_time)->format('g:i A') : '-' }}</span>
-                                </div>
-
-                                <div class="swap-room-flow">
-
-                                    <div class="swap-room-box">
-                                        <span>Your Original Room</span>
-                                        <strong>
-                                            {{ $swap->targetRoom->room_name ?? '-' }}
-                                        </strong>
-                                    </div>
-
-                                    <div class="swap-room-arrow">
-                                        <i class="fas fa-arrow-right"></i>
-                                    </div>
-
-                                    <div class="swap-room-box">
-                                        <span>Temporary Room</span>
-                                        <strong>
-                                            {{ $swap->requesterRoom->room_name ?? '-' }}
-                                        </strong>
-                                    </div>
-
-                                </div>
-
-                                @if($isActive)
-                                    <div class="swap-expiration">
-                                        <i class="fas fa-hourglass-half"></i>
-                                        Temporary room assignment is active until
-                                        <strong>
-                                            {{ $swap->end_time ? \Carbon\Carbon::parse($swap->end_time)->format('g:i A') : '-' }}
-                                        </strong>.
-                                    </div>
-                                @elseif($isExpired)
-                                    <div class="swap-expiration">
-                                        <i class="fas fa-rotate-left"></i>
-                                        The original room assignment has been restored.
-                                    </div>
-                                @elseif($isDeclined)
-                                    <div class="swap-expiration">
-                                        <i class="fas fa-ban"></i>
-                                        This room swap request was declined.
-                                    </div>
-                                @endif
-
-                            </div>
-
-                        @endforeach
-
-                    </div>
-
-                @else
-
-                    <div class="empty-room">
-                        <div class="empty-icon">
-                            <i class="fas fa-right-left"></i>
-                        </div>
-                        <h3>No Room Swap History</h3>
-                        <p>Approved, expired, and declined room swaps will appear here.</p>
-                    </div>
-
-                @endif
-
-            </div>
-
-<!-- ================================================= -->
-<!-- ROOM SWAP REQUESTS -->
-<!-- ================================================= -->
-
-<div
-    id="swapRequests"
-    class="tab-content"
->
-
-    <div class="swap-request-container">
-
-        <div class="swap-request-title">
-            <i class="fas fa-right-left"></i>
-            Pending Room Swap Requests
         </div>
 
-        @if(isset($roomSwapRequests) && $roomSwapRequests->count() > 0)
 
-            @foreach($roomSwapRequests as $swap)
-
-                <div class="swap-request-card-item">
-
-                    <div class="swap-request-header">
-
-                        <div>
-                            <h3>
-                                Room Swap Request
-                            </h3>
-
-                            <p>
-                                From:
-                                <strong>
-                                    {{ $swap->requester->name ?? 'Unknown Faculty' }}
-                                </strong>
-                            </p>
-                        </div>
-
-                        <span class="swap-pending">
-                            Pending
-                        </span>
-
+        <div class="reservation-delete-overlay" id="reservationDeleteModal" aria-hidden="true" hidden>
+            <section class="reservation-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="reservationDeleteTitle" aria-describedby="reservationDeleteMessage">
+                <div class="reservation-delete-heading">
+                    <span class="reservation-delete-icon"><i class="fas fa-circle-question" aria-hidden="true"></i></span>
+                    <div>
+                        <h2 id="reservationDeleteTitle">Confirm reservation action</h2>
+                        <p id="reservationDeleteMessage">Review the reservation and confirm the action.</p>
                     </div>
-
-
-                    <div class="swap-request-comparison">
-
-                        <!-- REQUESTER -->
-
-                        <div class="swap-side">
-
-                            <div class="swap-side-title">
-                                Requesting Faculty
-                            </div>
-
-                            <h4>
-                                {{ $swap->requester->name ?? 'Unknown Faculty' }}
-                            </h4>
-
-                            @if($swap->requesterSchedule)
-
-                                <p>
-                                    <strong>Course:</strong>
-                                    {{ $swap->requesterSchedule->course_code ?? '-' }}
-                                </p>
-
-                                <p>
-                                    <strong>Subject:</strong>
-                                    {{ $swap->requesterSchedule->subject ?? '-' }}
-                                </p>
-
-                                <p>
-                                    <strong>Day:</strong>
-                                    {{ $swap->requesterSchedule->day ?? '-' }}
-                                </p>
-
-                                <p>
-                                    <strong>Time:</strong>
-                                    {{ $swap->requesterSchedule->time ?? '-' }}
-                                </p>
-
-                                <p>
-                                    <strong>Room:</strong>
-                                    {{ $swap->requesterRoom->room_name ?? '-' }}
-                                </p>
-
-                            @endif
-
-                        </div>
-
-
-                        <!-- ARROW -->
-
-                        <div class="swap-arrow">
-                            <i class="fas fa-right-left"></i>
-                        </div>
-
-
-                        <!-- TARGET -->
-
-                        <div class="swap-side">
-
-                            <div class="swap-side-title">
-                                Your Schedule
-                            </div>
-
-                            <h4>
-                                {{ Auth::user()->name }}
-                            </h4>
-
-                            @if($swap->targetSchedule)
-
-                                <p>
-                                    <strong>Course:</strong>
-                                    {{ $swap->targetSchedule->course_code ?? '-' }}
-                                </p>
-
-                                <p>
-                                    <strong>Subject:</strong>
-                                    {{ $swap->targetSchedule->subject ?? '-' }}
-                                </p>
-
-                                <p>
-                                    <strong>Day:</strong>
-                                    {{ $swap->targetSchedule->day ?? '-' }}
-                                </p>
-
-                                <p>
-                                    <strong>Time:</strong>
-                                    {{ $swap->targetSchedule->time ?? '-' }}
-                                </p>
-
-                                <p>
-                                    <strong>Room:</strong>
-                                    {{ $swap->targetRoom->room_name ?? '-' }}
-                                </p>
-
-                            @endif
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- ACTIONS -->
-
-                    <div class="swap-request-actions">
-
-                        <form
-                            method="POST"
-                            action="{{ route('faculty.room-swap.approve', $swap->id) }}"
-                        >
-
-                            @csrf
-
-                            <button
-                                type="submit"
-                                class="swap-approve-btn"
-                                onclick="return confirm('Are you sure you want to accept this room swap?')"
-                            >
-                                <i class="fas fa-check"></i>
-                                Accept Swap
-                            </button>
-
-                        </form>
-
-
-                        <form
-                            method="POST"
-                            action="{{ route('faculty.room-swap.decline', $swap->id) }}"
-                        >
-
-                            @csrf
-
-                            <button
-                                type="submit"
-                                class="swap-decline-btn"
-                                onclick="return confirm('Are you sure you want to decline this room swap?')"
-                            >
-                                <i class="fas fa-xmark"></i>
-                                Decline
-                            </button>
-
-                        </form>
-
-                    </div>
-
                 </div>
-
-            @endforeach
-
-        @else
-
-            <div class="empty-room">
-
-                <i class="fas fa-inbox"></i>
-
-                <h3>
-                    No Room Swap Requests
-                </h3>
-
-                <p>
-                    You currently have no pending room swap requests.
-                </p>
-
-            </div>
-
-        @endif
-
-    </div>
-
-</div>
+                <div class="reservation-delete-summary" id="reservationDeleteSummary"></div>
+                <form method="POST" id="reservationDeleteForm">
+                    @csrf
+                    <input type="hidden" name="_method" id="reservationDeleteMethod" value="DELETE">
+                    <div class="reservation-delete-actions">
+                        <button type="button" data-close-reservation-delete>Keep it</button>
+                        <button type="submit" class="reservation-delete-confirm" id="reservationDeleteConfirm">Confirm</button>
+                    </div>
+                </form>
+            </section>
         </div>
-
 
     </main>
 
@@ -2697,66 +2558,7 @@ $todayDate = Carbon::today();
 
 </div>
 
-@include('footerheader.footer')
 <script>
-
-function showTab(tabId, button)
-{
-    document
-        .querySelectorAll('.tab-btn')
-        .forEach(function(btn) {
-            btn.classList.remove('active');
-        });
-
-    document
-        .querySelectorAll('.tab-content')
-        .forEach(function(content) {
-            content.classList.remove('active');
-        });
-
-    if (button) {
-        button.classList.add('active');
-    }
-
-    const target =
-        document.getElementById(tabId);
-
-    if (target) {
-        target.classList.add('active');
-    }
-
-    const filterBar =
-        document.getElementById(
-            'reservationStatusFilter'
-        );
-
-    if (filterBar) {
-        filterBar.style.display =
-            tabId === 'allReservations'
-                ? 'flex'
-                : 'none';
-    }
-
-    /*
-     * Opening My Reservations always starts with ALL.
-     */
-    if (tabId === 'allReservations') {
-
-        const allButton =
-            document.querySelector(
-                '.reservation-filter-btn[data-filter="allReservations"]'
-            );
-
-        if (allButton) {
-            filterReservations(
-                'allReservations',
-                allButton,
-                false
-            );
-        }
-    }
-}
-
 
 function filterReservations(
     statusId,
@@ -2791,25 +2593,6 @@ function filterReservations(
         button.classList.add('active');
     }
 
-    /*
-     * These are filters inside My Reservations.
-     * Keep the main My Reservations tab selected.
-     */
-    const mainReservationsButton =
-        document.querySelector(
-            '.tab-btn[onclick*="allReservations"]'
-        );
-
-    document
-        .querySelectorAll('.tab-btn')
-        .forEach(function(mainButton) {
-            mainButton.classList.remove('active');
-        });
-
-    if (mainReservationsButton) {
-        mainReservationsButton.classList.add('active');
-    }
-
     const filterBar =
         document.getElementById(
             'reservationStatusFilter'
@@ -2835,38 +2618,61 @@ function filterReservations(
     }
 }
 
+const reservationDeleteModal = document.getElementById('reservationDeleteModal');
+const reservationDeleteForm = document.getElementById('reservationDeleteForm');
+let reservationDeleteTrigger = null;
 
-function openSwapRequests()
-{
-    const buttons =
-        document.querySelectorAll('.tab-btn');
-
-    let requestButton = null;
-
-    buttons.forEach(function(button) {
-
-        if (
-            button.textContent
-                .trim()
-                .includes('Room Swap Requests')
-        ) {
-            requestButton = button;
-        }
-
-    });
-
-    if (requestButton) {
-
-        showTab(
-            'swapRequests',
-            requestButton
-        );
-
-        requestButton.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest'
-        });
-    }
+function closeReservationDeleteModal() {
+    if (!reservationDeleteModal) return;
+    reservationDeleteModal.hidden = true;
+    reservationDeleteModal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('reservation-delete-open');
+    if (reservationDeleteTrigger) reservationDeleteTrigger.focus();
+    reservationDeleteTrigger = null;
 }
+
+document.addEventListener('click', function(event) {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
+
+    const actionButton = target.closest('[data-reservation-action]');
+    if (actionButton && reservationDeleteModal && reservationDeleteForm) {
+        reservationDeleteTrigger = actionButton;
+        const isCancel = actionButton.dataset.actionType === 'cancel';
+        reservationDeleteForm.action = actionButton.dataset.actionUrl || '';
+        document.getElementById('reservationDeleteMethod').value = isCancel ? 'PATCH' : 'DELETE';
+        document.getElementById('reservationDeleteTitle').textContent = isCancel
+            ? 'Cancel this reservation?'
+            : 'Remove this reservation from history?';
+        document.getElementById('reservationDeleteConfirm').textContent = isCancel
+            ? 'Cancel reservation'
+            : 'Remove history';
+        document.getElementById('reservationDeleteSummary').textContent = [
+            actionButton.dataset.room || 'Room unavailable',
+            actionButton.dataset.date || 'Date unavailable',
+            actionButton.dataset.time || 'Time unavailable'
+        ].join(' · ');
+        document.getElementById('reservationDeleteMessage').textContent =
+            isCancel
+                ? 'The room will be released and this reservation will disappear from schedule views. A Cancelled record will remain in your history.'
+                : 'This permanently deletes this past or cancelled reservation record from your history.';
+        reservationDeleteModal.hidden = false;
+        reservationDeleteModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('reservation-delete-open');
+        reservationDeleteModal.querySelector('[data-close-reservation-delete]')?.focus();
+        return;
+    }
+
+    if (target.closest('[data-close-reservation-delete]') || target === reservationDeleteModal) {
+        closeReservationDeleteModal();
+    }
+});
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape' && reservationDeleteModal && !reservationDeleteModal.hidden) {
+        closeReservationDeleteModal();
+    }
+});
+
 
 </script>

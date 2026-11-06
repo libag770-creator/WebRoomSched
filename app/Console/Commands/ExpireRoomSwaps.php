@@ -22,6 +22,7 @@ class ExpireRoomSwaps extends Command
             'status',
             'approved'
         )
+        ->where('swap_type', 'temporary')
         ->whereNotNull('swap_date')
         ->whereNotNull('end_time')
         ->get();

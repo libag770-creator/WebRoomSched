@@ -20,12 +20,13 @@
 .room-purpose,.room-description{margin-top:9px;font-size:11px;color:#66736c;line-height:1.45}
 .reserve-button{width:100%;height:40px;margin-top:15px;border:0;border-radius:8px;background:#198754;color:#fff;font-size:13px;font-weight:800;cursor:pointer;transition:.2s}.reserve-button:hover{background:#157347}
 .reserve-button:disabled{background:#c8cfcb;cursor:not-allowed}
+.reservation-permission-note{margin-top:14px;padding:10px 12px;border:1px solid #ead9ad;border-radius:9px;background:#fff8e8;color:#765b27;font-size:11px;font-weight:700;line-height:1.45}
 .no-results{padding:30px;background:#fff;border:1px solid #e1e7e3;border-radius:12px;color:#777;text-align:center}
 .week-reserve-modal{display:none;position:fixed;inset:0;z-index:99999;background:rgba(16,24,40,.48);align-items:center;justify-content:center;padding:20px;box-sizing:border-box}.week-reserve-modal.show{display:flex}
 .week-reserve-dialog{width:min(480px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
 .week-reserve-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;background:#f4faf6;border-bottom:1px solid #e4e9e6}.week-reserve-title{font-size:15px;font-weight:800;color:#176b3a}.week-reserve-close{border:0;background:transparent;font-size:24px;color:#667085;cursor:pointer}.week-reserve-body{padding:18px}
 .week-reserve-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}.week-reserve-summary-item{padding:10px;border:1px solid #e4e9e6;border-radius:9px;background:#f8faf9}.week-reserve-label{font-size:9px;text-transform:uppercase;color:#667085;font-weight:700}.week-reserve-value{margin-top:3px;font-size:12px;color:#1f2937;font-weight:800}
-.week-reserve-field{margin-top:12px}.week-reserve-field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#344054}.week-reserve-field select{width:100%;padding:10px 12px;border:1px solid #d0d5dd;border-radius:9px;background:#fff;font-size:13px;color:#1f2937;box-sizing:border-box}.week-reserve-help{font-size:10px;color:#667085;margin-top:6px;line-height:1.35}.week-reserve-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.week-reserve-cancel,.week-reserve-submit{border:0;border-radius:9px;padding:10px 15px;font-weight:800;cursor:pointer}.week-reserve-cancel{background:#eef2f0;color:#344054}.week-reserve-submit{background:#17894f;color:#fff}.week-reserve-submit:disabled{background:#b9c1bc;cursor:not-allowed}
+.week-reserve-field{margin-top:12px}.week-reserve-field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#344054}.week-reserve-field select,.week-reserve-subject-search{width:100%;min-height:42px;padding:10px 12px;border:1px solid #d0d5dd;border-radius:9px;background:#fff;font-size:13px;color:#1f2937;box-sizing:border-box}.week-reserve-subject-search{margin-bottom:8px}.week-reserve-subject-search:focus,.week-reserve-field select:focus{outline:0;border-color:#4d8b65;box-shadow:0 0 0 3px rgba(50,112,77,.12)}.week-reserve-no-subjects{margin:7px 0 0;color:#9a3d35;font-size:11px;font-weight:700}.week-reserve-help{font-size:10px;color:#667085;margin-top:6px;line-height:1.35}.week-reserve-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.week-reserve-cancel,.week-reserve-submit{border:0;border-radius:9px;padding:10px 15px;font-weight:800;cursor:pointer}.week-reserve-cancel{background:#eef2f0;color:#344054}.week-reserve-submit{background:#17894f;color:#fff}.week-reserve-submit:disabled{background:#b9c1bc;cursor:not-allowed}
 body.week-reservation-open{overflow:hidden}
 @media(max-width:950px){.rooms{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.rooms{grid-template-columns:1fr}.week-reserve-summary{grid-template-columns:1fr}}
@@ -45,7 +46,14 @@ body.week-reservation-open{overflow:hidden}
         ];
         $selectedDayName = $dayNames[$selectedDayCode] ?? $selectedDayCode;
         $searchedTime = $results[0]['time'] ?? 'Selected Time';
-        $availableRooms = collect($results)->where('status', 'Available')->count();
+        $availableRooms = collect($results)->filter(function ($item) {
+            $room = $item['room'];
+            return ($item['status'] ?? null) === 'Available'
+                && (
+                    (int) $room->department_id === (int) auth()->user()->department_id
+                    || (bool) $room->allow_other_departments
+                );
+        })->count();
     @endphp
 
     <div class="time-only-results">
@@ -54,7 +62,7 @@ body.week-reservation-open{overflow:hidden}
                 <strong>Room availability for {{ $selectedDayName }} • {{ $searchedTime }}</strong>
                 <span>{{ \Carbon\Carbon::parse($selectedDate)->format('F j, Y') }} · checked for this date</span>
             </div>
-            <span>{{ $availableRooms }} room(s) available</span>
+                <span>{{ $availableRooms }} room(s) available to reserve</span>
         </div>
 
         @php
@@ -72,7 +80,7 @@ body.week-reservation-open{overflow:hidden}
             @endphp
 
             <div class="department-section">
-                <div class="department-title"><i class="fa-solid fa-building-columns"></i>{{ $department->name ?? 'Department' }}</div>
+                <div class="department-title"><i class="fa-solid fa-building-columns"></i>{{ $department->name ?? 'College' }}</div>
 
                 @foreach($organizedBuildings as $buildingRooms)
                     @php
@@ -97,7 +105,7 @@ body.week-reservation-open{overflow:hidden}
 
                                 <div class="room-card">
                                     <div class="room-name">{{ $room->room_name }}</div>
-                                    <div class="department-name">{{ $department->name ?? 'Department' }}</div>
+                                    <div class="department-name">{{ $department->name ?? 'College' }}</div>
                                     <div class="room-time"><i class="fa-regular fa-clock"></i>&nbsp;{{ $item['time'] ?? $searchedTime }}</div>
 
                                     <div class="room-status {{ $statusClass }}">
@@ -118,7 +126,7 @@ body.week-reservation-open{overflow:hidden}
                                             @elseif($status === 'Reserved' && !empty($item['reserved_by_me']))
                                                 You already reserved this room for {{ \Carbon\Carbon::parse($item['reservation_date'])->format('F j, Y') }}. It cannot be booked twice for the same time.
                                             @else
-                                                Reserved for {{ \Carbon\Carbon::parse($item['reservation_date'])->format('F j, Y') }} by {{ collect($item['reservations'] ?? [])->pluck('faculty')->unique()->join(', ') ?: 'another faculty member' }}.
+                                                Reserved for {{ \Carbon\Carbon::parse($item['reservation_date'])->format('F j, Y') }} by {{ collect($item['reservations'] ?? [])->pluck('faculty')->unique()->join(', ') ?: 'another instructor' }}.
                                             @endif
                                         </div>
                                     </div>
@@ -129,7 +137,7 @@ body.week-reservation-open{overflow:hidden}
                                         <div class="feature"><span class="feature-label">Computers</span><span class="feature-value">{{ $room->computers ?? 0 }}</span></div>
                                         <div class="feature"><span class="feature-label">TV</span><span class="feature-value">{{ $room->has_tv ? 'Available' : 'Not Available' }}</span></div>
                                         <div class="feature"><span class="feature-label">Projector</span><span class="feature-value">{{ $room->has_projector ? 'Available' : 'Not Available' }}</span></div>
-                                        <div class="feature"><span class="feature-label">Other Departments</span><span class="feature-value">{{ $room->allow_other_departments ? 'Allowed' : 'Not Allowed' }}</span></div>
+                                        <div class="feature"><span class="feature-label">Other Colleges</span><span class="feature-value">{{ $room->allow_other_departments ? 'Allowed' : 'Not Allowed' }}</span></div>
                                     </div>
 
                                     @if($room->purpose)
@@ -139,7 +147,7 @@ body.week-reservation-open{overflow:hidden}
                                         <div class="room-description">{{ $room->description }}</div>
                                     @endif
 
-                                    @if($status === 'Available')
+                                    @if($status === 'Available' && ((int) $room->department_id === (int) auth()->user()->department_id || $room->allow_other_departments))
                                         <button
                                             type="button"
                                             class="reserve-button"
@@ -157,6 +165,10 @@ body.week-reservation-open{overflow:hidden}
                                         >
                                             <i class="fa-solid fa-calendar-plus"></i> Reserve This Room
                                         </button>
+                                    @elseif($status === 'Available')
+                                        <div class="reservation-permission-note" role="note">
+                                            This room belongs to another college, and that college has not enabled reservations from other colleges.
+                                        </div>
                                     @endif
 
                                     <div class="week-reserve-modal" id="weeklyReserveModal-{{ $room->id }}" aria-hidden="true">
@@ -184,17 +196,18 @@ body.week-reservation-open{overflow:hidden}
 
                                                     <input type="hidden" name="date" id="weeklyReserveDate-{{ $room->id }}" value="{{ $item['reservation_date'] ?? request('date') }}">
 
-                                                    <div class="week-reserve-field">
+                                                    <div class="week-reserve-field week-reserve-subject-field">
+                                                        <label for="weeklyReserveSubjectSearch-{{ $room->id }}">Search Manage Subjects</label>
+                                                        <input type="search" class="week-reserve-subject-search" id="weeklyReserveSubjectSearch-{{ $room->id }}" placeholder="Search course code, title, program, major, or year" autocomplete="off" aria-controls="weeklyReserveSubject-{{ $room->id }}">
                                                         <label for="weeklyReserveSubject-{{ $room->id }}">Related subject <span>(optional)</span></label>
-                                                        <select name="faculty_subject_id" id="weeklyReserveSubject-{{ $room->id }}">
-                                                            <option value="">Room reservation</option>
-                                                            @forelse(($facultySubjectOptions ?? collect()) as $subject)
-                                                                <option value="{{ $subject['id'] ?? '' }}">{{ $subject['course_code'] ?? '' }} — {{ $subject['subject'] ?? '' }}</option>
-                                                            @empty
-                                                                <option value="" disabled>No Set Faculty subjects available</option>
-                                                            @endforelse
+                                                        <select name="subject_id" id="weeklyReserveSubject-{{ $room->id }}">
+                                                            <option value="">General room reservation</option>
+                                                            @foreach(($manageSubjectOptions ?? collect()) as $subject)
+                                                                <option value="{{ $subject['id'] }}">{{ $subject['course_code'] }} — {{ $subject['course_title'] }}@if($subject['program_code']) · {{ $subject['program_code'] }}@endif @if($subject['major']) · {{ $subject['major'] }}@endif @if($subject['year_level']) · {{ $subject['year_level'] }}@endif</option>
+                                                            @endforeach
                                                         </select>
-                                                        <div class="week-reserve-help">You can reserve for a class or leave this as a general room reservation.</div>
+                                                        <p class="week-reserve-no-subjects" hidden>No Manage Subjects entries match your search.</p>
+                                                        <div class="week-reserve-help">Results come from your college’s Manage Subjects catalog, including subjects not assigned to an instructor.</div>
                                                     </div>
 
                                                     <div class="week-reserve-actions">
@@ -248,6 +261,8 @@ body.week-reservation-open{overflow:hidden}
         const endInput=document.getElementById('weeklyReserveEndInput-' + roomId);
         const timeSlotInput=document.getElementById('weeklyReserveTimeSlotInput-' + roomId);
         const dateSelect=document.getElementById('weeklyReserveDate-' + roomId);
+        const subjectSearch=modal.querySelector('.week-reserve-subject-search');
+        const subjectSelect=modal.querySelector('select[name="subject_id"]');
 
         if(dayText) dayText.textContent=targetDayName;
         if(timeText) timeText.textContent=time;
@@ -256,11 +271,33 @@ body.week-reservation-open{overflow:hidden}
         if(endInput) endInput.value=endTime;
         if(timeSlotInput) timeSlotInput.value=button.dataset.timeSlotId || '';
         if(dateSelect) dateSelect.value=selectedSearchDate;
+        if(subjectSearch){ subjectSearch.value=''; subjectSearch.dispatchEvent(new Event('input', {bubbles:true})); }
+        if(subjectSelect) subjectSelect.value='';
 
         modal.classList.add('show');
         modal.setAttribute('aria-hidden','false');
         document.body.classList.add('week-reservation-open');
     };
+
+    document.querySelectorAll('.week-reserve-subject-search').forEach(function(search){
+        search.addEventListener('input', function(){
+            const field=search.closest('.week-reserve-subject-field');
+            const select=field && field.querySelector('select[name="subject_id"]');
+            const noMatches=field && field.querySelector('.week-reserve-no-subjects');
+            if(!select) return;
+            const query=search.value.trim().toLocaleLowerCase();
+            let matches=0;
+            Array.from(select.options).forEach(function(option,index){
+                if(index===0) return;
+                const isMatch=!query || option.textContent.toLocaleLowerCase().includes(query);
+                option.hidden=!isMatch;
+                option.disabled=!isMatch;
+                if(isMatch) matches++;
+            });
+            if(select.selectedOptions.length && select.selectedOptions[0].hidden) select.value='';
+            if(noMatches) noMatches.hidden=matches>0 || query==='';
+        });
+    });
 
     window.closeWeeklyReservation=function(roomId){
         const modal=document.getElementById('weeklyReserveModal-' + roomId);
