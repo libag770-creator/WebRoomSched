@@ -3255,7 +3255,7 @@
 
 
         const url =
-            "{{ route('student.schedule.data') }}" +
+            "{{ route('student.schedule.data', [], false) }}" +
 
             "?department_id=" +
 
