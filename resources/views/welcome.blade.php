@@ -1,1524 +1,762 @@
-<!DOCTYPE html>
+@php($isDirectLogin = request()->routeIs('login'))
+
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#173b33">
     <title>WebRoomSched | BSU Bokod Campus</title>
 
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/brand-system.css') }}?v=20261107-mobile-responsive-v1">
 
+    {{-- Responsive overrides. These work with the existing brand-system.css design. --}}
     <style>
-        * {
-            margin: 0;
-            padding: 0;
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
         }
 
-        :root {
-            --green-dark: #14532d;
-            --green: #15803d;
-            --green-light: #22c55e;
-            --gold: #f9a825;
-            --text: #17221b;
-            --muted: #708078;
-            --border: #dfe8e2;
-            --soft: #f5f9f6;
-        }
-
-        html,
-        body {
+        html {
             width: 100%;
             min-height: 100%;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
         }
 
-        body {
+        body.welcome-page {
+            width: 100%;
+            min-width: 320px;
             min-height: 100vh;
-            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
-            background:
-                radial-gradient(
-                    circle at 8% 18%,
-                    rgba(34, 197, 94, .12),
-                    transparent 28%
-                ),
-                radial-gradient(
-                    circle at 92% 82%,
-                    rgba(21, 128, 61, .12),
-                    transparent 30%
-                ),
-                #f2f6f3;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 28px;
-            overflow: hidden;
-            opacity: 0;
-            animation: pageFadeIn .45s ease forwards;
+            min-height: 100dvh;
+            margin: 0;
+            overflow-x: hidden;
         }
 
-        body.page-exit {
-            opacity: 0;
-            transition: opacity .28s ease;
+        .public-shell {
+            width: min(100% - 48px, 1240px);
+            max-width: 1240px;
+            margin-inline: auto;
         }
 
-        .page-shell {
+        .public-topbar,
+        .public-card,
+        .public-content-panel,
+        .public-brand-panel,
+        .public-footer {
+            min-width: 0;
+        }
+
+        .public-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(300px, .92fr);
             width: 100%;
-            max-width: 1050px;
-        }
-
-        .split-card {
-            position: relative;
-            width: 100%;
-            height: 620px;
-            background: #ffffff;
-            border-radius: 28px;
-            overflow: hidden;
-            box-shadow: 0 28px 70px rgba(20, 60, 36, .16);
-            border: 1px solid rgba(20, 83, 45, .08);
-        }
-
-        .panel {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 50%;
-            will-change: transform;
-            backface-visibility: hidden;
-            transform: translate3d(0, 0, 0);
-            transition: transform .78s cubic-bezier(.65, 0, .35, 1);
-        }
-
-        /* ==========================================
-           WHITE PANEL
-        ========================================== */
-
-        .content-panel {
-            left: 0;
-            background: #ffffff;
-            padding: 58px 60px;
-            display: block;
-            z-index: 3;
-        }
-
-        /* ==========================================
-           GREEN PANEL
-        ========================================== */
-
-        .brand-panel {
-            left: 50%;
-            background: linear-gradient(
-                145deg,
-                #0b5d2a 0%,
-                #08783a 48%,
-                #159b4c 100%
-            );
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 45px;
-            z-index: 4;
             overflow: hidden;
         }
 
-        .brand-panel::before,
-        .brand-panel::after {
-            content: "";
-            position: absolute;
-            border-radius: 50%;
-            pointer-events: none;
+        .public-content-panel {
+            min-width: 0;
         }
 
-        .brand-panel::before {
-            width: 390px;
-            height: 390px;
-            background: rgba(255,255,255,.07);
-            top: -170px;
-            right: -150px;
-        }
-
-        .brand-panel::after {
-            width: 310px;
-            height: 310px;
-            background: rgba(249,168,37,.12);
-            bottom: -150px;
-            left: -130px;
-        }
-
-        .brand-inner {
-            position: relative;
-            z-index: 2;
-            width: 100%;
-        }
-
-        .brand-logo {
-            width: 178px;
-            height: 178px;
-            object-fit: contain;
-            border-radius: 50%;
-            background: #ffffff;
-            padding: 14px;
-            border: 5px solid var(--gold);
-            box-shadow: 0 14px 34px rgba(0,0,0,.22);
-            margin-bottom: 24px;
-        }
-
-        .brand-title {
-            font-size: 30px;
-            line-height: 1.15;
-            font-weight: 800;
-            margin-bottom: 8px;
-        }
-
-        .brand-title span {
-            color: #d7f7df;
-        }
-
-        .brand-text {
-            color: rgba(255,255,255,.84);
-            font-size: 14px;
-            line-height: 1.55;
-        }
-
-        .brand-campus {
-            margin-top: 14px;
-            color: #ffffff;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        /* ==========================================
-           WELCOME CONTENT
-        ========================================== */
-
-        .welcome-content {
-            position: absolute;
-            inset: 0;
-            padding: 58px 60px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            opacity: 1;
-            visibility: visible;
-            transform: translate3d(0, 0, 0);
-            will-change: transform, opacity;
-            transition:
-                opacity .34s ease,
-                transform .56s cubic-bezier(.65, 0, .35, 1),
-                visibility 0s linear 0s;
-        }
-
-        .eyebrow {
-            color: var(--gold);
-            font-size: 13px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.7px;
-            margin-bottom: 13px;
-        }
-
-        .welcome-content h1 {
-            color: var(--green-dark);
-            font-size: clamp(43px, 5vw, 58px);
-            line-height: 1.02;
-            letter-spacing: -1.7px;
-            margin-bottom: 15px;
-        }
-
-        .campus {
-            color: #44564d;
-            font-size: 17px;
-            font-weight: 700;
-            margin-bottom: 20px;
-        }
-
-        .description {
-            max-width: 500px;
-            color: var(--muted);
-            font-size: 15px;
-            line-height: 1.75;
-            margin-bottom: 32px;
-        }
-
-        /* ==========================================
-           BUTTONS
-        ========================================== */
-
-        .buttons {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            min-height: 49px;
-            padding: 0 23px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 700;
-            border: none;
-            cursor: pointer;
-            transition:
-                transform .2s ease,
-                box-shadow .2s ease,
-                background .2s ease,
-                border-color .2s ease;
-        }
-
-        .btn-schedule {
-            background: linear-gradient(135deg, #15803d, #20a052);
-            color: #ffffff;
-            box-shadow: 0 9px 23px rgba(21, 128, 61, .22);
-        }
-
-        .btn-schedule:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 13px 28px rgba(21, 128, 61, .28);
-        }
-
-        .btn-login {
-            color: var(--green-dark);
-            background: #ffffff;
-            border: 1px solid #b9cabe;
-        }
-
-        .btn-login:hover {
-            background: #f1f8f3;
-            border-color: #8fb49a;
-            transform: translateY(-2px);
-        }
-
-        /* ==========================================
-           ACCESS INFO
-        ========================================== */
-
-        .access-info {
-            margin-top: 30px;
-            padding: 16px 17px;
-            background: var(--soft);
-            border: 1px solid #e0ece3;
-            border-left: 4px solid var(--gold);
-            border-radius: 11px;
-            max-width: 525px;
-        }
-
-        .access-info strong {
-            display: block;
-            color: var(--green-dark);
-            font-size: 13px;
-            margin-bottom: 5px;
-        }
-
-        .access-info p {
-            color: #718078;
-            font-size: 12.5px;
-            line-height: 1.55;
-        }
-
-        /* ==========================================
-           LOGIN CONTENT
-        ========================================== */
-
-        .login-content {
-            position: absolute;
-            inset: 0;
-            padding: 58px 60px;
-            display: flex;
-            align-items: center;
-            opacity: 0;
-            visibility: hidden;
-            transform: translate3d(34px, 0, 0);
-            will-change: transform, opacity;
-            transition:
-                opacity .34s ease,
-                transform .56s cubic-bezier(.65, 0, .35, 1),
-                visibility 0s linear .56s;
-        }
-
+        .welcome-content,
+        .login-content,
         .login-content-inner {
-            width: 100%;
+            min-width: 0;
+            max-width: 100%;
         }
 
-        .login-panel-title {
-            margin-bottom: 29px;
+        .public-brand-panel {
+            min-width: 0;
         }
 
-        .small-title {
-            color: #168344;
-            font-size: 13px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            margin-bottom: 8px;
+        .brand-emblem {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            object-fit: contain;
         }
 
-        .login-panel-title h2 {
-            font-size: 31px;
-            line-height: 1.15;
-            color: #15251b;
-            margin-bottom: 8px;
-            letter-spacing: -.6px;
-        }
-
-        .login-panel-title p {
-            color: #728078;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .error-box {
-            background: #fff1f1;
-            border: 1px solid #fecaca;
-            color: #b42318;
-            padding: 13px 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            font-size: 13px;
-        }
-
-        .error-box div {
-            margin: 3px 0;
-        }
-
-        .form-group {
-            margin-bottom: 19px;
-        }
-
-        .form-label {
+        .public-actions {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            color: #26352d;
-            font-size: 13px;
-            font-weight: 700;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
-        .input-wrapper {
-            position: relative;
+        .public-actions > a,
+        .public-actions > button {
+            min-width: 0;
         }
 
-        .input-icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #8b9991;
-            font-size: 15px;
-            pointer-events: none;
-        }
-
-        .form-input {
-            width: 100%;
-            height: 50px;
-            padding: 0 45px;
-            border: 1px solid #dce4df;
-            border-radius: 13px;
-            background: #fafcfb;
-            color: #17221b;
-            font-size: 14px;
-            outline: none;
-            transition: all .2s ease;
-        }
-
-        .form-input:hover {
-            border-color: #b9c9bf;
-        }
-
-        .form-input:focus {
-            background: #ffffff;
-            border-color: #1b8a48;
-            box-shadow: 0 0 0 4px rgba(27, 138, 72, .10);
-        }
-
-        .password-toggle {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            border: none;
-            background: transparent;
-            color: #7c8982;
-            cursor: pointer;
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            transition: .2s ease;
-        }
-
-        .password-toggle:hover {
-            color: #168344;
-            background: #edf8f1;
-        }
-
-        .login-options {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 3px 0 22px;
-        }
-
-        .remember {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #65736b;
-            font-size: 13px;
-            cursor: pointer;
-        }
-
-        .remember input {
-            width: 16px;
-            height: 16px;
-            accent-color: #168344;
-            cursor: pointer;
-        }
-
+        .public-primary-action,
+        .public-secondary-action,
         .login-button {
+            min-height: 48px;
+        }
+
+        .public-form-group,
+        .public-input-wrap {
             width: 100%;
-            height: 51px;
-            border: none;
-            border-radius: 13px;
-            background: linear-gradient(135deg, #08783a, #159b4c);
-            color: white;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
+            min-width: 0;
+        }
+
+        .public-input-wrap input {
+            width: 100%;
+            min-width: 0;
+            font-size: 16px;
+        }
+
+        .public-error {
+            overflow-wrap: anywhere;
+        }
+
+        .public-footer {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            box-shadow: 0 8px 20px rgba(8, 120, 58, .20);
-            transition: all .2s ease;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 8px 20px;
         }
 
-        .login-button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 25px rgba(8, 120, 58, .27);
-        }
-
-        .login-button:active {
-            transform: translateY(0);
-        }
-
-        .login-button.loading {
-            pointer-events: none;
-            opacity: .8;
-        }
-
-        .back-link {
-            margin-top: 18px;
-            text-align: center;
-        }
-
-        .back-link-button {
-            border: none;
-            background: transparent;
-            color: #718078;
-            font-size: 13px;
-            cursor: pointer;
-            transition: .2s ease;
-            padding: 4px 7px;
-        }
-
-        .back-link-button:hover {
-            color: #168344;
-        }
-
-        .footer-note {
-            text-align: center;
-            margin-top: 14px;
-            color: #8b9991;
-            font-size: 11px;
-        }
-
-        /* ==========================================
-           PAGE STATES + SLIDE TRANSITION
-        ========================================== */
-
-        /* Welcome: white panel on left, green panel on right. */
-        body.welcome-state .content-panel,
-        body.transitioning-to-welcome .content-panel {
-            transform: translate3d(0, 0, 0);
-        }
-
-        body.welcome-state .brand-panel,
-        body.transitioning-to-welcome .brand-panel {
-            transform: translate3d(0, 0, 0);
-        }
-
-        body.welcome-state .welcome-content {
-            opacity: 1;
-            visibility: visible;
-            transform: translate3d(0, 0, 0);
-        }
-
-        body.welcome-state .login-content {
-            opacity: 0;
-            visibility: hidden;
-            transform: translate3d(34px, 0, 0);
-        }
-
-        /* Login: green panel moves left, white panel moves right. */
-        body.login-state .content-panel,
-        body.transitioning-to-login .content-panel {
-            transform: translate3d(100%, 0, 0);
-        }
-
-        body.login-state .brand-panel,
-        body.transitioning-to-login .brand-panel {
-            transform: translate3d(-100%, 0, 0);
-        }
-
-        /* During the slide, fade the old content out and new content in. */
-        body.transitioning-to-login .welcome-content,
-        body.login-state .welcome-content {
-            opacity: 0;
-            visibility: hidden;
-            transform: translate3d(-28px, 0, 0);
-            transition:
-                opacity .28s ease,
-                transform .52s cubic-bezier(.65, 0, .35, 1),
-                visibility 0s linear .28s;
-        }
-
-        body.transitioning-to-login .login-content,
-        body.login-state .login-content {
-            opacity: 1;
-            visibility: visible;
-            transform: translate3d(0, 0, 0);
-            transition:
-                opacity .42s ease .16s,
-                transform .56s cubic-bezier(.65, 0, .35, 1) .10s,
-                visibility 0s linear 0s;
-        }
-
-        /* Reverse direction when returning to Welcome. */
-        body.transitioning-to-welcome .welcome-content {
-            opacity: 1;
-            visibility: visible;
-            transform: translate3d(0, 0, 0);
-            transition:
-                opacity .42s ease .16s,
-                transform .56s cubic-bezier(.65, 0, .35, 1) .10s,
-                visibility 0s linear 0s;
-        }
-
-        body.transitioning-to-welcome .login-content {
-            opacity: 0;
-            visibility: hidden;
-            transform: translate3d(28px, 0, 0);
-            transition:
-                opacity .28s ease,
-                transform .52s cubic-bezier(.65, 0, .35, 1),
-                visibility 0s linear .28s;
-        }
-
-        /* ==========================================
-           MOBILE
-        ========================================== */
-
-        @media (max-width: 850px) {
-
-            body {
-                padding: 18px;
-                overflow-y: auto;
+        /* Tablet */
+        @media (max-width: 900px) {
+            .public-shell {
+                width: min(100% - 36px, 760px);
             }
 
-            .split-card {
-                height: auto;
+            .public-card {
+                grid-template-columns: minmax(0, 1fr) minmax(250px, .8fr);
+            }
+
+            .public-content-panel {
+                padding: clamp(28px, 5vw, 48px);
+            }
+
+            .public-brand-panel {
+                padding: 28px 22px;
+            }
+
+            .public-feature-row {
+                flex-wrap: wrap;
+                gap: 18px;
+            }
+
+            .public-feature-row > div {
+                min-width: 0;
+            }
+        }
+
+        /* Mobile phones */
+        @media (max-width: 640px) {
+            body.welcome-page {
+                min-height: 100dvh;
+            }
+
+            .public-shell {
+                width: calc(100% - 28px);
+                max-width: 480px;
+                margin: 0 auto;
+                padding: 14px 0 18px;
+            }
+
+            .public-topbar {
                 min-height: auto;
+                padding: 8px 2px 18px;
+                gap: 10px;
+                align-items: center;
             }
 
-            .panel {
-                position: relative;
-                left: 0 !important;
+            .public-brand {
+                min-width: 0;
+                gap: 9px;
+            }
+
+            .public-brand strong {
+                font-size: 15px;
+            }
+
+            .public-brand small {
+                font-size: 11px;
+            }
+
+            .public-brand-mark {
+                flex: 0 0 auto;
+            }
+
+            .public-topbar-note {
+                max-width: 145px;
+                font-size: 10px;
+                line-height: 1.35;
+                text-align: right;
+            }
+
+            .public-card {
+                display: flex;
+                flex-direction: column;
                 width: 100%;
-                transform: none !important;
+                border-radius: 18px;
             }
 
-            .brand-panel {
-                min-height: 320px;
+            .public-content-panel {
                 order: 1;
-            }
-
-            .content-panel {
-                min-height: 470px;
-                padding: 0;
-                order: 2;
-                position: relative;
+                width: 100%;
+                padding: 30px 22px;
             }
 
             .welcome-content,
             .login-content {
-                position: relative;
-                inset: auto;
-                padding: 42px 30px;
-                min-height: 470px;
-            }
-
-            .brand-logo {
-                width: 145px;
-                height: 145px;
-            }
-
-            .welcome-content h1 {
-                font-size: 45px;
-            }
-
-            .login-content {
-                height: auto !important;
-            }
-
-            body.login-state .login-content {
-                min-height: 470px;
-            }
-
-            body.welcome-state .login-content,
-            body.login-state .welcome-content {
-                display: none;
-            }
-
-            body.welcome-state .welcome-content,
-            body.login-state .login-content {
-                display: flex;
-            }
-
-            body.transitioning-to-login .brand-panel,
-            body.transitioning-to-login .content-panel,
-            body.transitioning-to-welcome .brand-panel,
-            body.transitioning-to-welcome .content-panel {
-                transform: none !important;
-            }
-        }
-
-        @media (max-width: 520px) {
-
-            body {
-                padding: 12px;
-            }
-
-            .brand-panel {
-                min-height: 290px;
-                padding: 30px 22px;
-            }
-
-            .brand-logo {
-                width: 125px;
-                height: 125px;
-            }
-
-            .brand-title {
-                font-size: 25px;
-            }
-
-            .content-panel {
-                padding: 35px 24px;
-            }
-
-            .welcome-content h1 {
-                font-size: 40px;
-            }
-
-            .buttons {
-                flex-direction: column;
-            }
-
-            .btn {
                 width: 100%;
             }
 
-            .login-panel-title h2 {
-                font-size: 27px;
+            .public-eyebrow {
+                display: inline-block;
+                max-width: 100%;
+                font-size: 10px;
+                letter-spacing: .12em;
+                line-height: 1.5;
+            }
+
+            .welcome-content h1 {
+                font-size: clamp(38px, 11vw, 54px);
+                line-height: 1.02;
+                overflow-wrap: anywhere;
+            }
+
+            .login-content h1 {
+                font-size: clamp(32px, 9vw, 44px);
+                line-height: 1.08;
+            }
+
+            .public-intro,
+            .login-intro {
+                max-width: 100%;
+                font-size: 14px;
+                line-height: 1.7;
+            }
+
+            .public-actions {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                gap: 10px;
+                margin-top: 24px;
+            }
+
+            .public-actions > a,
+            .public-actions > button {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                min-height: 50px;
+                margin: 0;
+                padding: 13px 16px;
+                text-align: center;
+                font-size: 14px;
+            }
+
+            .public-feature-row {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr);
+                gap: 16px;
+                margin-top: 28px;
+            }
+
+            .public-feature-row > div {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                min-width: 0;
+            }
+
+            .public-feature-row > div > span:last-child {
+                min-width: 0;
+            }
+
+            .public-feature-row strong,
+            .public-feature-row small {
+                display: block;
+                overflow-wrap: anywhere;
+            }
+
+            .public-brand-panel {
+                order: 2;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                width: 100%;
+                min-height: 250px;
+                padding: 20px 22px;
+                border-radius: 0 0 18px 18px;
+            }
+
+            .brand-panel-topline,
+            .brand-panel-bottom {
+                width: 100%;
+                gap: 8px;
+                font-size: 9px;
+            }
+
+            .brand-panel-center {
+                padding: 20px 0;
+            }
+
+            .brand-emblem-wrap {
+                width: clamp(76px, 22vw, 105px);
+                height: clamp(76px, 22vw, 105px);
+                margin-inline: auto;
+            }
+
+            .brand-emblem {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }
+
+            .brand-panel-kicker {
+                font-size: 10px;
+                text-align: center;
+            }
+
+            .brand-panel-center > p {
+                margin: 10px 0;
+                font-size: clamp(30px, 9vw, 42px);
+                line-height: 1;
+                text-align: center;
+            }
+
+            .brand-grid-ornament {
+                max-width: 130px;
+                margin-inline: auto;
+            }
+
+            .login-content-inner {
+                width: 100%;
+            }
+
+            .back-link-button {
+                display: inline-flex;
+                align-items: center;
+                min-height: 40px;
+                max-width: 100%;
+                margin-bottom: 22px;
+                font-size: 13px;
+            }
+
+            .public-login-form {
+                width: 100%;
+            }
+
+            .public-form-group {
+                margin-bottom: 18px;
+            }
+
+            .public-form-group label {
+                font-size: 13px;
+            }
+
+            .public-input-wrap {
+                width: 100%;
+                min-height: 50px;
+            }
+
+            .public-input-wrap input {
+                min-height: 48px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                font-size: 16px;
+            }
+
+            .password-toggle {
+                flex: 0 0 42px;
+                min-width: 42px;
+                min-height: 44px;
+            }
+
+            .remember-option {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                min-height: 42px;
+                font-size: 13px;
+            }
+
+            .remember-option input {
+                width: 18px;
+                height: 18px;
+                flex: 0 0 auto;
+            }
+
+            .login-button {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                min-height: 50px;
+                margin-top: 16px;
+                font-size: 14px;
+            }
+
+            .login-footnote {
+                font-size: 11px;
+                line-height: 1.6;
+            }
+
+            .public-footer {
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+                padding: 16px 4px 4px;
+                text-align: center;
+                font-size: 10px;
+                line-height: 1.5;
             }
         }
 
-        @media (prefers-reduced-motion: reduce) {
+        /* Very small phones */
+        @media (max-width: 360px) {
+            .public-shell {
+                width: calc(100% - 20px);
+            }
 
+            .public-content-panel {
+                padding: 26px 17px;
+            }
+
+            .public-topbar-note {
+                max-width: 112px;
+                font-size: 9px;
+            }
+
+            .public-brand strong {
+                font-size: 14px;
+            }
+
+            .welcome-content h1 {
+                font-size: 36px;
+            }
+
+            .public-brand-panel {
+                padding-inline: 17px;
+            }
+        }
+
+        /* Respect users who prefer reduced motion. */
+        @media (prefers-reduced-motion: reduce) {
             *,
             *::before,
             *::after {
+                scroll-behavior: auto !important;
                 animation-duration: .01ms !important;
                 animation-iteration-count: 1 !important;
                 transition-duration: .01ms !important;
             }
         }
-
-        @keyframes pageFadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-    </style>
-    <style>
-        /* Welcome and sign-in screen: white neumorphism with readable slate-blue accents */
-        :root { --text:#24382f; --muted:#5e7087; --green-dark:#286657; --green:#337767; --green-light:#7898bb; --gold:#7898bb; --border:#dfe7e0; --soft:#eaf0f7; }
-        body { color:#344740 !important; background:radial-gradient(circle at 8% 18%,rgba(112,151,193,.12),transparent 28%),radial-gradient(circle at 92% 82%,rgba(112,151,193,.12),transparent 30%),#f2f4f1 !important; }
-        .page-shell { max-width:1100px !important; }
-        .split-card { background:#f0f3ef !important; border:1px solid #dfe6ef !important; border-radius:26px !important; box-shadow:12px 12px 28px #d5dce6,-12px -12px 28px #fff !important; }
-        .content-panel { background:#f0f3ef !important; }
-        .brand-panel { color:#fff !important; background:linear-gradient(145deg,#337767 0%,#3c7764 55%,#385f89 100%) !important; }
-        .brand-panel::before { background:rgba(255,255,255,.09) !important; }
-        .brand-panel::after { background:rgba(205,224,244,.16) !important; }
-        .brand-logo { border-color:rgba(255,255,255,.82) !important; box-shadow:0 12px 30px rgba(30,56,85,.24) !important; }
-        .brand-title { color:#fff !important; font-size:clamp(27px,3vw,34px) !important; }
-        .brand-title span { color:#dceafa !important; }
-        .brand-text { color:#f3f6f3 !important; font-size:16px !important; line-height:1.65 !important; }
-        .brand-campus { color:#fff !important; font-size:15px !important; }
-        .eyebrow,.small-title { color:#3c7764 !important; font-size:15px !important; letter-spacing:1.2px !important; }
-        .welcome-content h1 { color:#263b55 !important; font-size:clamp(44px,5vw,58px) !important; line-height:1.08 !important; }
-        .campus { color:#405873 !important; font-size:18px !important; }
-        .description { color:#5e7087 !important; font-size:17px !important; line-height:1.7 !important; }
-        .access-info { background:#e8eee9 !important; border:1px solid #d5e0ed !important; border-left:4px solid #4f8978 !important; box-shadow:inset 3px 3px 6px #dfe6df,inset -3px -3px 6px #fff !important; }
-        .access-info strong { color:#304a69 !important; font-size:15px !important; }
-        .access-info p { color:#435b4b !important; font-size:16px !important; line-height:1.65 !important; }
-        .btn { min-height:50px !important; font-size:16px !important; border-radius:13px !important; }
-        .btn-schedule,.login-button { color:#fff !important; background:#337767 !important; box-shadow:4px 5px 11px rgba(51,103,78,.2) !important; }
-        .btn-schedule:hover,.login-button:hover { background:#3c7764 !important; }
-        .btn-login { color:#286657 !important; background:#f0f3ef !important; border:1px solid #d4dfeb !important; box-shadow:4px 4px 9px #d8dfe8,-4px -4px 9px #fff !important; }
-        .btn-login:hover { color:#274f78 !important; background:#e7eee8 !important; }
-        .login-panel-title h2 { color:#263b55 !important; font-size:30px !important; line-height:1.25 !important; }
-        .login-panel-title p { color:#5e7087 !important; font-size:16px !important; line-height:1.6 !important; }
-        .form-label { color:#344d40 !important; font-size:15px !important; }
-        .form-input { color:#293c53 !important; background:#f2f4f1 !important; border-color:#d4deea !important; font-size:16px !important; box-shadow:inset 3px 3px 6px #dfe6df,inset -3px -3px 6px #fff !important; }
-        .form-input::placeholder { color:#78889c !important; opacity:1 !important; }
-        .form-input:focus { background:#f7f8f6 !important; border-color:#4f8978 !important; box-shadow:0 0 0 3px rgba(99,138,184,.16) !important; }
-        .input-icon { color:#647b96 !important; }
-        .password-toggle { color:#526b87 !important; }
-        .password-toggle:hover,.back-link-button:hover { color:#286657 !important; background:#e7eee8 !important; }
-        .remember { color:#52675a !important; font-size:15px !important; }
-        .remember input { accent-color:#337767 !important; }
-        .back-link-button { color:#52675a !important; font-size:15px !important; }
-        .footer-note { color:#687b92 !important; font-size:13px !important; }
-        .error-box { color:#842f37 !important; background:#fff0f0 !important; border-color:#edcaca !important; font-size:15px !important; line-height:1.55 !important; }
-        .form-input:focus-visible,.btn:focus-visible,.login-button:focus-visible,.password-toggle:focus-visible,.back-link-button:focus-visible { outline:3px solid #337767 !important; outline-offset:3px !important; }
-        @media(max-width:850px) {
-            .brand-panel { background:linear-gradient(145deg,#337767 0%,#3c7764 55%,#385f89 100%) !important; }
-            .welcome-content h1 { font-size:clamp(38px,8vw,48px) !important; }
-            .description { font-size:16px !important; }
-        }
-        @media(max-width:520px) {
-            .content-panel { background:#f0f3ef !important; }
-            .brand-title { font-size:26px !important; }
-            .campus { font-size:16px !important; }
-            .login-panel-title h2 { font-size:26px !important; }
-        }
-    </style>
-    <style>
-        /* Keep this standalone page readable without relying on the shared portal theme. */
-        html, body { color-scheme:light !important; background-color:#f2f4f1 !important; }
-        body { color:#24382f !important; }
-        .page-shell, .split-card, .content-panel, .welcome-content, .login-content, .login-content-inner { color:#24382f !important; }
-        .content-panel { background:#f0f3ef !important; }
-        .welcome-content .eyebrow, .login-content .small-title { color:#285c50 !important; }
-        .welcome-content h1, .login-content h2 { color:#263b55 !important; }
-        .welcome-content .campus, .login-content .form-label { color:#344d40 !important; }
-        .welcome-content .description, .login-panel-title p, .remember, .back-link-button, .footer-note { color:#52675a !important; }
-        .welcome-content .access-info { color:#40546d !important; background:#e8eee9 !important; border-color:#d3e0ee !important; }
-        .welcome-content .access-info strong { color:#304a69 !important; }
-        .welcome-content .access-info p { color:#4e627a !important; }
-        .brand-panel { color:#fff !important; background:linear-gradient(145deg,#337767,#3c7764 58%,#385f89) !important; }
-        .brand-panel .brand-title, .brand-panel .brand-title span, .brand-panel .brand-text, .brand-panel .brand-campus { color:#fff !important; }
-        .brand-panel .brand-title span { color:#e2f0e6 !important; }
-        .form-group, .login-options { color:#344740 !important; }
-        .form-input { color:#24382f !important; background:#f2f4f1 !important; border-color:#cbd8e6 !important; }
-        .form-input::placeholder { color:#687b92 !important; opacity:1 !important; }
-        .input-icon, .password-toggle { color:#526a86 !important; }
-        .btn-login { color:#286657 !important; background:#f0f3ef !important; border-color:#cbd9e8 !important; }
-        .btn-schedule, .login-button { color:#fff !important; background:#337767 !important; }
-        .error-box { color:#842f37 !important; }
-        @media (prefers-contrast: more) {
-            .welcome-content .description, .login-panel-title p, .remember, .back-link-button, .footer-note,
-            .welcome-content .access-info p { color:#24382f !important; }
-        }
-    </style>
-    <style>
-        /* Override the shared .page-shell .panel surface specifically for the brand panel. */
-        .page-shell .brand-panel {
-            color:#fff !important;
-            background:linear-gradient(145deg,#337767 0%,#3c7764 58%,#385f89 100%) !important;
-            border:0 !important;
-        }
-        .page-shell .brand-panel .brand-title,
-        .page-shell .brand-panel .brand-text,
-        .page-shell .brand-panel .brand-campus,
-        .page-shell .brand-panel .brand-title span { color:#fff !important; }
-        .page-shell .brand-panel .brand-title span { color:#e2f0e6 !important; }
-        .page-shell .brand-panel::before { background:rgba(255,255,255,.09) !important; }
-        .page-shell .brand-panel::after { background:rgba(205,224,244,.16) !important; }
-    </style>
-    <style>
-        /* Accessibility pass: larger type, stronger contrast, and easier spacing. */
-        body, .page-shell { font-size:18px !important; }
-        .welcome-content .eyebrow, .login-content .small-title {
-            font-size:17px !important; line-height:1.5 !important; letter-spacing:1px !important;
-        }
-        .welcome-content h1 {
-            font-size:clamp(48px,5.4vw,64px) !important; line-height:1.12 !important;
-            letter-spacing:-.7px !important; margin-bottom:18px !important;
-        }
-        .welcome-content .campus { font-size:21px !important; line-height:1.5 !important; margin-bottom:20px !important; }
-        .welcome-content .description { font-size:19px !important; line-height:1.8 !important; max-width:540px !important; margin-bottom:28px !important; }
-        .welcome-content .access-info { padding:19px 20px !important; margin-top:28px !important; }
-        .welcome-content .access-info strong { font-size:18px !important; margin-bottom:8px !important; }
-        .welcome-content .access-info p { font-size:16px !important; line-height:1.75 !important; }
-        .page-shell .brand-title { font-size:clamp(30px,3.3vw,38px) !important; line-height:1.25 !important; }
-        .page-shell .brand-text { font-size:18px !important; line-height:1.75 !important; }
-        .page-shell .brand-campus { font-size:17px !important; line-height:1.6 !important; }
-        .login-panel-title { margin-bottom:27px !important; }
-        .login-panel-title h2 { font-size:clamp(30px,3vw,36px) !important; line-height:1.3 !important; margin-bottom:11px !important; }
-        .login-panel-title p { font-size:18px !important; line-height:1.75 !important; }
-        .form-group { margin-bottom:23px !important; }
-        .form-label { font-size:17px !important; line-height:1.5 !important; margin-bottom:9px !important; }
-        .form-input { height:56px !important; font-size:18px !important; padding-left:48px !important; }
-        .form-input::placeholder { font-size:16px !important; }
-        .input-icon { font-size:17px !important; }
-        .password-toggle { width:38px !important; height:38px !important; font-size:17px !important; }
-        .remember { font-size:16px !important; gap:10px !important; }
-        .remember input { width:19px !important; height:19px !important; }
-        .login-button, .btn { min-height:56px !important; font-size:18px !important; }
-        .back-link-button { font-size:16px !important; padding:8px 10px !important; }
-        .footer-note { font-size:16px !important; line-height:1.6 !important; }
-        .error-box { font-size:16px !important; line-height:1.7 !important; padding:15px 17px !important; }
-        @media (max-width:850px) {
-            body { padding:18px !important; }
-            .welcome-content, .login-content { padding:36px 30px !important; }
-            .welcome-content h1 { font-size:clamp(42px,8vw,54px) !important; }
-        }
-        @media (max-width:520px) {
-            body { padding:12px !important; }
-            .welcome-content, .login-content { padding:30px 23px !important; }
-            .welcome-content .description { font-size:17px !important; }
-            .welcome-content .access-info p { font-size:15px !important; }
-            .login-panel-title h2 { font-size:28px !important; }
-            .login-panel-title p { font-size:17px !important; }
-            .form-input { font-size:17px !important; }
-            .login-button, .btn { font-size:17px !important; }
-        }
     </style>
 </head>
 
-@php
+<body class="welcome-page {{ $isDirectLogin ? 'login-state' : 'welcome-state' }}">
+    <main class="public-shell">
+        <header class="public-topbar">
+            <a class="public-brand" href="{{ route('welcome') }}" aria-label="WebRoomSched home">
+                <span class="public-brand-mark" aria-hidden="true">W</span>
+                <span>
+                    <strong>WebRoomSched</strong>
+                    <small>BSU Bokod Campus</small>
+                </span>
+            </a>
 
-    $isDirectLogin = request()->routeIs('login');
-@endphp
+            <div class="public-topbar-note">
+                <span class="live-dot" aria-hidden="true"></span>
+                Campus room &amp; class planning
+            </div>
+        </header>
 
-<body class="{{ $isDirectLogin ? 'login-state' : 'welcome-state' }}">
+        <section class="public-card" aria-label="WebRoomSched access">
+            <div class="public-content-panel">
+                <section
+                    class="welcome-content"
+                    aria-labelledby="welcome-title"
+                    aria-hidden="{{ $isDirectLogin ? 'true' : 'false' }}"
+                >
+                    <span class="public-eyebrow">A more considered campus day</span>
 
-<main class="page-shell">
+                    <h1 id="welcome-title">BSU BOKOD<br><em>CAMPUS</em></h1>
 
-    <div class="split-card">
-
-        <!-- =====================================================
-             WHITE CONTENT PANEL
-        ====================================================== -->
-
-        <section class="panel content-panel">
-
-            <!-- =========================
-                 WELCOME CONTENT
-            ========================== -->
-
-            <div class="welcome-content">
-
-                <div class="eyebrow">
-                    Welcome to
-                </div>
-
-                <h1>
-                    WebRoom<br>
-                    Sched
-                </h1>
-
-                <div class="campus">
-                    BSU Bokod Campus
-                </div>
-
-                <p class="description">
-                    A simple and organized room scheduling system for viewing
-                    classroom schedules, room availability, and academic information.
-                </p>
-
-                <div class="buttons">
-
-                    <a href="{{ route('student.schedule') }}"
-                       class="btn btn-schedule page-transition">
-
-                        <i class="fa-solid fa-calendar-days"
-                           style="margin-right:8px;"></i>
-
-                        View Schedules
-
-                    </a>
-
-                    <!-- IMPORTANT:
-                         This is a BUTTON, not an <a href>.
-                         Clicking it never loads /login.
-                    -->
-                    <button
-                        type="button"
-                        class="btn btn-login"
-                        id="openLogin"
-                    >
-
-                        <i class="fa-solid fa-right-to-bracket"
-                           style="margin-right:8px;"></i>
-
-                        Login
-
-                    </button>
-
-                </div>
-
-                <div class="access-info">
-
-                    <strong>
-                        Easy Access
-                    </strong>
-
-                    <p>
-                        Students can view room schedules directly without logging in.
-                        Administrators, department chairs, and faculty members can log in
-                        to manage schedules and room information.
+                    <p class="public-intro">
+                        Find class schedules, check room availability, and keep your day moving with one clear view of campus.
                     </p>
 
-                </div>
+                    <div class="public-actions">
+                        <a href="{{ route('student.schedule') }}" class="public-primary-action page-transition">
+                            Browse schedules
+                            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        </a>
 
-            </div>
-
-
-            <!-- =========================
-                 LOGIN CONTENT
-            ========================== -->
-
-            <div class="login-content">
-
-                <div class="login-content-inner">
-
-                    <div class="login-panel-title">
-
-                        <div class="small-title">
-                            Welcome back
-                        </div>
-
-                        <h2>
-                            Sign in to your account
-                        </h2>
-
-                        <p>
-                            Enter your credentials to continue to WebRoomSched.
-                        </p>
-
+                        <button type="button" class="public-secondary-action" id="openLogin">
+                            <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
+                            Staff sign in
+                        </button>
                     </div>
 
-
-                    <!-- SESSION ERROR -->
-
-                    @if(session('error'))
-
-                        <div class="error-box">
-
-                            <i class="fa-solid fa-circle-exclamation"></i>
-                            {{ session('error') }}
-
+                    <div class="public-feature-row" aria-label="What you can do">
+                        <div>
+                            <span class="public-feature-icon">
+                                <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                            </span>
+                            <span>
+                                <strong>Class schedules</strong>
+                                <small>See the campus day</small>
+                            </span>
                         </div>
 
-                    @endif
+                        <div>
+                            <span class="public-feature-icon">
+                                <i class="fa-solid fa-door-open" aria-hidden="true"></i>
+                            </span>
+                            <span>
+                                <strong>Room availability</strong>
+                                <small>Find a place to meet</small>
+                            </span>
+                        </div>
+                    </div>
+                </section>
 
+                <section
+                    class="login-content"
+                    aria-labelledby="login-title"
+                    aria-hidden="{{ $isDirectLogin ? 'false' : 'true' }}"
+                >
+                    <button type="button" class="back-link-button" id="backToWelcome">
+                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                        Back to overview
+                    </button>
 
-                    <!-- VALIDATION ERRORS -->
+                    <div class="login-content-inner">
+                        <span class="public-eyebrow">Staff workspace</span>
 
-                    @if($errors->any())
+                        <h1 id="login-title">Welcome back.</h1>
 
-                        <div class="error-box">
+                        <p class="login-intro">
+                            Sign in to manage schedules, rooms, and college activity.
+                        </p>
 
-                            @foreach($errors->all() as $error)
+                        @if(session('error'))
+                            <div class="public-error" role="alert">
+                                <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                                {{ session('error') }}
+                            </div>
+                        @endif
 
-                                <div>
+                        @if($errors->any())
+                            <div class="public-error" role="alert">
+                                @foreach($errors->all() as $error)
+                                    <div>
+                                        <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                                        {{ $error }}
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
 
-                                    <i class="fa-solid fa-circle-exclamation"></i>
-                                    {{ $error }}
+                        <form action="{{ route('login.submit') }}" method="POST" id="loginForm" class="public-login-form">
+                            @csrf
 
+                            <div class="public-form-group">
+                                <label for="username">Username</label>
+
+                                <div class="public-input-wrap">
+                                    <i class="fa-regular fa-user" aria-hidden="true"></i>
+                                    <input
+                                        type="text"
+                                        id="username"
+                                        name="username"
+                                        value="{{ old('username') }}"
+                                        placeholder="Your username"
+                                        autocomplete="username"
+                                        required
+                                    >
                                 </div>
-
-                            @endforeach
-
-                        </div>
-
-                    @endif
-
-
-                    <!-- LOGIN FORM -->
-
-                    <form
-                        action="{{ route('login.submit') }}"
-                        method="POST"
-                        id="loginForm"
-                    >
-
-                        @csrf
-
-                        <!-- USERNAME -->
-
-                        <div class="form-group">
-
-                            <label
-                                class="form-label"
-                                for="username"
-                            >
-                                Username
-                            </label>
-
-                            <div class="input-wrapper">
-
-                                <i class="fa-solid fa-user input-icon"></i>
-
-                                <input
-                                    type="text"
-                                    id="username"
-                                    name="username"
-                                    class="form-input"
-                                    value="{{ old('username') }}"
-                                    placeholder="Enter your username"
-                                    autocomplete="username"
-                                    required
-                                >
-
                             </div>
 
-                        </div>
+                            <div class="public-form-group">
+                                <label for="password">Password</label>
 
+                                <div class="public-input-wrap">
+                                    <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                                    <input
+                                        type="password"
+                                        id="password"
+                                        name="password"
+                                        placeholder="Your password"
+                                        autocomplete="current-password"
+                                        required
+                                    >
 
-                        <!-- PASSWORD -->
-
-                        <div class="form-group">
-
-                            <label
-                                class="form-label"
-                                for="password"
-                            >
-                                Password
-                            </label>
-
-                            <div class="input-wrapper">
-
-                                <i class="fa-solid fa-lock input-icon"></i>
-
-                                <input
-                                    type="password"
-                                    id="password"
-                                    name="password"
-                                    class="form-input"
-                                    placeholder="Enter your password"
-                                    autocomplete="current-password"
-                                    required
-                                >
-
-                                <button
-                                    type="button"
-                                    class="password-toggle"
-                                    id="togglePassword"
-                                    aria-label="Show password"
-                                >
-
-                                    <i class="fa-solid fa-eye"></i>
-
-                                </button>
-
+                                    <button
+                                        type="button"
+                                        class="password-toggle"
+                                        id="togglePassword"
+                                        aria-label="Show password"
+                                    >
+                                        <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                                    </button>
+                                </div>
                             </div>
 
-                        </div>
-
-
-                        <!-- REMEMBER ME -->
-
-                        <div class="login-options">
-
-                            <label class="remember">
-
+                            <label class="remember-option">
                                 <input
                                     type="checkbox"
                                     name="remember"
                                     value="1"
                                     {{ old('remember') ? 'checked' : '' }}
                                 >
-
-                                <span>
-                                    Remember me
-                                </span>
-
+                                <span>Remember me</span>
                             </label>
 
-                        </div>
+                            <button type="submit" class="public-primary-action login-button" id="loginButton">
+                                <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
+                                <span id="loginText">Sign in</span>
+                            </button>
+                        </form>
 
+                        <p class="login-footnote">
+                            For administrators, college chairs, and instructors.
+                        </p>
+                    </div>
+                </section>
+            </div>
 
-                        <!-- LOGIN SUBMIT -->
+            <aside class="public-brand-panel" aria-label="WebRoomSched at BSU Bokod Campus">
+                <div class="brand-panel-topline">
+                    <span>BSU</span>
+                    <span class="brand-topline-rule"></span>
+                    <span>BOKOD CAMPUS</span>
+                </div>
 
-                        <button
-                            type="submit"
-                            class="login-button"
-                            id="loginButton"
+                <div class="brand-panel-center">
+                    <div class="brand-emblem-wrap">
+                        <img
+                            src="{{ asset('images/images.jpg') }}"
+                            alt="BSU Bokod Campus emblem"
+                            class="brand-emblem"
                         >
-
-                            <i class="fa-solid fa-right-to-bracket"></i>
-
-                            <span id="loginText">
-                                Sign In
-                            </span>
-
-                        </button>
-
-                    </form>
-
-
-                    <!-- BACK TO WELCOME
-                         This is also a BUTTON so it does not navigate.
-                    -->
-
-                    <div class="back-link">
-
-                        <button
-                            type="button"
-                            class="back-link-button"
-                            id="backToWelcome"
-                        >
-
-                            <i class="fa-solid fa-arrow-left"></i>
-
-                            Back to Welcome Page
-
-                        </button>
-
                     </div>
 
+                    <span class="brand-panel-kicker">Thoughtful spaces. Clear schedules.</span>
+
+                    <p>WebRoom<br><span>Sched</span></p>
+
+                    <div class="brand-grid-ornament" aria-hidden="true">
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                        <span></span><span></span><span></span>
+                    </div>
                 </div>
 
-            </div>
-
+                <div class="brand-panel-bottom">
+                    <span>WEBROOMSCHED</span>
+                    <span>ROOM &amp; CLASS PLANNING</span>
+                </div>
+            </aside>
         </section>
 
+        <footer class="public-footer">
+            <span>© {{ date('Y') }} BSU Bokod Campus</span>
+            <span>Designed for a better campus day</span>
+        </footer>
+    </main>
 
-        <!-- =====================================================
-             GREEN BRAND PANEL
-        ====================================================== -->
+    <script>
+        const pageBody = document.body;
+        const openLoginButton = document.getElementById('openLogin');
+        const backToWelcomeButton = document.getElementById('backToWelcome');
+        const loginPanel = document.querySelector('.login-content');
+        const welcomePanel = document.querySelector('.welcome-content');
 
-        <section class="panel brand-panel">
+        function setPage(mode) {
+            const showLogin = mode === 'login';
 
-            <div class="brand-inner">
+            pageBody.classList.toggle('login-state', showLogin);
+            pageBody.classList.toggle('welcome-state', !showLogin);
 
-                <img
-                    src="{{ asset('images/images.jpg') }}"
-                    alt="BSU Bokod Campus Logo"
-                    class="brand-logo"
-                >
+            if (loginPanel) {
+                loginPanel.setAttribute('aria-hidden', String(!showLogin));
+            }
 
-                <div class="brand-title">
-                    WebRoom<span>Sched</span>
-                </div>
+            if (welcomePanel) {
+                welcomePanel.setAttribute('aria-hidden', String(showLogin));
+            }
 
-                <div class="brand-text">
-                    Room Scheduling System
-                </div>
-
-                <div class="brand-campus">
-                    BSU Bokod Campus
-                </div>
-
-            </div>
-
-        </section>
-
-    </div>
-
-    <div class="footer-note">
-        © {{ date('Y') }} BSU Bokod Campus — WebRoom Sched
-    </div>
-
-</main>
-
-
-<script>
-
-    /* =========================================================
-       SMOOTH SINGLE-PAGE PANEL SWITCHING
-    ========================================================== */
-
-    let currentPage = @json($isDirectLogin ? 'login' : 'welcome');
-
-    const body = document.body;
-    const openLogin = document.getElementById('openLogin');
-    const backToWelcome = document.getElementById('backToWelcome');
-    const splitCard = document.querySelector('.split-card');
-
-    let isTransitioning = false;
-
-    function finishTransition(target) {
-
-        body.classList.remove(
-            target === 'login'
-                ? 'transitioning-to-login'
-                : 'transitioning-to-welcome'
-        );
-
-        body.classList.remove(
-            target === 'login'
-                ? 'welcome-state'
-                : 'login-state'
-        );
-
-        body.classList.add(
-            target === 'login'
-                ? 'login-state'
-                : 'welcome-state'
-        );
-
-        isTransitioning = false;
-
-        if (target === 'login') {
-
-            const username = document.getElementById('username');
-
-            if (username) {
-                requestAnimationFrame(() => username.focus());
+            if (showLogin) {
+                window.setTimeout(() => {
+                    document.getElementById('username')?.focus();
+                }, 180);
             }
         }
-    }
 
-    function switchPage(target) {
+        openLoginButton?.addEventListener('click', () => setPage('login'));
+        backToWelcomeButton?.addEventListener('click', () => setPage('welcome'));
 
-        if (isTransitioning || currentPage === target) {
-            return;
-        }
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && pageBody.classList.contains('login-state')) {
+                setPage('welcome');
+            }
+        });
 
-        isTransitioning = true;
-        currentPage = target;
-
-        const transitionClass =
-            target === 'login'
-                ? 'transitioning-to-login'
-                : 'transitioning-to-welcome';
-
-        const oldStateClass =
-            target === 'login'
-                ? 'welcome-state'
-                : 'login-state';
-
-        body.classList.remove(oldStateClass);
-        body.classList.add(transitionClass);
-
-        /*
-         * Finish exactly when the card movement ends instead of using
-         * a timer. This prevents visible snapping on slower/faster PCs.
-         */
-        if (splitCard) {
-
-            let finished = false;
-
-            const complete = () => {
-
-                if (finished) {
+        document.querySelectorAll('.page-transition').forEach((link) => {
+            link.addEventListener('click', (event) => {
+                if (
+                    event.ctrlKey ||
+                    event.metaKey ||
+                    event.shiftKey ||
+                    event.altKey ||
+                    event.button !== 0
+                ) {
                     return;
                 }
 
-                finished = true;
+                event.preventDefault();
+                pageBody.classList.add('page-exit');
 
-                splitCard.removeEventListener(
-                    'transitionend',
-                    onTransitionEnd
-                );
-
-                finishTransition(target);
-            };
-
-            const onTransitionEnd = (event) => {
-
-                if (
-                    event.propertyName === 'transform' &&
-                    event.target.classList.contains('brand-panel')
-                ) {
-                    complete();
-                }
-            };
-
-            splitCard.addEventListener(
-                'transitionend',
-                onTransitionEnd
-            );
-
-            window.setTimeout(complete, 900);
-        } else {
-            finishTransition(target);
-        }
-    }
-
-    if (openLogin) {
-
-        openLogin.addEventListener('click', function (event) {
-
-            event.preventDefault();
-            switchPage('login');
-
-        });
-    }
-
-    if (backToWelcome) {
-
-        backToWelcome.addEventListener('click', function (event) {
-
-            event.preventDefault();
-            switchPage('welcome');
-
-        });
-    }
-
-    /* =========================================================
-       VIEW SCHEDULES
-       This one really needs to open another Laravel page,
-       so normal navigation is kept with a small fade-out.
-    ========================================================== */
-
-    document.querySelectorAll('.page-transition').forEach(function (link) {
-
-        link.addEventListener('click', function (event) {
-
-            if (
-                event.ctrlKey ||
-                event.metaKey ||
-                event.shiftKey ||
-                event.altKey ||
-                event.button !== 0
-            ) {
-                return;
-            }
-
-            const target = this.href;
-
-            if (!target) {
-                return;
-            }
-
-            event.preventDefault();
-
-            body.classList.add('page-exit');
-
-            setTimeout(function () {
-
-                window.location.href = target;
-
-            }, 280);
-
+                window.setTimeout(() => {
+                    window.location.href = link.href;
+                }, 180);
+            });
         });
 
-    });
+        const passwordInput = document.getElementById('password');
+        const passwordToggle = document.getElementById('togglePassword');
 
+        passwordToggle?.addEventListener('click', () => {
+            if (!passwordInput) return;
 
-    /* =========================================================
-       PASSWORD SHOW / HIDE
-    ========================================================== */
+            const reveal = passwordInput.type === 'password';
+            passwordInput.type = reveal ? 'text' : 'password';
 
-    const passwordInput = document.getElementById('password');
-
-    const togglePassword = document.getElementById('togglePassword');
-
-    if (passwordInput && togglePassword) {
-
-        togglePassword.addEventListener('click', function () {
-
-            const icon = this.querySelector('i');
-
-            const isHidden = passwordInput.type === 'password';
-
-            passwordInput.type = isHidden ? 'text' : 'password';
-
-            icon.classList.toggle('fa-eye', !isHidden);
-            icon.classList.toggle('fa-eye-slash', isHidden);
-
-            this.setAttribute(
+            passwordToggle.setAttribute(
                 'aria-label',
-                isHidden ? 'Hide password' : 'Show password'
+                reveal ? 'Hide password' : 'Show password'
             );
 
+            passwordToggle.innerHTML = reveal
+                ? '<i class="fa-regular fa-eye-slash" aria-hidden="true"></i>'
+                : '<i class="fa-regular fa-eye" aria-hidden="true"></i>';
         });
-    }
 
+        document.getElementById('loginForm')?.addEventListener('submit', () => {
+            const button = document.getElementById('loginButton');
+            button?.classList.add('loading');
 
-    /* =========================================================
-       LOGIN SUBMIT LOADING
-       This one DOES submit to login.submit because this is
-       the real authentication request.
-    ========================================================== */
-
-    const loginForm = document.getElementById('loginForm');
-
-    const loginButton = document.getElementById('loginButton');
-
-    const loginText = document.getElementById('loginText');
-
-    if (loginForm) {
-
-        loginForm.addEventListener('submit', function () {
-
-            if (loginButton) {
-
-                loginButton.classList.add('loading');
-
+            const text = document.getElementById('loginText');
+            if (text) {
+                text.textContent = 'Signing in…';
             }
-
-            if (loginText) {
-
-                loginText.textContent = 'Signing in...';
-
-            }
-
-            const icon = loginButton
-                ? loginButton.querySelector('i')
-                : null;
-
-            if (icon) {
-
-                icon.className = 'fa-solid fa-spinner fa-spin';
-
-            }
-
         });
-    }
-
-
-    /* =========================================================
-       ESC = BACK TO WELCOME
-    ========================================================== */
-
-    document.addEventListener('keydown', function (event) {
-
-        if (
-            event.key === 'Escape' &&
-            currentPage === 'login'
-        ) {
-
-            showWelcome();
-
-        }
-
-    });
-
-</script>
-
+    </script>
 </body>
 </html>
-
-
-
-
-
-
-
