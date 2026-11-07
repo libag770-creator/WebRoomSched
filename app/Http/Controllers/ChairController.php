@@ -801,7 +801,7 @@ public function setschedule(Request $request)
     */
 
     return view(
-        'chair.setSchedule',
+        'chair.setschedule',
         compact(
             'department',
             'buildings',
@@ -8180,7 +8180,7 @@ public function manageSubjects(Request $request, $programId = null, $memorandumI
         }
     }
 
-    return view('chair.managesubjects', compact(
+    return view('chair.manageSubjects', compact(
         'programGroups',
         'selectedProgram',
         'selectedMemoranda',
