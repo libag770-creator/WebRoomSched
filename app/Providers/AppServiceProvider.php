@@ -23,10 +23,14 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
-    {
-        Reservation::observe(ReservationObserver::class);
-        ScheduleOverride::observe(ScheduleOverrideObserver::class);
-        RoomReassignment::observe(RoomReassignmentObserver::class);
+   public function boot(): void
+{
+    Reservation::observe(ReservationObserver::class);
+    ScheduleOverride::observe(ScheduleOverrideObserver::class);
+    RoomReassignment::observe(RoomReassignmentObserver::class);
+
+    if (app()->environment('production')) {
+        \Illuminate\Support\Facades\URL::forceScheme('https');
     }
+}
 }
