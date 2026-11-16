@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use App\Models\RoomSwapRequest;
 use App\Models\Schedule;
+use App\Services\AuditLogRecorder;
 
 class ExpireRoomSwaps extends Command
 {
@@ -107,6 +108,25 @@ class ExpireRoomSwaps extends Command
                 DB::transaction(
                     function () use ($swap) {
 
+                        $swap->loadMissing(['requesterRoom.department', 'targetRoom.department', 'requesterSchedule', 'targetSchedule']);
+                        $roomIds = array_values(array_unique(array_filter([(int) $swap->requester_room_id, (int) $swap->target_room_id])));
+                        $scheduleIds = array_values(array_filter([(int) $swap->requester_schedule_id, (int) $swap->target_schedule_id]));
+                        $focusSchedule = $swap->requesterSchedule ?: $swap->targetSchedule;
+                        $focus = [
+                            'date' => $swap->swap_date?->format('Y-m-d'),
+                            'day' => $focusSchedule?->day,
+                            'start_time' => $swap->start_time ?: $focusSchedule?->start_time,
+                            'end_time' => $swap->end_time ?: $focusSchedule?->end_time,
+                            'schedule_ids' => $scheduleIds,
+                            'academic_term_id' => $focusSchedule?->academic_term_id,
+                        ];
+                        $recorder = app(AuditLogRecorder::class);
+                        $beforeSnapshot = $recorder->captureRooms($roomIds, $scheduleIds, $focus, [
+                            (int) $swap->requester_schedule_id => (int) $swap->target_room_id,
+                            (int) $swap->target_schedule_id => (int) $swap->requester_room_id,
+                        ]);
+                        $beforeData = ['status' => $swap->status, 'swap_type' => $swap->swap_type];
+
                         /*
                         |--------------------------------------------------------------------------
                         | LOCK REQUESTER SCHEDULE
@@ -153,6 +173,22 @@ class ExpireRoomSwaps extends Command
                                     'expired'
                             ]);
 
+                            $recorder->record('room_swap', 'expired', [
+                                'actor' => null,
+                                'room_ids' => $roomIds,
+                                'schedule_ids' => $scheduleIds,
+                                'related_user_ids' => [(int) $swap->requester_id, (int) $swap->target_user_id],
+                                'department_ids' => [(int) $swap->requesterRoom?->department_id, (int) $swap->targetRoom?->department_id],
+                                'reason' => $swap->reason,
+                                'description' => 'Temporary room swap ended after one or both schedules were removed.',
+                                'before' => $beforeData,
+                                'after' => ['status' => 'expired', 'swap_type' => $swap->swap_type],
+                                'status_before' => 'approved',
+                                'status_after' => 'expired',
+                                'snapshot_before' => $beforeSnapshot,
+                                'snapshot_after' => $recorder->captureRooms($roomIds, $scheduleIds, $focus),
+                            ]);
+
                             return;
                         }
 
@@ -190,6 +226,22 @@ class ExpireRoomSwaps extends Command
                         $swap->update([
                             'status' =>
                                 'expired'
+                        ]);
+
+                        $recorder->record('room_swap', 'expired', [
+                            'actor' => null,
+                            'room_ids' => $roomIds,
+                            'schedule_ids' => $scheduleIds,
+                            'related_user_ids' => [(int) $swap->requester_id, (int) $swap->target_user_id],
+                            'department_ids' => [(int) $swap->requesterRoom?->department_id, (int) $swap->targetRoom?->department_id, (int) $requesterSchedule->department_id, (int) $targetSchedule->department_id],
+                            'reason' => $swap->reason,
+                            'description' => 'Temporary room swap ended; both saved schedules returned to their original rooms.',
+                            'before' => $beforeData,
+                            'after' => ['status' => 'expired', 'swap_type' => $swap->swap_type],
+                            'status_before' => 'approved',
+                            'status_after' => 'expired',
+                            'snapshot_before' => $beforeSnapshot,
+                            'snapshot_after' => $recorder->captureRooms($roomIds, $scheduleIds, $focus),
                         ]);
                     }
                 );

@@ -39,6 +39,10 @@
     .chair-faculty-view .message.success { border-color:#b9d9bd; background:#edf7ee; color:#28603a; }
     .chair-faculty-view .message.error { border-color:#edc8c2; background:#fff3f1; color:#8f3e36; }
     .chair-faculty-view .message ul { margin:0; padding-left:21px; }
+    .faculty-assignment-toast { position:fixed; top:20px; left:50%; z-index:1000500; display:flex; align-items:center; gap:10px; max-width:min(420px,calc(100vw - 32px)); padding:13px 18px; border:1px solid #cde4d2; border-radius:12px; background:#fff; color:#244a32; box-shadow:0 14px 38px rgba(20,55,32,.2); font-size:13px; font-weight:750; opacity:0; transform:translate(-50%,-12px); pointer-events:none; transition:opacity .18s ease,transform .18s ease; }
+    .faculty-assignment-toast.is-visible { opacity:1; transform:translate(-50%,0); }
+    .faculty-assignment-toast i { color:#168044; font-size:16px; }
+    .chair-faculty-view #faculty-add-subject { scroll-margin-top:125px; }
     .chair-faculty-view .department-info { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 16px; padding:14px 17px; border:1px solid #dfe7dd; border-radius:13px; background:linear-gradient(110deg,#f5f7f1,#fff); }
     .chair-faculty-view .department-info-label { color:#68776d; font-size:12px; font-weight:750; }
     .chair-faculty-view .department-info-name { color:#244a35; font-size:14px; font-weight:850; }
@@ -47,17 +51,80 @@
     .chair-faculty-view .faculty-total-badge { display:inline-grid; min-width:27px; height:27px; place-items:center; padding:0 7px; border-radius:99px; background:#edf3eb; color:#285940; font-size:12px; font-weight:850; }
     .chair-faculty-view .faculty-directory-note { margin:0 0 16px; color:#5b6d61; font-size:13px; font-weight:550; line-height:1.55; }
     .chair-faculty-view .faculty-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-    .chair-faculty-view .faculty-card { position:relative; display:flex; min-width:0; min-height:135px; flex-direction:column; align-items:flex-start; padding:13px 14px; overflow:hidden; border:1px solid #e2e9e1; border-radius:14px; background:#fff; color:inherit; text-decoration:none; transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease; }
+    .chair-faculty-view .faculty-card { position:relative; display:flex; min-width:0; min-height:205px; flex-direction:column; align-items:stretch; padding:14px; overflow:hidden; border:1px solid #e2e9e1; border-radius:15px; background:#fff; color:inherit; text-decoration:none; transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease; }
     .chair-faculty-view .faculty-card:hover { transform:translateY(-2px); border-color:#adc5b0; box-shadow:0 10px 22px rgba(31,57,43,.08); }
     .chair-faculty-view .faculty-card.active { border-color:#78a080; background:linear-gradient(145deg,#f1f7ef,#fff); box-shadow:inset 3px 0 #356a4d; }
     .chair-faculty-view .faculty-directory-origin { display:flex; align-items:center; gap:6px; min-height:22px; margin-bottom:7px; padding:0 8px; border:1px solid #e1e8df; border-radius:99px; background:#f6f8f4; color:#53675a; font-size:11px; font-weight:800; line-height:1.35; }
     .chair-faculty-view .faculty-directory-origin.imported { border-color:#e6ddc4; background:#fbf8ee; color:#806a39; }
-    .chair-faculty-view .faculty-icon { display:grid; flex:0 0 40px; width:40px; height:40px; place-items:center; margin-bottom:7px; border:1px solid #e2e9df; border-radius:50%; background:#edf3eb; color:#285940; font-size:17px; }
+    .chair-faculty-view .faculty-card-person { display:flex; align-items:center; gap:11px; min-width:0; margin:2px 0 4px; }
+    .chair-faculty-view .faculty-icon { display:grid; flex:0 0 44px; width:44px; height:44px; place-items:center; margin:0; border:1px solid #e2e9df; border-radius:50%; background:#edf3eb; color:#285940; font-size:17px; }
     .chair-faculty-view img.faculty-icon { object-fit:cover; }
     .chair-faculty-view .faculty-icon[hidden] { display:none !important; }
     .chair-faculty-view .faculty-name { color:#203d30; font-size:16px; font-weight:850; line-height:1.35; overflow-wrap:anywhere; }
-    .chair-faculty-view .faculty-count { margin-top:4px; color:#53675a; font-size:13px; font-weight:650; line-height:1.4; }
-    .chair-faculty-view .faculty-manage-label { display:inline-flex; align-items:center; gap:7px; margin-top:auto; padding-top:8px; color:#315b43; font-size:12px; font-weight:800; }
+    .chair-faculty-view .faculty-count { margin-top:4px; color:#718078; font-size:11px; font-weight:650; line-height:1.4; }
+    .chair-faculty-view .faculty-card-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; width:100%; margin-top:auto; padding-top:12px; }
+    .chair-faculty-view .faculty-card-action { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:0; min-height:38px; padding:6px 8px; border:1px solid #cdddcf; border-radius:9px; background:#f7faf6; color:#315b43; font:800 10px/1.25 var(--wr-body); text-align:center; text-decoration:none; cursor:pointer; }
+    .chair-faculty-view .faculty-card-action:hover { border-color:#84a78b; background:#edf5ed; }
+    .chair-faculty-view .faculty-card-action:focus-visible { outline:3px solid rgba(49,104,76,.22); outline-offset:2px; }
+    .chair-faculty-view .faculty-card-action.primary { border-color:#24543e; background:#24543e; color:#fff; }
+    .chair-faculty-view .faculty-card-action.primary { grid-column:1/-1; }
+    .chair-faculty-view .faculty-card-action.primary:hover { background:#173b33; }
+    .chair-faculty-view .faculty-card-action i { flex:0 0 auto; }
+    .chair-faculty-view .faculty-card-action[type="button"] { appearance:none; }
+    .chair-faculty-view .faculty-schedule-overlay { position:fixed; inset:0; z-index:14000; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,32,25,.62); backdrop-filter:blur(5px); }
+    .chair-faculty-view .faculty-schedule-overlay.is-open { display:flex; }
+    .chair-faculty-view .faculty-schedule-dialog { width:min(1480px,100%); max-height:calc(100vh - 40px); overflow:auto; padding:18px; border:1px solid #dfe7dd; border-radius:18px; background:#f7f8f4; box-shadow:0 28px 80px rgba(0,0,0,.3); }
+    .chair-faculty-view .faculty-schedule-modal-content { color:#20372a; }
+    .chair-faculty-view .faculty-schedule-preview-hero { position:relative; overflow:hidden; margin:0 0 14px; padding:20px 23px; border-radius:15px; background:linear-gradient(118deg,#163b33,#37664d); color:#fff; }
+    .chair-faculty-view .faculty-schedule-preview-back { position:relative; z-index:1; display:inline-flex; align-items:center; gap:7px; min-height:35px; margin:0 0 12px; padding:0 11px; border:1px solid rgba(255,255,255,.28); border-radius:8px; background:rgba(255,255,255,.1); color:#fff; font:800 11px/1.2 var(--wr-body); text-decoration:none; cursor:pointer; }
+    .chair-faculty-view .faculty-schedule-preview-kicker { display:block; margin-bottom:5px; color:#e2c987; font-size:9px; font-weight:850; letter-spacing:.14em; text-transform:uppercase; }
+    .chair-faculty-view .faculty-schedule-preview-hero h1 { margin:0 0 5px; color:#fff; font:800 25px/1.2 var(--wr-display); }
+    .chair-faculty-view .faculty-schedule-preview-hero p { margin:0; color:#e1e8df; font-size:12px; }
+    .chair-faculty-view .faculty-schedule-preview-meta { display:flex; flex-wrap:wrap; gap:7px; margin:0 0 11px; }
+    .chair-faculty-view .faculty-schedule-preview-meta span { padding:7px 10px; border:1px solid #dfe7dd; border-radius:8px; background:#fff; color:#365644; font-size:10px; font-weight:800; }
+    .chair-faculty-view .faculty-schedule-preview-sheet { overflow:hidden; border:1px solid #dfe7dd; border-radius:12px; background:#fff; }
+    .chair-faculty-view .faculty-schedule-preview-scroll { max-height:calc(100vh - 235px); overflow:auto; }
+    .chair-faculty-view .faculty-schedule-preview-scroll table { width:100%; min-width:1320px; border-collapse:separate; border-spacing:0; table-layout:fixed; }
+    .chair-faculty-view .faculty-schedule-preview-scroll thead th { position:sticky; top:0; z-index:2; height:42px; padding:9px; border-right:1px solid #557b63; border-bottom:1px solid #557b63; background:#245940; color:#fff; font-size:10px; font-weight:850; letter-spacing:.04em; text-align:center; }
+    .chair-faculty-view .faculty-schedule-preview-scroll thead th:first-child { width:145px; background:#173b33; }
+    .chair-faculty-view .faculty-schedule-preview-scroll thead th:nth-child(5),.chair-faculty-view .faculty-schedule-preview-scroll thead th:nth-child(8) { background:#173b33; }
+    .chair-faculty-view .faculty-schedule-preview-scroll tbody th { width:145px; padding:10px; border-right:1px solid #dfe7dd; border-bottom:1px solid #e5ebe3; background:#f4f7f1; color:#355343; font-size:10px; font-weight:850; text-align:left; vertical-align:top; }
+    .chair-faculty-view .faculty-schedule-preview-scroll td { min-height:75px; padding:6px; border-right:1px solid #e5ebe3; border-bottom:1px solid #e5ebe3; background:#fff; vertical-align:top; }
+    .chair-faculty-view .faculty-schedule-preview-scroll tbody tr:nth-child(even) td { background:#fbfcfa; }
+    .chair-faculty-view .faculty-schedule-preview-scroll tbody .faculty-schedule-time { width:120px; background:#f4f7f1; color:#355343; font-size:10px; font-weight:850; white-space:nowrap; }
+    .chair-faculty-view .faculty-schedule-preview-scroll .faculty-schedule-noon-break td { height:32px; background:#edf3eb; color:#315b43; font-size:10px; font-weight:900; text-align:center; }
+    .chair-faculty-view .faculty-schedule-empty-cell { display:block; padding:8px 4px; color:#a3ada5; font-size:9px; text-align:center; }
+    .chair-faculty-view .faculty-schedule-class-card { display:grid; gap:3px; margin:0 0 5px; padding:7px; border:1px solid #d9e6d9; border-left:3px solid #32704d; border-radius:7px; background:linear-gradient(145deg,#f0f7ef,#fbfdf9); }
+    .chair-faculty-view .faculty-schedule-class-card:last-child { margin-bottom:0; }
+    .chair-faculty-view .faculty-schedule-class-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:5px; }
+    .chair-faculty-view .faculty-schedule-class-card strong { color:#1f6844; font-size:10px; font-weight:900; overflow-wrap:anywhere; }
+    .chair-faculty-view .faculty-schedule-class-heading span { flex:0 0 auto; padding:2px 4px; border:1px solid #dce8dc; border-radius:4px; background:#fff; color:#294b38; font-size:8px; font-weight:900; white-space:nowrap; }
+    .chair-faculty-view .faculty-schedule-class-card > span { color:#53675a; font-size:9px; font-weight:650; line-height:1.3; overflow-wrap:anywhere; }
+    .chair-faculty-view .faculty-schedule-class-card small { color:#708078; font-size:8px; line-height:1.3; overflow-wrap:anywhere; }
+    .chair-faculty-view .faculty-schedule-preview-empty { padding:30px 16px; color:#65756a; font-size:12px; text-align:center; }
+    .chair-faculty-view .faculty-schedule-load-message { padding:36px 18px; color:#53675a; font-size:13px; text-align:center; }
+    .chair-faculty-view .faculty-summary-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; margin:0 0 13px; }
+    .chair-faculty-view .faculty-summary-metrics article { display:grid; gap:6px; padding:12px 14px; border:1px solid #dfe7dd; border-radius:10px; background:#fff; }
+    .chair-faculty-view .faculty-summary-metrics span { color:#64746a; font-size:10px; font-weight:750; }
+    .chair-faculty-view .faculty-summary-metrics strong { color:#245940; font-size:22px; font-weight:900; line-height:1; }
+    .chair-faculty-view .faculty-summary-table-wrap { max-height:calc(100vh - 270px); overflow:auto; border:1px solid #dfe7dd; border-radius:12px; background:#fff; }
+    .chair-faculty-view .faculty-summary-table { width:100%; min-width:780px; border-collapse:separate; border-spacing:0; }
+    .chair-faculty-view .faculty-summary-table th { position:sticky; top:0; z-index:2; padding:11px 13px; background:#245940; color:#fff; font-size:10px; font-weight:850; text-align:left; }
+    .chair-faculty-view .faculty-summary-table td { padding:12px 13px; border-bottom:1px solid #e7ece5; color:#40574a; font-size:11px; vertical-align:top; }
+    .chair-faculty-view .faculty-summary-table tbody tr:nth-child(even) { background:#fafcf9; }
+    .chair-faculty-view .faculty-summary-table td > strong,.chair-faculty-view .faculty-summary-table td > span { display:block; }
+    .chair-faculty-view .faculty-summary-table td > strong { color:#244b35; font-size:11px; font-weight:850; }
+    .chair-faculty-view .faculty-summary-table td > span { margin-top:4px; color:#708078; line-height:1.45; }
+    .chair-faculty-view .faculty-summary-meeting { display:flex; align-items:center; flex-wrap:wrap; gap:5px 8px; margin:0 0 6px; padding:7px 9px; border:1px solid #dfe9de; border-radius:8px; background:#f4f8f2; }
+    .chair-faculty-view .faculty-summary-meeting:last-child { margin-bottom:0; }
+    .chair-faculty-view .faculty-summary-meeting strong { color:#315b43; font-size:10px; font-weight:850; }
+    .chair-faculty-view .faculty-summary-meeting span { color:#43594d; font-size:10px; font-weight:750; }
+    .chair-faculty-view .faculty-summary-meeting small { flex-basis:100%; color:#718078; font-size:9px; }
+    .chair-faculty-view .faculty-summary-count { display:inline-grid !important; width:32px; height:32px; place-items:center; margin:0 !important; border-radius:50%; background:#eaf4e8; color:#245940 !important; font-size:13px; font-weight:900; }
+    .chair-faculty-view .faculty-summary-count.is-empty { background:#f0f2ef; color:#8a948d !important; }
+    .chair-faculty-view .faculty-summary-unscheduled { color:#89948c; font-size:10px; font-style:italic; }
+    .chair-faculty-view .faculty-summary-empty { padding:36px 18px; border:1px dashed #d7e1d7; border-radius:12px; background:#fff; color:#637268; font-size:13px; text-align:center; }
+    body.faculty-schedule-modal-open { overflow:hidden; }
     .chair-faculty-view .faculty-directory-item.imported { display:flex; min-width:0; flex-direction:column; gap:7px; }
     .chair-faculty-view .faculty-directory-item.imported .faculty-card { flex:1; width:100%; }
     .chair-faculty-view .faculty-remove-import-form button { display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:0 10px; border:1px solid #ecd2ce; border-radius:9px; background:#fff8f7; color:#9b4c43; font:800 11px/1.2 var(--wr-body); cursor:pointer; }
@@ -273,59 +340,51 @@
                     <p class="faculty-directory-note">College instructors and imported instructors appear together. Each card is labeled by its source.</p>
                     <div class="faculty-grid">
                         @foreach($department->users->where('role', 'faculty') as $faculty)
-                            <a
-                                href="{{ route(
-                                    'chair.setFaculty',
-                                    [
-                                        'faculty' =>
-                                            $faculty->id
-                                    ]
-                                ) }}"
-                                class="
-                                    faculty-card
-                                    {{
-                                        $selectedFaculty
-                                        && $selectedFaculty->id == $faculty->id
-                                            ? 'active'
-                                            : ''
-                                    }}
-                                "
-                            >
+                            <article class="faculty-card {{ $selectedFaculty && $selectedFaculty->id == $faculty->id ? 'active' : '' }}">
 
                                 <div class="faculty-directory-origin original"><i class="fa-solid fa-building" aria-hidden="true"></i> College instructors</div>
+                                <div class="faculty-card-person">
                                 @if($faculty->profile_photo_path)
                                     <img class="faculty-icon" src="{{ $faculty->profile_photo_url }}" alt="{{ $faculty->name }} profile photo" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
                                     <span class="faculty-icon" aria-hidden="true" hidden><i class="fa-solid fa-user"></i></span>
                                 @else
                                     <div class="faculty-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></div>
                                 @endif
-                                <div class="faculty-name">
-                                    {{ $faculty->name }}
+                                    <div>
+                                        <div class="faculty-name">{{ $faculty->name }}</div>
+                                        <div class="faculty-count">{{ $faculty->facultySubjects->count() }} assigned subject(s)</div>
+                                    </div>
                                 </div>
-                                <div class="faculty-count">
-                                    {{ $faculty->facultySubjects->count() }} assigned subject(s)
+                                <div class="faculty-card-actions" aria-label="{{ $faculty->name }} actions">
+                                    <button type="button" class="faculty-card-action" data-faculty-schedule-url="{{ route('chair.faculty.schedule', $faculty->id) }}" title="View {{ $faculty->name }} schedule spreadsheet"><i class="fa-regular fa-calendar" aria-hidden="true"></i><span>View Schedule Subject</span></button>
+                                    <button type="button" class="faculty-card-action" data-faculty-summary-url="{{ route('chair.faculty.schedule-summary', $faculty->id) }}" title="View {{ $faculty->name }} schedule summary"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span>View Schedule Summary</span></button>
+                                    <a class="faculty-card-action primary" href="{{ route('chair.setFaculty', ['faculty' => $faculty->id]) }}#faculty-add-subject" title="Manage assigned subjects"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>Manage Assigned Subjects</span></a>
                                 </div>
-                                <span class="faculty-manage-label">Manage assignments <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
-                            </a>
+                            </article>
                         @endforeach
 
                         @foreach($importedFaculty as $faculty)
                             <article class="faculty-directory-item imported">
-                                <a
-                                    href="{{ route('chair.setFaculty', ['faculty' => $faculty->id]) }}"
-                                    class="faculty-card {{ $selectedFaculty && $selectedFaculty->id == $faculty->id ? 'active' : '' }}"
-                                >
+                                <div class="faculty-card {{ $selectedFaculty && $selectedFaculty->id == $faculty->id ? 'active' : '' }}">
                                     <div class="faculty-directory-origin imported"><i class="fa-solid fa-arrow-down-to-bracket" aria-hidden="true"></i> Imported · {{ $faculty->department->code ?? $faculty->department->name ?? 'Other college' }}</div>
+                                    <div class="faculty-card-person">
                                     @if($faculty->profile_photo_path)
                                         <img class="faculty-icon" src="{{ $faculty->profile_photo_url }}" alt="{{ $faculty->name }} profile photo" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
                                         <span class="faculty-icon" aria-hidden="true" hidden><i class="fa-solid fa-user"></i></span>
                                     @else
                                         <div class="faculty-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></div>
                                     @endif
-                                    <div class="faculty-name">{{ $faculty->name }}</div>
-                                    <div class="faculty-count">{{ $faculty->departmentSubjects->count() }} college subject(s) · {{ $faculty->facultySubjects->count() - $faculty->departmentSubjects->count() }} original</div>
-                                    <span class="faculty-manage-label">Manage subjects <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
-                                </a>
+                                        <div>
+                                            <div class="faculty-name">{{ $faculty->name }}</div>
+                                            <div class="faculty-count">{{ $faculty->departmentSubjects->count() }} college subject(s) · {{ $faculty->facultySubjects->count() - $faculty->departmentSubjects->count() }} original</div>
+                                        </div>
+                                    </div>
+                                    <div class="faculty-card-actions" aria-label="{{ $faculty->name }} actions">
+                                        <button type="button" class="faculty-card-action" data-faculty-schedule-url="{{ route('chair.faculty.schedule', $faculty->id) }}" title="View {{ $faculty->name }} schedule spreadsheet"><i class="fa-regular fa-calendar" aria-hidden="true"></i><span>View Schedule Subject</span></button>
+                                        <button type="button" class="faculty-card-action" data-faculty-summary-url="{{ route('chair.faculty.schedule-summary', $faculty->id) }}" title="View {{ $faculty->name }} schedule summary"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span>View Schedule Summary</span></button>
+                                        <a class="faculty-card-action primary" href="{{ route('chair.setFaculty', ['faculty' => $faculty->id]) }}#faculty-add-subject" title="Manage assigned subjects"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span>Manage Assigned Subjects</span></a>
+                                    </div>
+                                </div>
                                 <form
                                     action="{{ route('chair.faculty.import.remove', $faculty->id) }}"
                                     method="POST"
@@ -378,6 +437,12 @@
             </div>
         </form>
     </div>
+</div>
+
+<div class="faculty-schedule-overlay" id="facultyScheduleOverlay" role="dialog" aria-modal="true" aria-label="Instructor schedule spreadsheet" aria-hidden="true">
+    <section class="faculty-schedule-dialog" id="facultyScheduleDialog" tabindex="-1">
+        <div class="faculty-schedule-load-message" role="status">Choose an instructor to load their schedule.</div>
+    </section>
 </div>
 
 
@@ -487,6 +552,8 @@
                                                     Year Level
                                                 </th>
 
+                                                <th>Students</th>
+
                                                 <th>
                                                      Major
                                                 </th>
@@ -540,6 +607,19 @@
 </td>
 
 <td>
+    @if(!$isOriginalDepartmentSubject)
+        <form action="{{ route('chair.faculty.subjects.update', $facultySubject->id) }}" method="POST" style="display:flex;align-items:center;gap:5px;min-width:125px;">
+            @csrf
+            @method('PUT')
+            <input type="number" name="student_count" min="0" max="10000" step="1" required value="{{ $facultySubject->student_count ?? 0 }}" aria-label="Number of students in {{ $facultySubject->course_code }}" style="width:75px;padding:6px;border:1px solid #d5dfd7;border-radius:6px;">
+            <button type="submit" class="btn green" style="padding:6px 8px;">Save</button>
+        </form>
+    @else
+        {{ $facultySubject->student_count ?? 0 }}
+    @endif
+</td>
+
+<td>
     {{ $facultySubject->major ?? '-' }}
 </td>
 
@@ -568,6 +648,7 @@
     @js($facultySubject->year_level),
     @js($facultySubject->major),
     @js($facultySubject->program),
+    @js($facultySubject->student_count ?? 0),
 )"
                                                             >Edit</button>
                                                         @else
@@ -676,6 +757,10 @@
         <div id="facultyCohortChoices" style="display:grid;gap:7px;max-height:190px;overflow:auto;"></div>
     </div>
     <p id="facultyCourseSearchStatus" role="status" aria-live="polite" style="margin:8px 0;color:#40566c;font-size:14px;min-height:20px;">Enter a course code already added in Manage Subjects.</p>
+    <div style="max-width:260px;margin-top:12px;">
+        <label for="facultyStudentCount">Number of students</label>
+        <input type="number" name="student_count" id="facultyStudentCount" min="0" max="10000" step="1" required value="{{ old('student_count') }}" placeholder="Enter enrolled students">
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:14px;">
         <div><label for="facultySubjectTitleDisplay">Course title</label><input id="facultySubjectTitleDisplay" type="text" readonly aria-readonly="true" placeholder="Filled from Manage Subjects"></div>
         <div><label for="facultyYearLevelDisplay">Year level</label><input id="facultyYearLevelDisplay" type="text" readonly aria-readonly="true" placeholder="Filled from subject catalog"></div>
@@ -834,6 +919,9 @@
     placeholder="Enter major if applicable"
 >
 
+<label for="editSubjectStudentCount">Number of students</label>
+<input type="number" id="editSubjectStudentCount" name="student_count" min="0" max="10000" step="1" required>
+
 <br><br>
 
 
@@ -876,13 +964,14 @@
 
             <script>
 
-function editSubject(id, courseCode, subject, yearLevel, major, program) {
+function editSubject(id, courseCode, subject, yearLevel, major, program, studentCount) {
     document.getElementById('editSubjectCode').value = courseCode || '';
     document.getElementById('editSubjectName').value = subject || '';
     document.getElementById('editSubjectYear').value = yearLevel || '';
     document.getElementById('editSubjectYearDisplay').value = yearLevel || '';
     document.getElementById('editSubjectProgram').value = program || '';
     document.getElementById('editSubjectMajor').value = major || '';
+    document.getElementById('editSubjectStudentCount').value = studentCount ?? 0;
 
     document.getElementById('editSubjectForm').action = "{{ url('/chair/instructor/subjects') }}/" + id;
     document.getElementById('editSubjectModal').style.display = 'block';
@@ -908,8 +997,76 @@ document.getElementById('cancelFacultyImport')?.addEventListener('click', () => 
 document.getElementById('facultyImportModal')?.addEventListener('click', event => {
     if (event.target.id === 'facultyImportModal') setFacultyImportModal(false);
 });
+const facultyScheduleOverlay = document.getElementById('facultyScheduleOverlay');
+const facultyScheduleDialog = document.getElementById('facultyScheduleDialog');
+let facultyScheduleReturnFocus = null;
+function closeFacultyScheduleModal() {
+    if (!facultyScheduleOverlay) return;
+    facultyScheduleOverlay.classList.remove('is-open');
+    facultyScheduleOverlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('faculty-schedule-modal-open');
+    facultyScheduleReturnFocus?.focus();
+}
+function mergeInstructorScheduleCells() {
+    const table = facultyScheduleDialog?.querySelector('.faculty-schedule-preview-scroll table');
+    if (!table) return;
+    const mergeCells = cells => {
+        let index = 0;
+        while (index < cells.length) {
+            const cell = cells[index];
+            const entries = cell?.querySelectorAll('.faculty-schedule-class-card') || [];
+            const signature = entries.length === 1 ? entries[0].dataset.mergeSignature : '';
+            if (!signature) { index++; continue; }
+            let end = index + 1;
+            while (end < cells.length) {
+                const nextEntries = cells[end]?.querySelectorAll('.faculty-schedule-class-card') || [];
+                if (nextEntries.length !== 1 || nextEntries[0].dataset.mergeSignature !== signature) break;
+                end++;
+            }
+            if (end - index > 1) {
+                cell.colSpan = end - index;
+                for (let removeIndex = index + 1; removeIndex < end; removeIndex++) cells[removeIndex]?.remove();
+            }
+            index = end;
+        }
+    };
+    table.querySelectorAll('tbody tr').forEach(row => {
+        if (row.classList.contains('faculty-schedule-noon-break')) return;
+        const cells = Array.from(row.cells);
+        mergeCells([cells[1], cells[2], cells[3]]);
+        mergeCells([cells[5], cells[6]]);
+    });
+}
+async function openFacultyScheduleModal(button, summary = false) {
+    if (!facultyScheduleOverlay || !facultyScheduleDialog) return;
+    facultyScheduleReturnFocus = button;
+    facultyScheduleDialog.innerHTML = '<div class="faculty-schedule-load-message" role="status">' + (summary ? 'Loading subject schedule summary…' : 'Loading instructor schedule…') + '</div>';
+    facultyScheduleOverlay.classList.add('is-open');
+    facultyScheduleOverlay.setAttribute('aria-hidden', 'false');
+    facultyScheduleOverlay.setAttribute('aria-label', summary ? 'Instructor schedule summary' : 'Instructor schedule spreadsheet');
+    document.body.classList.add('faculty-schedule-modal-open');
+    facultyScheduleDialog.focus();
+    try {
+        const url = summary ? button.dataset.facultySummaryUrl : button.dataset.facultyScheduleUrl;
+        const response = await fetch(url, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' }
+        });
+        if (!response.ok) throw new Error('Schedule could not be loaded.');
+        facultyScheduleDialog.innerHTML = await response.text();
+        if (!summary) mergeInstructorScheduleCells();
+    } catch (error) {
+        facultyScheduleDialog.innerHTML = '<div class="faculty-schedule-load-message" role="alert">Unable to load this instructor information. Close this window and try again.</div>';
+    }
+}
+document.querySelectorAll('[data-faculty-schedule-url], [data-faculty-summary-url]').forEach(button => {
+    button.addEventListener('click', () => openFacultyScheduleModal(button, Boolean(button.dataset.facultySummaryUrl)));
+});
+facultyScheduleOverlay?.addEventListener('click', event => {
+    if (event.target === facultyScheduleOverlay || event.target.closest('[data-close-faculty-schedule]')) closeFacultyScheduleModal();
+});
 document.addEventListener('keydown', event => {
     if (event.key === 'Escape') setFacultyImportModal(false);
+    if (event.key === 'Escape') closeFacultyScheduleModal();
 });
 
 window.addEventListener('click', function(event) {
@@ -917,11 +1074,33 @@ window.addEventListener('click', function(event) {
     if (modal && event.target === modal) closeEditSubject();
 });
 
-// Display success/error/validation feedback as a centered modal instead of inline boxes.
+// Show successful assignment feedback as a brief toast; keep errors visible in a dialog.
 document.addEventListener('DOMContentLoaded', function () {
     const messages = Array.from(document.querySelectorAll('.page .message'));
     if (document.getElementById('globalMessageOverlay')) { messages.forEach(message => message.remove()); return; }
     if (!messages.length) return;
+    const successMessages = messages.filter(message => message.classList.contains('success'));
+    const hasErrors = messages.some(message => message.classList.contains('error'));
+    if (successMessages.length && !hasErrors) {
+        const toast = document.createElement('div');
+        toast.className = 'faculty-assignment-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-circle-check';
+        icon.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('span');
+        text.textContent = successMessages.map(message => message.textContent.trim()).filter(Boolean).join(' ');
+        toast.append(icon, text);
+        document.body.appendChild(toast);
+        messages.forEach(message => message.remove());
+        requestAnimationFrame(() => toast.classList.add('is-visible'));
+        window.setTimeout(() => {
+            toast.classList.remove('is-visible');
+            window.setTimeout(() => toast.remove(), 220);
+        }, 2800);
+        return;
+    }
     const overlay = document.createElement('div');
     overlay.className = 'faculty-feedback-overlay';
     overlay.setAttribute('role', 'dialog');

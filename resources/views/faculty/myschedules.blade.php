@@ -646,6 +646,12 @@
         .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .class-subject { margin-top:2px; font-size:8px; line-height:1.08; overflow-wrap:anywhere; }
         .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .class-detail,
         .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .room-name { margin-top:2px; font-size:7.4px; line-height:1.08; overflow-wrap:anywhere; }
+        .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"].temporary-reservation-entry { gap:2px; padding:4px 5px; }
+        .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .temporary-reservation-detail,
+        .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .temporary-reservation-meta { display:none; }
+        .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .temporary-reservation-badge,
+        .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .temporary-reservation-course,
+        .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .temporary-reservation-time { font-size:7.5px; line-height:1.1; }
         .faculty-my-schedules-view .excel-wrapper::-webkit-scrollbar { width:10px; height:10px; }
         .faculty-my-schedules-view .excel-wrapper::-webkit-scrollbar-thumb { border:2px solid #f5f8f4; border-radius:99px; background:#b9cdbd; }
         .faculty-my-schedules-view .excel-table { width:100%; min-width:1320px; border-spacing:0; border-collapse:separate; background:#fff; }
@@ -820,7 +826,7 @@
                         @php
                             $defaultTimes = [
                                 '7:00-8:00', '8:00-9:00', '9:00-10:00', '10:00-11:00', '11:00-12:00',
-                                '1:00-2:00', '2:00-3:00', '3:00-4:00', '4:00-5:00',
+                                '1:00-2:00', '2:00-3:00', '3:00-4:00', '4:00-5:00', '5:00-6:00', '6:00-7:00',
                             ];
                             $normalizeScheduleDay = function ($day) {
                                 $day = strtoupper(substr(trim((string) $day), 0, 3));
@@ -1161,7 +1167,7 @@
 
                                         if (
                                             $position < 0 ||
-                                            $position > 8
+                                            $position > 10
                                         ) {
 
                                             continue;
@@ -1278,6 +1284,9 @@
                                                             : ($reservation->time ?: '')
                                                     )
                                                 );
+                                            $reservationBlockTime = $reservation->start_time && $reservation->end_time
+                                                ? Carbon\Carbon::parse($reservation->start_time)->format('H:i') . '-' . Carbon\Carbon::parse($reservation->end_time)->format('H:i')
+                                                : '';
 
                                             $reservationDate = $reservation->date
                                                 ? Carbon\Carbon::parse($reservation->date)->format('M j, Y')
@@ -1294,7 +1303,7 @@
                                             }
 
                                             return '
-                                                <div class="temporary-reservation-entry">
+                                                <div class="temporary-reservation-entry" data-class-time="' . e($reservationBlockTime) . '" data-class-room-id="' . e((string) ($reservation->room_id ?? '')) . '">
                                                     <div class="temporary-reservation-header"><div class="temporary-reservation-badge"><i class="fa-solid fa-calendar-check"></i> Room reserved</div><div class="temporary-reservation-time">' . e($time) . '</div></div>
                                                     <div class="temporary-reservation-course">' . e($course) . '</div>
                                                     <div class="temporary-reservation-detail">' . e($subject) . '</div>
@@ -1346,36 +1355,25 @@
                                         }
 
                                         $reservationPosition = null;
-
-                                        $reservationStartValue = Carbon\Carbon::parse($startTime)->format('H:i');
-                                        $matchingOfficialSlot = $timeSlots->first(function ($slot) use ($reservationDay, $reservationStartValue) {
-                                            return substr(strtoupper(trim((string) $slot->day)), 0, 3) === $reservationDay
-                                                && Carbon\Carbon::parse($slot->start_time)->format('H:i') === $reservationStartValue;
-                                        });
-
-                                        if ($matchingOfficialSlot && $matchingOfficialSlot->row_position !== null) {
-                                            $reservationPosition = (int) $matchingOfficialSlot->row_position;
-                                        }
+                                        $reservationStartMinutes = $clockMinutes($startTime);
 
                                         foreach ($defaultTimes as $defaultPosition => $defaultTime) {
-
-                                            if ($reservationPosition !== null) {
-                                                break;
+                                            $defaultParts = explode('-', $defaultTime, 2);
+                                            $defaultStart = trim($defaultParts[0] ?? '');
+                                            $defaultEnd = trim($defaultParts[1] ?? '');
+                                            if ($defaultPosition >= 5) {
+                                                if (preg_match('/^(\d{1,2}):(\d{2})$/', $defaultStart, $timeParts) && (int) $timeParts[1] < 12) {
+                                                    $defaultStart = sprintf('%02d:%s', (int) $timeParts[1] + 12, $timeParts[2]);
+                                                }
+                                                if (preg_match('/^(\d{1,2}):(\d{2})$/', $defaultEnd, $timeParts) && (int) $timeParts[1] < 12) {
+                                                    $defaultEnd = sprintf('%02d:%s', (int) $timeParts[1] + 12, $timeParts[2]);
+                                                }
                                             }
+                                            $defaultStartMinutes = $clockMinutes($defaultStart);
+                                            $defaultEndMinutes = $clockMinutes($defaultEnd);
 
-                                            $defaultStart =
-                                                trim(
-                                                    explode('-', $defaultTime, 2)[0]
-                                                );
-
-                                            if ($defaultPosition >= 5 && preg_match('/^(\d{1,2}):(\d{2})$/', $defaultStart, $timeParts) && (int) $timeParts[1] < 12) {
-                                                $defaultStart = sprintf('%02d:%s', (int) $timeParts[1] + 12, $timeParts[2]);
-                                            }
-
-                                            if (
-                                                substr($defaultStart, 0, 5) ===
-                                                substr($startTime, 0, 5)
-                                            ) {
+                                            if ($defaultStartMinutes !== null && $defaultEndMinutes !== null
+                                                && $reservationStartMinutes >= $defaultStartMinutes && $reservationStartMinutes < $defaultEndMinutes) {
 
                                                 $reservationPosition =
                                                     $defaultPosition;
@@ -2335,11 +2333,14 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedOverride = wrapper._selectedOverride;
         const daysBySide = { left: ['MON', 'WED', 'FRI'], right: ['TUE', 'THU'], sat: ['SAT'] };
 
-        table.querySelectorAll('.schedule-cell-stack > .class-entry[data-class-time]').forEach(function(source) {
+        table.querySelectorAll('.schedule-cell-stack > .class-entry[data-class-time], .schedule-cell-stack > .temporary-reservation-entry[data-class-time]').forEach(function(source) {
             const cell = source.closest('td[data-day]');
             const range = myScheduleRange(source.dataset.classTime);
             const side = sideByDay[String(cell?.dataset.day || '').toUpperCase().slice(0, 3)];
-            if (!cell || !range || !side || cell.querySelectorAll('.class-entry[data-class-time]').length !== 1) return;
+            const isReservation = source.matches('.temporary-reservation-entry');
+            if (!cell || !range || !side) return;
+            if (isReservation && cell.querySelectorAll('.temporary-reservation-entry[data-class-time]').length !== 1) return;
+            if (!isReservation && (cell.querySelectorAll('.class-entry[data-class-time]').length !== 1 || cell.querySelector('.temporary-reservation-entry[data-class-time]'))) return;
 
             const top = yAtMinute(side, range.start, 'start');
             const bottom = yAtMinute(side, range.end, 'end');

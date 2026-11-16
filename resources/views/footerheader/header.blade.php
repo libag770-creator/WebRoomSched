@@ -36,6 +36,26 @@
         :root { --department-theme-color: #276747; }
         .header-action.profile { display:flex; align-items:center; gap:8px; max-width:240px; }
         .header-left { gap:12px; }
+        .header-help-button { gap:7px; padding:0 12px; border:1px solid #e3e9e2; background:#fff; color:#315b43; font-size:12px; font-weight:750; }
+        .header-help-button i { color:#718846; }
+        .header-student-code-button { gap:7px; padding:0 12px; border:1px solid #dce8de; background:#f3f8f3; color:#315b43; font-size:12px; font-weight:750; }
+        .student-code-overlay { position:fixed; inset:0; z-index:1000300; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.52); backdrop-filter:blur(3px); }
+        .student-code-overlay[hidden] { display:none !important; }
+        .student-code-dialog { width:min(460px,100%); padding:28px; border-radius:18px; background:#fff; box-shadow:0 24px 70px rgba(0,0,0,.25); }
+        .student-code-dialog h2 { margin:0 0 8px; color:#20392c; font-size:21px; }
+        .student-code-dialog p { margin:0 0 18px; color:#64736a; font-size:13px; line-height:1.55; }
+        .student-code-dialog label { display:block; margin:10px 0 7px; color:#34443a; font-size:12px; font-weight:750; }
+        .student-code-dialog input { width:100%; height:50px; box-sizing:border-box; padding:0 13px; border:1px solid #d7e2d8; border-radius:10px; font-size:19px; font-weight:800; letter-spacing:3px; text-align:center; text-transform:uppercase; }
+        .student-code-actions { display:flex; justify-content:flex-end; gap:9px; flex-wrap:wrap; margin-top:17px; }
+        .student-code-actions button { min-height:40px; padding:0 14px; border:0; border-radius:9px; background:#edf2ed; color:#30483a; font-weight:750; cursor:pointer; }
+        .student-code-actions .primary { background:#276747; color:#fff; }
+        .student-code-toast { position:fixed; top:20px; left:50%; z-index:1000400; display:flex; align-items:center; gap:10px; max-width:min(360px,calc(100vw - 32px)); padding:13px 17px; border:1px solid #cde4d2; border-radius:12px; background:#fff; color:#244a32; box-shadow:0 14px 38px rgba(20,55,32,.2); font-size:13px; font-weight:750; opacity:0; transform:translate(-50%,-12px); pointer-events:none; transition:opacity .18s ease,transform .18s ease; }
+        .student-code-toast.is-visible { opacity:1; transform:translate(-50%,0); }
+        .student-code-toast i { color:#168044; font-size:16px; }
+        .student-code-toast.is-error { border-color:#f2c9c5; color:#8f302b; }
+        .student-code-toast.is-error i { color:#c24138; }
+        @media(max-width:480px) { .student-code-toast { top:16px; width:max-content; max-width:calc(100vw - 32px); justify-content:center; } }
+        @media(max-width:480px) { .header-help-button,.header-student-code-button { min-width:38px; padding:0 9px; } .header-help-button span,.header-student-code-button span { display:none; } }
         .header-department-logo { display:block; flex:0 0 44px; width:44px; height:44px; padding:4px; border:1px solid #e0e8e1; border-radius:11px; background:#fff; object-fit:contain; }
         .header-notification-wrap { position:relative; }
         .header-notification-button { position:relative; }
@@ -160,6 +180,7 @@
                     $headerRole === 'admin' && request()->routeIs('admin.buildings*') => 'Buildings & Rooms',
                     $headerRole === 'admin' && request()->routeIs('admin.roomreassignment*') => 'Schedule Overrides',
                     $headerRole === 'admin' && request()->routeIs('admin.manageusers*') => 'Manage Users',
+                    request()->routeIs('audit-logs.*') => 'Audit Logs',
                     $headerRole === 'chair' && request()->routeIs('chair.dashboard', 'chair.dashboard.page') => 'College overview',
                     $headerRole === 'chair' && request()->routeIs('chair.requests') => 'Requests & Activity',
                     $headerRole === 'chair' && request()->routeIs('chair.schedule.library', 'chair.academic.terms.*') => 'Schedule library',
@@ -167,6 +188,7 @@
                     $headerRole === 'chair' && request()->routeIs('chair.modifyschedule') => 'Cross scheduling',
                     $headerRole === 'chair' && request()->routeIs('chair.roomavailability') => 'All-Room Availability',
                     $headerRole === 'chair' && request()->routeIs('chair.setFaculty', 'chair.faculty.subjects*') => 'Instructors & Subjects',
+                    $headerRole === 'chair' && request()->routeIs('chair.faculty.schedule') => 'Instructor Schedule',
                     $headerRole === 'chair' && request()->routeIs('chair.managesubjects*') => 'Subject catalog',
                     $headerRole === 'faculty' && request()->routeIs('faculty.dashboard') => 'Instructor overview',
                     $headerRole === 'faculty' && request()->routeIs('faculty.schedules') => 'Campus schedules',
@@ -174,6 +196,7 @@
                     $headerRole === 'faculty' && request()->routeIs('faculty.vacant') => 'Find a room',
                     $headerRole === 'faculty' && request()->routeIs('faculty.room-swap', 'faculty.room.swap.requests') => 'Room coordination',
                     $headerRole === 'faculty' && request()->routeIs('faculty.bookings') => 'My reservations',
+                    request()->routeIs('help') => 'Help Center',
                     request()->routeIs('profile.edit') => 'My profile',
                     default => 'Workspace',
                 };
@@ -191,6 +214,20 @@
     @endif
 
     <div class="header-right">
+
+        @if(in_array($headerRole, ['admin', 'chair', 'faculty'], true))
+            <a href="{{ route('help') }}" class="header-action header-help-button" title="Open the Help Center" aria-label="Open the Help Center">
+                <i class="fa-regular fa-circle-question" aria-hidden="true"></i>
+                <span>Help</span>
+            </a>
+        @endif
+
+        @if(in_array($headerRole, ['chair', 'faculty'], true) && $headerDepartment)
+            <button type="button" class="header-action header-student-code-button" onclick="openStudentCodeDialog()" aria-haspopup="dialog" aria-controls="studentCodeOverlay" title="Student schedule access code">
+                <i class="fa-solid fa-key" aria-hidden="true"></i>
+                <span>{{ $headerRole === 'chair' ? 'Student access' : 'Student code' }}</span>
+            </button>
+        @endif
 
         <?php if (auth()->check()): ?>
             <div class="header-notification-wrap">
@@ -256,6 +293,45 @@
     </div>
 
 </header>
+
+@if(in_array($headerRole, ['chair', 'faculty'], true) && $headerDepartment)
+    <div id="studentCodeToast" class="student-code-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+        <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+        <span id="studentCodeToastMessage">Student access code copied.</span>
+    </div>
+    <div id="studentCodeOverlay" class="student-code-overlay" role="dialog" aria-modal="true" aria-labelledby="studentCodeTitle" hidden>
+        <section class="student-code-dialog">
+            <h2 id="studentCodeTitle">Student schedule access</h2>
+            <p>Share this department code with students so they can open the schedule page.</p>
+            @if($headerRole === 'chair')
+                <form method="POST" action="{{ route('chair.student-access-code.update') }}" id="studentCodeForm">
+                    @csrf
+                    <label for="studentCodeValue">Department code</label>
+                    <input id="studentCodeValue" name="code" maxlength="9" value="{{ $headerDepartment->student_access_code }}" data-saved-code="{{ $headerDepartment->student_access_code }}" placeholder="ABCD-2345" autocomplete="off" required>
+                    @error('code')<p style="color:#b42318;margin:7px 0 0">{{ $message }}</p>@enderror
+                    <div class="student-code-actions">
+                        <button type="button" onclick="generateStudentAccessCode()"><i class="fa-solid fa-shuffle"></i> Generate</button>
+                        <button type="button" id="studentCodeCopyButton" onclick="copyStudentAccessCode()" {{ $headerDepartment->student_access_code ? '' : 'disabled' }}><i class="fa-regular fa-copy"></i> Copy saved code</button>
+                        <button type="submit" class="primary"><i class="fa-regular fa-floppy-disk"></i> Save code</button>
+                        <button type="button" onclick="closeStudentCodeDialog()">Close</button>
+                    </div>
+                </form>
+            @else
+                @if($headerDepartment->student_access_code)
+                    <label for="studentCodeReadOnly">{{ $headerDepartment->name }} code</label>
+                    <input id="studentCodeReadOnly" value="{{ $headerDepartment->student_access_code }}" readonly aria-label="Student access code">
+                    <div class="student-code-actions">
+                        <button type="button" class="primary" onclick="copyStudentAccessCode()"><i class="fa-regular fa-copy"></i> Copy code</button>
+                        <button type="button" onclick="closeStudentCodeDialog()">Close</button>
+                    </div>
+                @else
+                    <p>Your department chair has not created an access code yet. Ask them to set one up.</p>
+                    <div class="student-code-actions"><button type="button" onclick="closeStudentCodeDialog()">Close</button></div>
+                @endif
+            @endif
+        </section>
+    </div>
+@endif
 
 @php
     $accountProfileShouldOpen = session('account_profile_open')
@@ -363,7 +439,7 @@
 </div>
 @endauth
 
-@if((session('success') || session('error') || $errors->any()) && !$accountProfileShouldOpen)
+@if((session('success') || session('error') || $errors->any()) && !$accountProfileShouldOpen && !(request()->routeIs('chair.setFaculty') && session('success') && !session('error') && !$errors->any()))
     <div id="globalMessageOverlay" class="global-message-overlay" role="dialog" aria-modal="true">
         <div class="global-message-dialog {{ session('success') ? 'success' : 'error' }}">
             <div class="global-message-icon">{{ session('success') ? '✓' : '!' }}</div>
@@ -392,6 +468,80 @@
 </div>
 
 <script>
+function openStudentCodeDialog() {
+    const overlay = document.getElementById('studentCodeOverlay');
+    if (!overlay) return;
+    overlay.hidden = false;
+    document.body.classList.add('system-confirm-open');
+    overlay.querySelector('input')?.focus();
+}
+function closeStudentCodeDialog() {
+    const overlay = document.getElementById('studentCodeOverlay');
+    if (overlay) overlay.hidden = true;
+    document.body.classList.remove('system-confirm-open');
+}
+function generateStudentAccessCode() {
+    const input = document.getElementById('studentCodeValue');
+    if (!input || !window.crypto?.getRandomValues) return;
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    const raw = Array.from(bytes, value => alphabet[value % alphabet.length]).join('');
+    input.value = raw.slice(0, 4) + '-' + raw.slice(4);
+    syncStudentCodeCopyButton();
+}
+function syncStudentCodeCopyButton() {
+    const input = document.getElementById('studentCodeValue');
+    const button = document.getElementById('studentCodeCopyButton');
+    if (input && button) button.disabled = !input.value || input.value !== input.dataset.savedCode;
+}
+let studentCodeToastTimer;
+function showStudentCodeToast(message, isError = false) {
+    const toast = document.getElementById('studentCodeToast');
+    const messageElement = document.getElementById('studentCodeToastMessage');
+    if (!toast || !messageElement) return;
+    window.clearTimeout(studentCodeToastTimer);
+    messageElement.textContent = message;
+    toast.classList.toggle('is-error', isError);
+    const icon = toast.querySelector('i');
+    if (icon) icon.className = isError ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check';
+    toast.hidden = false;
+    requestAnimationFrame(() => toast.classList.add('is-visible'));
+    studentCodeToastTimer = window.setTimeout(() => {
+        toast.classList.remove('is-visible');
+        window.setTimeout(() => { toast.hidden = true; }, 200);
+    }, 2600);
+}
+async function copyStudentAccessCode() {
+    if (document.getElementById('studentCodeCopyButton')?.disabled) {
+        showStudentCodeToast('Save this code before copying it.', true);
+        return;
+    }
+    const value = document.getElementById('studentCodeValue')?.value || document.getElementById('studentCodeReadOnly')?.value;
+    if (!value) {
+        showStudentCodeToast('There is no student access code to copy yet.', true);
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(value);
+        showStudentCodeToast('Student access code copied.');
+    } catch (_) {
+        const temporary = document.createElement('textarea');
+        temporary.value = value;
+        temporary.style.position = 'fixed';
+        temporary.style.opacity = '0';
+        document.body.appendChild(temporary);
+        temporary.select();
+        const copied = document.execCommand('copy');
+        temporary.remove();
+        showStudentCodeToast(copied ? 'Student access code copied.' : 'Could not copy the code. Please copy it manually.', !copied);
+    }
+}
+document.getElementById('studentCodeValue')?.addEventListener('input', function () {
+    const raw = this.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, '').slice(0, 8);
+    this.value = raw.length > 4 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
+    syncStudentCodeCopyButton();
+});
 function openAccountProfileDialog() {
     const overlay = document.getElementById('accountProfileOverlay');
     if (!overlay) return;

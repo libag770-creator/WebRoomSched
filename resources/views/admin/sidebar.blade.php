@@ -45,6 +45,12 @@
 
         <span class="faculty-sidebar-section">ACCESS</span>
         <ul class="sidebar-menu">
+            <li class="{{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
+                <a href="{{ route('audit-logs.index', ['type' => 'override']) }}" @if(request()->routeIs('audit-logs.*')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Audit Logs</span>
+                </a>
+            </li>
             <li class="{{ request()->routeIs('admin.manageusers*') ? 'active' : '' }}">
                 <a href="{{ route('admin.manageusers') }}" @if(request()->routeIs('admin.manageusers*')) aria-current="page" @endif>
                     <span class="faculty-nav-icon"><i class="fa-solid fa-users" aria-hidden="true"></i></span>

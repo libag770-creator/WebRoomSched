@@ -116,7 +116,7 @@
                 <header class="subjects-hero">
                     <span class="subjects-kicker">College workspace</span>
                     <h1>Manage Subjects</h1>
-                    <p>Set up a program, add one or more curriculum memoranda, then edit both semesters together in year-level sheets.</p>
+                    <p>Set up a program, add one or more curriculum, then edit both semesters together in year-level sheets.</p>
                     <div class="subjects-steps" aria-label="Setup steps">
                         <span class="subjects-step {{ !$selectedProgram ? 'active' : '' }}">1. Add a program</span>
                         <span class="subjects-step {{ $selectedProgram && !$selectedMemorandum ? 'active' : '' }}">2. Add a memorandum</span>
@@ -132,7 +132,7 @@
                     <div class="subjects-grid">
                         <section class="subjects-card">
                             <h2>Add a program</h2>
-                            <p>Start with the program name and code. Curriculum memoranda and majors are added inside the program.</p>
+                            <p>Start with the program name and code. Curriculum and majors are added inside the program.</p>
                             <form method="POST" action="{{ route('chair.managesubjects.program.store') }}">
                                 @csrf
                                 <div class="subjects-field">
@@ -216,7 +216,7 @@
                         </section>
 
                         <section class="subjects-card">
-                            <h2>Curriculum memoranda</h2>
+                            <h2>Curriculum</h2>
                             <p>Open a memorandum to edit its year-level sheets.</p>
                             @if($selectedMemoranda->isEmpty())
                                 <div class="subjects-empty">No memorandum entries yet. Add one here to start entering subjects.</div>
@@ -267,7 +267,7 @@
                     <section class="subjects-card">
                         <div class="memo-actions" style="justify-content:space-between;margin-top:0">
                             <div>
-                                <span class="subjects-kicker" style="color:#9a8450">CURRICULUM MEMORANDUM</span>
+                                <span class="subjects-kicker" style="color:#9a8450">CURRICULUM</span>
                                 <h2>{{ $selectedProgram->name }} · {{ $selectedProgram->code }}</h2>
                             </div>
                             <a class="subjects-btn secondary" href="{{ route('chair.managesubjects.program', $selectedProgram->id) }}">All memoranda</a>

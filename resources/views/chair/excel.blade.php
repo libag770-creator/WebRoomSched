@@ -17,7 +17,7 @@
         Class Program - {{ $room->room_name }}
     </title>
 
-    <link rel="stylesheet" href="{{ asset('css/chair-excel.css') }}?v=20261029-same-course-conflict-v1">
+    <link rel="stylesheet" href="{{ asset('css/chair-excel.css') }}?v=20261115-schedule-cell-sync-v1">
     <link rel="stylesheet" href="{{ asset('css/schedule-sheet-controls.css') }}?v=20261023-fixed-cells-v2">
     <script src="{{ asset('js/schedule-sheet-controls.js') }}?v=20261023-fit-controls-v1" defer></script>
 
@@ -310,6 +310,7 @@
     'year_level' => $item->year_level,
     'major' => $item->major,
     'program' => $item->program,
+    'student_count' => (int) ($item->student_count ?? 0),
     'shared_cohorts' => $cohorts->map(fn ($cohort) => [
         'program' => $cohort->program?->name,
         'program_code' => $cohort->program?->code,
@@ -458,6 +459,11 @@
 
                 </div>
 
+                <div class="form-group">
+                    <label for="subject_student_count">Students in this subject</label>
+                    <input type="text" id="subject_student_count" readonly placeholder="Automatic">
+                </div>
+
 <!-- SUBJECT TYPE -->
 <div class="form-group">
     <label>
@@ -554,6 +560,19 @@
             </section>
         </div>
 
+        <div class="same-course-conflict-overlay" id="roomCapacityConfirm" hidden>
+            <section class="same-course-conflict-card" role="dialog" aria-modal="true" aria-labelledby="roomCapacityTitle">
+                <div class="same-course-conflict-icon" aria-hidden="true">!</div>
+                <h2 id="roomCapacityTitle">Room capacity is too small</h2>
+                <p id="roomCapacityMessage"></p>
+                <p class="same-course-conflict-note">You can choose a larger room or continue with this room if you have approval.</p>
+                <div class="same-course-conflict-actions">
+                    <button type="button" id="cancelRoomCapacity" class="same-course-conflict-cancel">Cancel entry</button>
+                    <button type="button" id="proceedRoomCapacity" class="same-course-conflict-proceed">Proceed anyway</button>
+                </div>
+            </section>
+        </div>
+
 
         <!-- =====================================================
              TABLE
@@ -644,18 +663,38 @@
     $timeToMinutes = function ($time) {
         $time = trim((string) $time);
 
-        if (!preg_match('/^(\d{1,2}):(\d{2})$/', $time, $matches)) {
+        if (!preg_match('/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i', $time, $matches)) {
             return null;
         }
 
         $hour = (int) $matches[1];
         $minute = (int) $matches[2];
+        $meridiem = strtoupper($matches[3] ?? '');
 
-        if ($hour >= 1 && $hour <= 6) {
+        if ($meridiem === 'AM' && $hour === 12) {
+            $hour = 0;
+        } elseif ($meridiem === 'PM' && $hour !== 12) {
+            $hour += 12;
+        } elseif ($meridiem === '' && $hour >= 1 && $hour <= 6) {
             $hour += 12;
         }
 
         return ($hour * 60) + $minute;
+    };
+
+    $displayTimeLabel = function ($time) {
+        return trim(preg_replace('/\s*(?:AM|PM)\b/i', '', (string) $time));
+    };
+
+    $reservationStartsInSlot = function ($reservation, $slotTime) use ($timeToMinutes) {
+        if (!$reservation?->start_time || !$reservation?->end_time) return false;
+        $parts = preg_split('/\s*[-–—]\s*/u', trim((string) $slotTime), 2);
+        if (count($parts) !== 2) return false;
+        $slotStart = $timeToMinutes($parts[0]);
+        $slotEnd = $timeToMinutes($parts[1]);
+        $reservationStart = $timeToMinutes(\Carbon\Carbon::parse($reservation->start_time)->format('H:i'));
+        return $slotStart !== null && $slotEnd !== null && $reservationStart !== null
+            && $reservationStart >= $slotStart && $reservationStart < $slotEnd;
     };
 
     /*
@@ -925,9 +964,9 @@ foreach ($roomTimeSlots as $slot) {
     }
 
     $day = strtoupper(trim((string) $slot->day));
-    $slotTime = \Carbon\Carbon::parse($slot->start_time)->format('g:i')
+    $slotTime = \Carbon\Carbon::parse($slot->start_time)->format('g:i A')
         . '-'
-        . \Carbon\Carbon::parse($slot->end_time)->format('g:i');
+        . \Carbon\Carbon::parse($slot->end_time)->format('g:i A');
 
     // Keep the published room's standard rows aligned with the timetable's
     // fixed 7 AM–7 PM layout. Older saved row labels may contain noon or
@@ -963,9 +1002,9 @@ foreach ($fallbackTimeSlots as $slot) {
         continue;
     }
 
-    $slotTime = \Carbon\Carbon::parse($slot->start_time)->format('g:i')
+    $slotTime = \Carbon\Carbon::parse($slot->start_time)->format('g:i A')
         . '-'
-        . \Carbon\Carbon::parse($slot->end_time)->format('g:i');
+        . \Carbon\Carbon::parse($slot->end_time)->format('g:i A');
 
     if (!$hasRoomRowDeletionMarker && isset($defaultTimes[$position])) {
         $slotTime = $defaultTimes[$position];
@@ -1015,15 +1054,19 @@ foreach ($schedules as $row) {
 $sortTime = function ($time) {
     $start = trim(explode('-', $time)[0]);
 
-    if (!preg_match('/^(\d{1,2}):(\d{2})$/', $start, $matches)) {
+    if (!preg_match('/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i', $start, $matches)) {
         return 9999;
     }
 
     $hour = (int) $matches[1];
     $minute = (int) $matches[2];
+    $meridiem = strtoupper($matches[3] ?? '');
 
-    // Treat 1:00-6:00 as afternoon times
-    if ($hour >= 1 && $hour <= 6) {
+    if ($meridiem === 'AM' && $hour === 12) {
+        $hour = 0;
+    } elseif ($meridiem === 'PM' && $hour !== 12) {
+        $hour += 12;
+    } elseif ($meridiem === '' && $hour >= 1 && $hour <= 6) {
         $hour += 12;
     }
 
@@ -1078,18 +1121,6 @@ $rowCount = max(
          ========================================================= --}}
 
   @if($i === 5)
-    <tr class="add-time-before-break-row">
-        <td colspan="9">
-            <button
-                type="button"
-                class="btn btn-gray"
-                id="addRowBeforeBreakButton"
-            >
-                + Add Time Row 
-            </button>
-        </td>
-    </tr>
-
     <tr class="break-row">
         <td colspan="9">
             N O O N
@@ -1106,8 +1137,8 @@ $rowCount = max(
              LEFT TIME — MWF
              ===================================================== --}}
 
-       <td data-side="left" class="time-cell editable-time" contenteditable="{{ $isPublishedScheduleView ? 'false' : 'true' }}" spellcheck="false">
-         {{ $leftTime }}
+       <td data-side="left" class="time-cell" data-exact-time="{{ $leftTime }}">
+         {{ $displayTimeLabel($leftTime) }}
        </td>
 
 
@@ -1129,8 +1160,8 @@ $rowCount = max(
                     ?? $scheduleMap[$key]
                     ?? null;
 
-                $reservation = $reservations->first(function ($item) use ($day, $leftTime, $timeToMinutes) {
-                    if (strtoupper(trim((string) $item->day)) !== $day) {
+                $reservationsForSlot = $reservations->filter(function ($item) use ($day, $leftTime, $timeToMinutes) {
+                    if (substr(strtoupper(trim((string) $item->day)), 0, 3) !== $day) {
                         return false;
                     }
 
@@ -1150,11 +1181,34 @@ $rowCount = max(
 
                     return $slotStart < $reservationEnd && $slotEnd > $reservationStart;
                 });
+                $reservationDateCount = $reservationsForSlot->count();
+                $reservation = $reservationsForSlot->sortBy('date')->first();
+                $reservationStartingInThisRow = $reservationsForSlot
+                    ->filter(fn ($item) => $reservationStartsInSlot($item, $leftTime))
+                    ->sortBy('date')
+                    ->first();
+                if ($reservationStartingInThisRow) $reservation = $reservationStartingInThisRow;
+                $reservationStartsHere = (bool) $reservationStartingInThisRow;
+
+                $reservationRanges = $reservationsForSlot->map(fn ($item) => [
+                    'id' => (int) $item->id,
+                    'start' => \Carbon\Carbon::parse($item->start_time)->format('H:i'),
+                    'end' => \Carbon\Carbon::parse($item->end_time)->format('H:i'),
+                ])->values();
+                $leftSlotParts = preg_split('/\s*-\s*/', trim((string) $leftTime), 2);
+                $leftSlotStart = $timeToMinutes($leftSlotParts[0] ?? '');
+                $leftSlotEnd = $timeToMinutes($leftSlotParts[1] ?? '');
+                $reservationCoversCell = $reservationsForSlot->contains(function ($item) use ($leftSlotStart, $leftSlotEnd, $timeToMinutes) {
+                    if ($leftSlotStart === null || $leftSlotEnd === null) return false;
+                    $start = $timeToMinutes(\Carbon\Carbon::parse($item->start_time)->format('H:i'));
+                    $end = $timeToMinutes(\Carbon\Carbon::parse($item->end_time)->format('H:i'));
+                    return $start !== null && $end !== null && $start <= $leftSlotStart && $end >= $leftSlotEnd;
+                });
 
                 $isLocked =
                     $isCrossRoomReadOnly
                     ||
-                    (bool) $reservation
+                    $reservationCoversCell
                     ||
                     (
                         $schedule
@@ -1171,7 +1225,7 @@ $rowCount = max(
 
             <td
                 data-side="left"
-                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }} {{ $reservation ? 'reserved-cell' : '' }}"
+                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }} {{ $reservationCoversCell ? 'reserved-cell' : '' }} {{ $reservation && !$reservationCoversCell ? 'partial-reserved-cell' : '' }}"
 
                 data-schedule-id="{{ $schedule ? $schedule->id : '' }}"
 
@@ -1205,6 +1259,7 @@ $rowCount = max(
 
                 data-department-id="{{ $schedule ? ($schedule->department_id ?? '') : '' }}"
                 data-department-name="{{ $schedule?->department?->name ?? '' }}"
+                data-room-id="{{ $room->id }}"
                 data-room-name="{{ $room->room_name }}"
                 data-building-name="{{ $room->building->name ?? $room->building ?? '' }}"
                 data-approved-merged-courses="{{ e($mergeCourseInfoForSchedule($schedule)->toJson()) }}"
@@ -1228,8 +1283,9 @@ $rowCount = max(
 
                 data-locked="{{ $isLocked ? '1' : '0' }}"
 
-                data-reservation-id="{{ $reservation ? $reservation->id : '' }}"
+                data-reservation-id="{{ $reservationCoversCell && $reservation ? $reservation->id : '' }}"
                 data-reservation-time="{{ $reservation ? (\Carbon\Carbon::parse($reservation->start_time)->format('H:i') . '-' . \Carbon\Carbon::parse($reservation->end_time)->format('H:i')) : '' }}"
+                data-reservation-ranges="{{ e($reservationRanges->toJson()) }}"
 
                 data-subject-type="{{ $schedule ? ($schedule->subject_type ?? '') : '' }}"
 
@@ -1389,18 +1445,25 @@ $rowCount = max(
                     @endif
 
                     @if($reservation)
+                        @if($reservationStartsHere)
                         <div class="reservation-cell-label">
-                            {{ $reservation->status === 'Reserved' ? 'TEMPORARY RESERVATION' : 'RESERVATION' }}
+                            ONE-DAY ROOM BOOKING
                         </div>
-                        <div class="reservation-cell-user">
-                            {{ $reservation->user?->name ?? 'Instructor' }}
-                        </div>
-                        <div class="reservation-cell-time">
-                            {{ \Carbon\Carbon::parse($reservation->date)->format('M d, Y') }} · {{ $reservation->time }}
-                        </div>
-                        <div class="reservation-cell-note">
-                            This slot is temporarily blocked and cannot be scheduled.
-                        </div>
+                            <div class="reservation-cell-user">
+                                {{ $reservation->subject?->course_code ?? $reservation->facultySubject?->course_code ?? 'Room booking' }}
+                                · {{ $reservation->user?->name ?? 'Instructor' }}
+                            </div>
+                            <div class="reservation-cell-time">
+                                {{ \Carbon\Carbon::parse($reservation->date)->format('M d, Y') }} · {{ \Carbon\Carbon::parse($reservation->start_time)->format('g:i A') }} – {{ \Carbon\Carbon::parse($reservation->end_time)->format('g:i A') }}
+                            </div>
+                            <div class="reservation-cell-note">
+                                {{ $reservation->subject?->course_title ?? $reservation->facultySubject?->subject ?? $reservation->purpose ?? 'Reserved room use' }}
+                            </div>
+                            @if($reservationDateCount > 1)
+                                <div class="reservation-cell-note">+{{ $reservationDateCount - 1 }} more booking date(s) in this slot</div>
+                            @endif
+                            <div class="reservation-cell-note">This reservation blocks the room through {{ \Carbon\Carbon::parse($reservation->end_time)->format('g:i A') }}.</div>
+                        @endif
                     @endif
 
                     @if($isLocked)
@@ -1430,11 +1493,10 @@ $rowCount = max(
 
         <td
             data-side="right"
-            class="time-cell editable-time"
-            contenteditable="{{ $isPublishedScheduleView ? 'false' : 'true' }}"
-            spellcheck="false"
+            class="time-cell"
+            data-exact-time="{{ $rightTime }}"
         >
-            {{ $rightTime }}
+            {{ $displayTimeLabel($rightTime) }}
         </td>
 
 
@@ -1445,8 +1507,8 @@ $rowCount = max(
         @foreach(['TUE', 'THU', 'SAT'] as $day)
 
             @if($day === 'SAT')
-                <td data-side="sat" class="time-cell editable-time" contenteditable="{{ $isPublishedScheduleView ? 'false' : 'true' }}" spellcheck="false">
-                    {{ $saturdayTime }}
+                <td data-side="sat" class="time-cell" data-exact-time="{{ $saturdayTime }}">
+                    {{ $displayTimeLabel($saturdayTime) }}
                 </td>
                 @php
                     $cellTime = $saturdayTime;
@@ -1471,8 +1533,8 @@ $rowCount = max(
                     ?? $scheduleMap[$key]
                     ?? null;
 
-                $reservation = $reservations->first(function ($item) use ($day, $cellTime, $timeToMinutes) {
-                    if (strtoupper(trim((string) $item->day)) !== $day) {
+                $reservationsForSlot = $reservations->filter(function ($item) use ($day, $cellTime, $timeToMinutes) {
+                    if (substr(strtoupper(trim((string) $item->day)), 0, 3) !== $day) {
                         return false;
                     }
 
@@ -1492,11 +1554,34 @@ $rowCount = max(
 
                     return $slotStart < $reservationEnd && $slotEnd > $reservationStart;
                 });
+                $reservationDateCount = $reservationsForSlot->count();
+                $reservation = $reservationsForSlot->sortBy('date')->first();
+                $reservationStartingInThisRow = $reservationsForSlot
+                    ->filter(fn ($item) => $reservationStartsInSlot($item, $cellTime))
+                    ->sortBy('date')
+                    ->first();
+                if ($reservationStartingInThisRow) $reservation = $reservationStartingInThisRow;
+                $reservationStartsHere = (bool) $reservationStartingInThisRow;
+
+                $reservationRanges = $reservationsForSlot->map(fn ($item) => [
+                    'id' => (int) $item->id,
+                    'start' => \Carbon\Carbon::parse($item->start_time)->format('H:i'),
+                    'end' => \Carbon\Carbon::parse($item->end_time)->format('H:i'),
+                ])->values();
+                $cellSlotParts = preg_split('/\s*-\s*/', trim((string) $cellTime), 2);
+                $cellSlotStart = $timeToMinutes($cellSlotParts[0] ?? '');
+                $cellSlotEnd = $timeToMinutes($cellSlotParts[1] ?? '');
+                $reservationCoversCell = $reservationsForSlot->contains(function ($item) use ($cellSlotStart, $cellSlotEnd, $timeToMinutes) {
+                    if ($cellSlotStart === null || $cellSlotEnd === null) return false;
+                    $start = $timeToMinutes(\Carbon\Carbon::parse($item->start_time)->format('H:i'));
+                    $end = $timeToMinutes(\Carbon\Carbon::parse($item->end_time)->format('H:i'));
+                    return $start !== null && $end !== null && $start <= $cellSlotStart && $end >= $cellSlotEnd;
+                });
 
                 $isLocked =
                     $isCrossRoomReadOnly
                     ||
-                    (bool) $reservation
+                    $reservationCoversCell
                     ||
                     (
                         $schedule
@@ -1513,7 +1598,7 @@ $rowCount = max(
 
             <td
                 data-side="{{ $cellSide }}"
-                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }} {{ $reservation ? 'reserved-cell' : '' }}"
+                class="schedule-cell {{ $isLocked ? 'locked-cell' : '' }} {{ $reservationCoversCell ? 'reserved-cell' : '' }} {{ $reservation && !$reservationCoversCell ? 'partial-reserved-cell' : '' }}"
 
                 data-schedule-id="{{ $schedule ? $schedule->id : '' }}"
 
@@ -1547,6 +1632,7 @@ $rowCount = max(
 
                 data-department-id="{{ $schedule ? ($schedule->department_id ?? '') : '' }}"
                 data-department-name="{{ $schedule?->department?->name ?? '' }}"
+                data-room-id="{{ $room->id }}"
                 data-room-name="{{ $room->room_name }}"
                 data-building-name="{{ $room->building->name ?? $room->building ?? '' }}"
                 data-approved-merged-courses="{{ e($mergeCourseInfoForSchedule($schedule)->toJson()) }}"
@@ -1570,8 +1656,9 @@ $rowCount = max(
 
                 data-locked="{{ $isLocked ? '1' : '0' }}"
 
-                data-reservation-id="{{ $reservation ? $reservation->id : '' }}"
+                data-reservation-id="{{ $reservationCoversCell && $reservation ? $reservation->id : '' }}"
                 data-reservation-time="{{ $reservation ? (\Carbon\Carbon::parse($reservation->start_time)->format('H:i') . '-' . \Carbon\Carbon::parse($reservation->end_time)->format('H:i')) : '' }}"
+                data-reservation-ranges="{{ e($reservationRanges->toJson()) }}"
 
                 data-subject-type="{{ $schedule ? ($schedule->subject_type ?? '') : '' }}"
 
@@ -1680,18 +1767,25 @@ $rowCount = max(
                     @endif
 
                     @if($reservation)
+                        @if($reservationStartsHere)
                         <div class="reservation-cell-label">
-                            {{ $reservation->status === 'Reserved' ? 'TEMPORARY RESERVATION' : 'RESERVATION' }}
+                            ONE-DAY ROOM BOOKING
                         </div>
-                        <div class="reservation-cell-user">
-                            {{ $reservation->user?->name ?? 'Instructor' }}
-                        </div>
-                        <div class="reservation-cell-time">
-                            {{ \Carbon\Carbon::parse($reservation->date)->format('M d, Y') }} · {{ $reservation->time }}
-                        </div>
-                        <div class="reservation-cell-note">
-                            This slot is temporarily blocked and cannot be scheduled.
-                        </div>
+                            <div class="reservation-cell-user">
+                                {{ $reservation->subject?->course_code ?? $reservation->facultySubject?->course_code ?? 'Room booking' }}
+                                · {{ $reservation->user?->name ?? 'Instructor' }}
+                            </div>
+                            <div class="reservation-cell-time">
+                                {{ \Carbon\Carbon::parse($reservation->date)->format('M d, Y') }} · {{ \Carbon\Carbon::parse($reservation->start_time)->format('g:i A') }} – {{ \Carbon\Carbon::parse($reservation->end_time)->format('g:i A') }}
+                            </div>
+                            <div class="reservation-cell-note">
+                                {{ $reservation->subject?->course_title ?? $reservation->facultySubject?->subject ?? $reservation->purpose ?? 'Reserved room use' }}
+                            </div>
+                            @if($reservationDateCount > 1)
+                                <div class="reservation-cell-note">+{{ $reservationDateCount - 1 }} more booking date(s) in this slot</div>
+                            @endif
+                            <div class="reservation-cell-note">This reservation blocks the room through {{ \Carbon\Carbon::parse($reservation->end_time)->format('g:i A') }}.</div>
+                        @endif
                     @endif
 
                     @if($isLocked)
@@ -1825,6 +1919,8 @@ $rowCount = max(
     const chairDepartmentId =
         @json($isPublishedScheduleView ? (int) $room->department_id : auth()->user()->department_id);
 
+    const selectedRoomCapacity = @json(is_numeric($room->capacity ?? null) ? (int) $room->capacity : null);
+
     const isPublishedScheduleView = @json($isPublishedScheduleView);
     const publishedRoomId = @json((int) $room->id);
     let selectedPublishedOverride = null;
@@ -1933,6 +2029,9 @@ $rowCount = max(
     const mergeSelectedScheduleButton = document.getElementById('mergeSelectedScheduleButton');
     const sameCourseConflictConfirm = document.getElementById('sameCourseConflictConfirm');
     const sameCourseConflictMessage = document.getElementById('sameCourseConflictMessage');
+    const roomCapacityConfirm = document.getElementById('roomCapacityConfirm');
+    const roomCapacityMessage = document.getElementById('roomCapacityMessage');
+    const subjectStudentCountInput = document.getElementById('subject_student_count');
     const excelSheetToolbar = document.querySelector('.excel-sheet-toolbar');
 
     function availableHalfHourAtPointer(cell, clientY)
@@ -1940,38 +2039,43 @@ $rowCount = max(
         const baseRange = parseScheduleRange(cell.dataset.time || '');
         if (!baseRange) return null;
 
-        const entries = getCellScheduleEntries(cell);
-        if (!entries.length) return null;
-
-        const timeCell = cell.parentElement?.querySelector('.editable-time[data-side="' + cell.dataset.side + '"]');
+        const timeCell = cell.parentElement?.querySelector('.time-cell[data-side="' + cell.dataset.side + '"]');
         const rect = timeCell?.getBoundingClientRect() || cell.parentElement?.getBoundingClientRect();
         if (!rect || rect.height <= 0) return null;
 
         const ratio = Math.max(0, Math.min(0.999, (clientY - rect.top) / rect.height));
         const clickedMinute = baseRange.start + (ratio * (baseRange.end - baseRange.start));
         const clickedStart = baseRange.start + Math.floor((clickedMinute - baseRange.start) / 30) * 30;
-        const starts = [clickedStart, clickedStart === baseRange.start ? clickedStart + 30 : baseRange.start];
         const day = String(cell.dataset.day || '').toUpperCase();
+        const roomId = String(cell.dataset.roomId || '');
         const roomEntries = [];
+        const reservations = [];
 
         document.querySelectorAll('#scheduleTable .schedule-cell').forEach(function(candidateCell) {
             if (String(candidateCell.dataset.day || '').toUpperCase() !== day) return;
+            if (roomId && String(candidateCell.dataset.roomId || '') !== roomId) return;
             getCellScheduleEntries(candidateCell).forEach(function(entry) {
                 const range = parseScheduleRange(entry.time || '');
                 if (range) roomEntries.push({ entry: entry, range: range });
             });
+            try {
+                const ranges = JSON.parse(candidateCell.dataset.reservationRanges || '[]');
+                ranges.forEach(function(item) {
+                    const range = parseScheduleRange(String(item.start || '') + '-' + String(item.end || ''));
+                    if (range) reservations.push(range);
+                });
+            } catch (_) {}
         });
 
-        for (const start of starts) {
-            const end = start + 30;
-            if (start < baseRange.start || end > baseRange.end) continue;
-            const occupied = roomEntries.some(function(item) {
-                return start < item.range.end && end > item.range.start;
-            });
-            if (!occupied) return { cell: cell, start: start, end: end };
-        }
+        const overlaps = function(range, start, end) { return start < range.end && end > range.start; };
+        const baseHasOccupancy = roomEntries.some(item => overlaps(item.range, baseRange.start, baseRange.end))
+            || reservations.some(range => overlaps(range, baseRange.start, baseRange.end));
+        if (!baseHasOccupancy) return null;
 
-        return null;
+        const end = clickedStart + 30;
+        const occupied = roomEntries.some(item => overlaps(item.range, clickedStart, end))
+            || reservations.some(range => overlaps(range, clickedStart, end));
+        return { cell: cell, start: clickedStart, end: end, status: occupied ? 'occupied' : 'available' };
     }
 
     function openScheduleEntryPopup(cell = selectedCell, entry = selectedScheduleEntry, interval = selectedScheduleInterval)
@@ -2053,6 +2157,7 @@ $rowCount = max(
         } else {
             courseCodeInput.value = '';
             subjectInput.value = '';
+            if (subjectStudentCountInput) subjectStudentCountInput.value = '';
             yearLevelInput.value = '';
             instructorInput.value = '';
             majorInput.value = '';
@@ -2131,6 +2236,7 @@ $rowCount = max(
         const cancelEntryButton = document.getElementById('cancelScheduleEntryButton');
         if (cancelEntryButton) cancelEntryButton.textContent = 'Cancel';
         if (sameCourseConflictConfirm) sameCourseConflictConfirm.hidden = true;
+        if (roomCapacityConfirm) roomCapacityConfirm.hidden = true;
         excelSheetToolbar?.classList.remove('is-entry-open');
         selectedScheduleEntry = null;
         selectedScheduleInterval = null;
@@ -2142,6 +2248,15 @@ $rowCount = max(
     document.getElementById('proceedSameCourseConflict')?.addEventListener('click', function() {
         if (sameCourseConflictConfirm) sameCourseConflictConfirm.hidden = true;
         saveCell(true);
+    });
+    document.getElementById('cancelRoomCapacity')?.addEventListener('click', function() {
+        if (roomCapacityConfirm) roomCapacityConfirm.hidden = true;
+    });
+    document.getElementById('proceedRoomCapacity')?.addEventListener('click', function() {
+        if (!roomCapacityConfirm) return;
+        const allowSameCourseConflict = roomCapacityConfirm.dataset.allowSameCourseConflict === '1';
+        roomCapacityConfirm.hidden = true;
+        saveCell(allowSameCourseConflict, true);
     });
 
     document.getElementById('closeScheduleEntryPopup')?.addEventListener('click', closeScheduleEntryPopup);
@@ -2395,6 +2510,10 @@ subjectTypeInput.value =
             subjectInput.value =
                 match.subject;
 
+            if (subjectStudentCountInput) {
+                subjectStudentCountInput.value = String(Number(match.student_count || 0));
+            }
+
 
             yearLevelInput.value =
                 match.year_level;
@@ -2617,9 +2736,21 @@ subjectTypeInput.value =
 
                         closeScheduleEntryPopup();
                         selectedScheduleEntry = null;
-                        selectedScheduleInterval = event.isTrusted
+                        const halfHourState = event.isTrusted
                             ? availableHalfHourAtPointer(this, event.clientY)
                             : null;
+                        selectedScheduleInterval = halfHourState?.status === 'available'
+                            ? { cell: this, start: halfHourState.start, end: halfHourState.end }
+                            : null;
+
+                        if (halfHourState?.status === 'occupied') {
+                            selectedScheduleInterval = null;
+                            this.classList.remove('selected-cell');
+                            this.setAttribute('aria-selected', 'false');
+                            if (selectedCell === this) selectedCell = null;
+                            renderScheduleBlocks();
+                            return;
+                        }
 
                         // Do nothing if the cell has a faculty reservation
                         if (
@@ -2645,6 +2776,7 @@ subjectTypeInput.value =
                         const isSelected = this.classList.contains('selected-cell');
 
                         if (isSelected) {
+                            selectedScheduleInterval = null;
                             this.classList.remove('selected-cell');
                             this.setAttribute('aria-selected', 'false');
 
@@ -2690,7 +2822,12 @@ subjectTypeInput.value =
                     }
 
                     selectedScheduleEntry = null;
-                    selectedScheduleInterval = availableHalfHourAtPointer(this, event.clientY);
+                    const halfHourState = availableHalfHourAtPointer(this, event.clientY);
+                    if (halfHourState?.status === 'occupied') return;
+                    selectedScheduleInterval = halfHourState?.status === 'available'
+                        ? { cell: this, start: halfHourState.start, end: halfHourState.end }
+                        : null;
+                    renderScheduleBlocks();
                     openScheduleEntryPopup(this, null, selectedScheduleInterval);
                 };
 
@@ -3004,7 +3141,7 @@ subjectTypeInput.value =
         const orderedCells = [];
         for (let rowIndex = start; rowIndex <= end; rowIndex++) {
             const row = rows[rowIndex];
-            if (row.classList.contains('break-row') || row.classList.contains('add-time-before-break-row')) {
+            if (row.classList.contains('break-row')) {
                 return null;
             }
             const cell = Array.from(row.querySelectorAll('.schedule-cell')).find(function(candidate) {
@@ -3110,8 +3247,8 @@ subjectTypeInput.value =
 
                 if (expectedTime) {
                     const matchingTimeCells = candidates.filter(function(cell) {
-                        const timeCell = cell.parentElement?.querySelector('.editable-time[data-side="' + side + '"]');
-                        return String(timeCell?.innerText || '').trim().replace(/\s+/g, ' ') === expectedTime;
+                        const timeCell = cell.parentElement?.querySelector('.time-cell[data-side="' + side + '"]');
+                        return scheduleTimeText(timeCell).replace(/\s+/g, ' ') === expectedTime;
                     });
                     matchingTimeCells.sort(function(a, b) {
                         return Math.abs(Number(a.dataset.rowPosition) - Number(coordinate.row_position))
@@ -3163,7 +3300,7 @@ subjectTypeInput.value =
 |--------------------------------------------------------------------------
 */
 
-async function saveCell(allowSameCourseConflict = false)
+async function saveCell(allowSameCourseConflict = false, allowCapacityOverride = false)
 {
     const selectedCells =
         Array.from(
@@ -3369,6 +3506,21 @@ async function saveCell(allowSameCourseConflict = false)
                 return;
             }
             showError(result.message || 'This instructor is already scheduled at that time.');
+            return;
+        }
+
+        const studentCount = Number(match.student_count || 0);
+        if (!allowCapacityOverride
+            && Number.isFinite(selectedRoomCapacity)
+            && selectedRoomCapacity > 0
+            && studentCount > selectedRoomCapacity) {
+            if (roomCapacityMessage) {
+                roomCapacityMessage.textContent = `This subject has ${studentCount} students, but this room holds ${selectedRoomCapacity}. Choose a larger room or proceed anyway if you have approval.`;
+            }
+            if (roomCapacityConfirm) {
+                roomCapacityConfirm.dataset.allowSameCourseConflict = allowSameCourseConflict ? '1' : '0';
+                roomCapacityConfirm.hidden = false;
+            }
             return;
         }
     } catch (error) {
@@ -4000,10 +4152,9 @@ async function clearCell()
         const timeCell = document.createElement('td');
 
         timeCell.dataset.side = side;
-        timeCell.className = 'time-cell editable-time';
-        timeCell.contentEditable = 'true';
-        timeCell.spellcheck = false;
-        timeCell.textContent = 'New Time';
+        timeCell.dataset.exactTime = '';
+        timeCell.className = 'time-cell';
+        timeCell.textContent = '';
 
         return timeCell;
     }
@@ -4058,15 +4209,15 @@ async function clearCell()
 
 function finalizeNewScheduleRow(row)
 {
-    const leftTime = row.querySelector('.editable-time[data-side="left"]');
-    const rightTime = row.querySelector('.editable-time[data-side="right"]');
-    const saturdayTime = row.querySelector('.editable-time[data-side="sat"]');
+    const leftTime = row.querySelector('.time-cell[data-side="left"]');
+    const rightTime = row.querySelector('.time-cell[data-side="right"]');
+    const saturdayTime = row.querySelector('.time-cell[data-side="sat"]');
 
     const syncRowTimes = function()
     {
-        const leftValue = leftTime ? leftTime.innerText.trim() : '';
-        const rightValue = rightTime ? rightTime.innerText.trim() : '';
-        const saturdayValue = saturdayTime ? saturdayTime.innerText.trim() : '';
+        const leftValue = scheduleTimeText(leftTime);
+        const rightValue = scheduleTimeText(rightTime);
+        const saturdayValue = scheduleTimeText(saturdayTime);
 
         row.querySelectorAll('.schedule-cell[data-side="left"]').forEach(function(cell) {
             cell.dataset.time = leftValue;
@@ -4091,7 +4242,6 @@ function finalizeNewScheduleRow(row)
 
     syncRowTimes();
     attachCellEvents();
-    attachTimeCellEvents();
     if (scheduleRowDeleteMode) syncScheduleRowDeleteControls();
     updateMergeControls();
     renderScheduleBlocks();
@@ -4107,29 +4257,46 @@ function addRow()
     const tbody = document.getElementById('scheduleBody');
     const row = createScheduleRow();
 
+    ['left', 'right', 'sat'].forEach(function(side) {
+        const timeCell = row.querySelector('.time-cell[data-side="' + side + '"]');
+        if (timeCell) {
+            const exactTime = nextTimeRangeForSide(side);
+            timeCell.dataset.exactTime = exactTime;
+            timeCell.textContent = displayTimeLabel(exactTime);
+        }
+    });
+
     tbody.appendChild(row);
     finalizeNewScheduleRow(row);
 }
 
-function addRowBeforeBreak()
+function nextTimeRangeForSide(side)
 {
-    const tbody = document.getElementById('scheduleBody');
-    const row = createScheduleRow();
-
-    // Put the new time row ABOVE the Add Time Row button.
-    // The button stays immediately before the Noon Break.
-    const addButtonRow = tbody.querySelector('.add-time-before-break-row');
-    const breakRow = tbody.querySelector('.break-row');
-
-    if (addButtonRow) {
-        tbody.insertBefore(row, addButtonRow);
-    } else if (breakRow) {
-        tbody.insertBefore(row, breakRow);
-    } else {
-        tbody.appendChild(row);
+    const rows = scheduleGridRows();
+    for (let index = rows.length - 1; index >= 0; index--) {
+        const timeCell = rows[index].querySelector('.time-cell[data-side="' + side + '"]');
+        const range = timeCell ? parseScheduleRange(scheduleTimeText(timeCell)) : null;
+        if (range) {
+            return formatScheduleRangeLabel(range.end, range.end + 60).replace('–', '-');
+        }
     }
 
-    finalizeNewScheduleRow(row);
+    return '7:00 AM-8:00 AM';
+}
+
+function scheduleTimeText(timeCell)
+{
+    return timeCell
+        ? String(timeCell.dataset.exactTime || timeCell.textContent || '').trim()
+        : '';
+}
+
+function displayTimeLabel(value)
+{
+    return String(value || '')
+        .replace(/\s*(?:AM|PM)\b/gi, '')
+        .replace(/[–—]/g, '-')
+        .trim();
 }
 
     document
@@ -4140,18 +4307,6 @@ function addRowBeforeBreak()
             'click',
             addRow
         );
-
-    const addRowBeforeBreakButton =
-        document.getElementById(
-            'addRowBeforeBreakButton'
-        );
-
-    if (addRowBeforeBreakButton) {
-        addRowBeforeBreakButton.addEventListener(
-            'click',
-            addRowBeforeBreak
-        );
-    }
 
     const toggleDeleteRowsButton = document.getElementById('toggleDeleteRowsButton');
     const deleteSelectedRowsButton = document.getElementById('deleteSelectedRowsButton');
@@ -4176,11 +4331,10 @@ function addRowBeforeBreak()
         const rows = scheduleGridRows();
         if (!scheduleRowDeleteMode) {
             rows.forEach(function(row) {
-                const timeCell = row.querySelector('.editable-time[data-side="left"]');
+                const timeCell = row.querySelector('.time-cell[data-side="left"]');
                 timeCell?.querySelector('.schedule-row-check-label')?.remove();
                 if (timeCell) {
                     timeCell.classList.remove('row-delete-selectable');
-                    timeCell.contentEditable = 'true';
                 }
                 row.classList.remove('schedule-row-delete-selected');
             });
@@ -4189,7 +4343,7 @@ function addRowBeforeBreak()
         }
 
         rows.forEach(function(row) {
-            const timeCell = row.querySelector('.editable-time[data-side="left"]');
+            const timeCell = row.querySelector('.time-cell[data-side="left"]');
             if (!timeCell) return;
 
             let checkbox = timeCell.querySelector('.schedule-row-checkbox');
@@ -4218,7 +4372,6 @@ function addRowBeforeBreak()
                 ? 'This row contains another college’s schedule or a room reservation.'
                 : 'Select this row for deletion.';
             timeCell.classList.add('row-delete-selectable');
-            timeCell.contentEditable = 'false';
         });
 
         updateSelectedDeleteRowCount();
@@ -4402,7 +4555,7 @@ document.getElementById('confirmScheduleEntryButton')?.addEventListener('click',
     const rows =
         Array.from(
             document.querySelectorAll(
-                '#scheduleTable tbody tr:not(.break-row):not(.add-time-before-break-row)'
+                '#scheduleTable tbody tr:not(.break-row)'
             )
         );
 
@@ -4479,12 +4632,12 @@ let roomTimeSlotCounter = 0;
 
             const timeCell =
                 row.querySelector(
-                    '.editable-time[data-side="' + side + '"]'
+                    '.time-cell[data-side="' + side + '"]'
                 );
 
             const time =
                 timeCell
-                    ? timeCell.innerText.trim()
+                    ? scheduleTimeText(timeCell)
                     : '';
 
             if (!time) {
@@ -4666,12 +4819,12 @@ let roomTimeSlotCounter = 0;
                 ? mappedRowPosition
                 : (Number.isInteger(storedRowPosition) && storedRowPosition >= 0 ? storedRowPosition : null));
         const side = String(cell.dataset.side || '').toLowerCase();
-        const timeCell = cell.parentElement.querySelector('.editable-time[data-side="' + side + '"]');
+        const timeCell = cell.parentElement.querySelector('.time-cell[data-side="' + side + '"]');
 
         manualMergeGroups.get(mergeId).cells.push({
             day: String(cell.dataset.day || '').toUpperCase(),
             side: side,
-            time: timeCell ? timeCell.innerText.trim() : '',
+            time: scheduleTimeText(timeCell),
             row_position: rowPosition,
         });
     });
@@ -4757,50 +4910,107 @@ let roomTimeSlotCounter = 0;
             mergeGroups.get(mergeId).push(cell);
         });
 
+        function createPrintableContent(target, sourceCells)
+        {
+            if (!target) return;
+            target.replaceChildren();
+
+            const content = document.createElement('div');
+            content.className = 'schedule-cell-content print-cell-content';
+            const seenEntries = new Set();
+            sourceCells.forEach(function(sourceCell) {
+                getCellScheduleEntries(sourceCell).forEach(function(entry) {
+                    const course = String(entry.course || '').trim();
+                    if (!course) return;
+                    const time = String(entry.time || sourceCell.dataset.scheduleTime || sourceCell.dataset.time || '').trim();
+                    const key = [course, entry.program, entry.year, entry.instructor, time]
+                        .map(value => String(value || '').trim().toLowerCase())
+                        .join('|');
+                    if (seenEntries.has(key)) return;
+                    seenEntries.add(key);
+
+                    const item = document.createElement('div');
+                    item.className = 'print-schedule-entry';
+                    const code = document.createElement('strong');
+                    code.className = 'print-course-code';
+                    code.textContent = course;
+                    item.appendChild(code);
+
+                    const details = document.createElement('span');
+                    details.className = 'print-course-details';
+                    const values = [];
+                    const program = displayProgramCode(entry.program || '');
+                    if (program) values.push('Program: ' + program);
+                    if (entry.year) values.push('Year: ' + entry.year);
+                    if (entry.instructor) values.push('Instructor: ' + entry.instructor);
+                    const range = parseScheduleRange(time);
+                    if (range) values.push('Time: ' + formatScheduleRangeLabel(range.start, range.end));
+                    details.textContent = values.join(' · ');
+                    item.appendChild(details);
+                    content.appendChild(item);
+                });
+
+                if (sourceCell.dataset.reservationId) {
+                    const reservation = document.createElement('div');
+                    reservation.className = 'print-schedule-reservation';
+                    reservation.textContent = 'Room reservation';
+                    content.appendChild(reservation);
+                }
+            });
+
+            target.appendChild(content);
+        }
+
         mergeGroups.forEach(function(members) {
             const anchor = members.find(member => !member.hidden) || members[0];
-            const scheduledMember = members.find(member => String(member.dataset.course || '').trim());
-            if (!scheduledMember || scheduledMember === anchor) return;
-
             const anchorCopy = exportBySource.get(anchor);
-            const scheduledCopy = exportBySource.get(scheduledMember);
-            const scheduledContent = scheduledCopy?.querySelector('.schedule-cell-content');
-            if (anchorCopy && scheduledContent) {
-                let anchorContent = anchorCopy.querySelector('.schedule-cell-content');
-                if (!anchorContent) {
-                    anchorContent = document.createElement('div');
-                    anchorContent.className = 'schedule-cell-content';
-                    anchorCopy.querySelector('.empty-cell')?.remove();
-                    anchorCopy.appendChild(anchorContent);
-                }
-                anchorContent.innerHTML = scheduledContent.innerHTML;
-                anchorCopy.style.backgroundColor = scheduledMember.dataset.color || '#ffffff';
-            }
+            const allMembers = members.filter(member => String(member.dataset.course || '').trim() || member.dataset.reservationId);
+            createPrintableContent(anchorCopy, allMembers);
         });
 
-        sourceTable.querySelectorAll('.schedule-cell').forEach(function(cell) {
-            if (!String(cell.dataset.course || '').trim()) return;
-            const scheduleTime = String(cell.dataset.scheduleTime || cell.dataset.time || '').trim();
-            const baseTime = String(cell.dataset.scheduleBaseTime || cell.dataset.time || '').trim();
-            if (!scheduleTime || scheduleTime === baseTime) return;
+        const handledAutoMergeCells = new Set();
+        const sourceCells = Array.from(sourceTable.querySelectorAll('.schedule-cell'));
+        sourceCells.forEach(function(cell) {
+            if (cell.hidden || cell.dataset.manualMergeId || handledAutoMergeCells.has(cell)) return;
+            const run = getAdjacentIdenticalScheduleCells(cell, sourceCells);
+            if (run.length < 2) return;
 
-            const mergeId = cell.dataset.manualMergeId || '';
-            const group = mergeId ? mergeGroups.get(mergeId) || [] : [cell];
-            const target = group.find(member => !member.hidden) || cell;
-            const targetContent = exportBySource.get(target)?.querySelector('.schedule-cell-content');
-            if (!targetContent || targetContent.querySelector('.schedule-export-time')) return;
+            const anchorCopy = exportBySource.get(run[0]);
+            if (!anchorCopy) return;
+            anchorCopy.colSpan = run.length;
+            createPrintableContent(anchorCopy, [run[0]]);
+            run.forEach(function(member, index) {
+                handledAutoMergeCells.add(member);
+                if (index > 0) exportBySource.get(member)?.remove();
+            });
+        });
 
-            const timeLabel = document.createElement('div');
-            timeLabel.className = 'schedule-export-time';
-            timeLabel.textContent = scheduleTime;
-            targetContent.prepend(timeLabel);
+        sourceCells.forEach(function(cell) {
+            if (cell.hidden || cell.dataset.manualMergeId || handledAutoMergeCells.has(cell)) return;
+            const copy = exportBySource.get(cell);
+            if (copy) createPrintableContent(copy, [cell]);
+        });
+
+        // The printable sheet uses one shared time column followed by the day columns.
+        exportTable.querySelectorAll('thead tr').forEach(function(row) {
+            Array.from(row.querySelectorAll('th.time-header')).slice(1).forEach(cell => cell.remove());
+        });
+        exportTable.querySelectorAll('tbody tr').forEach(function(row) {
+            const timeCells = Array.from(row.querySelectorAll('td.time-cell'));
+            const primaryTimeCell = timeCells.find(cell => cell.dataset.side === 'left') || timeCells[0];
+            if (primaryTimeCell && !row.classList.contains('break-row')) {
+                const labels = timeCells.map(cell => String(cell.textContent || '').trim()).filter(Boolean);
+                const uniqueLabels = Array.from(new Set(labels));
+                primaryTimeCell.textContent = uniqueLabels.join(' / ');
+            }
+            timeCells.filter(cell => cell !== primaryTimeCell).forEach(cell => cell.remove());
+            const breakCell = row.querySelector('td');
+            if (row.classList.contains('break-row') && breakCell) breakCell.colSpan = 7;
+            row.classList.toggle('schedule-print-row', !row.classList.contains('break-row'));
         });
 
         exportTable.querySelectorAll('.schedule-cell[hidden], th[hidden], td[hidden]').forEach(function(cell) {
             cell.remove();
-        });
-        exportTable.querySelectorAll('tr.add-time-before-break-row').forEach(function(row) {
-            row.remove();
         });
         exportTable.querySelectorAll('button, input, select, textarea, .schedule-row-check-label').forEach(function(control) {
             control.remove();
@@ -4815,29 +5025,42 @@ let roomTimeSlotCounter = 0;
     function scheduleExportCss(exportTable)
     {
         const headerCells = Array.from(exportTable.querySelectorAll('thead tr:first-child th'));
-        const timeColumnCount = Math.max(1, headerCells.filter(cell => cell.classList.contains('time-header')).length);
         const dayColumnCount = Math.max(1, headerCells.filter(cell => !cell.classList.contains('time-header')).length);
-        const sourceWidth = (timeColumnCount * 112) + (dayColumnCount * 190);
-        const timeColumnWidth = (112 / sourceWidth * 100).toFixed(3);
-        const dayColumnWidth = (190 / sourceWidth * 100).toFixed(3);
+        const timeColumnWidth = '12.5';
+        const dayColumnWidth = ((100 - Number(timeColumnWidth)) / dayColumnCount).toFixed(3);
+        const rowCount = Math.max(1, exportTable.querySelectorAll('tbody tr.schedule-print-row').length);
+        const density = Math.max(0.62, Math.min(1, 11 / rowCount));
 
         return `
-            @page { size: landscape; margin: 8mm; }
-            html, body { margin:0; padding:0; background:#fff; color:#243746; font-family:Arial,sans-serif; }
-            #scheduleTable { width:100% !important; min-width:0 !important; max-width:none !important; border-collapse:collapse !important; table-layout:fixed !important; font-size:9pt; }
-            #scheduleTable th, #scheduleTable td { box-sizing:border-box; border:1px solid #74818a !important; padding:4px 5px !important; overflow:visible !important; overflow-wrap:anywhere; vertical-align:top; }
-            #scheduleTable th { position:static !important; width:${dayColumnWidth}% !important; min-width:0 !important; height:auto !important; background:#edf2f5 !important; color:#344654 !important; text-align:center !important; font-weight:800 !important; }
-            #scheduleTable th.time-header { width:${timeColumnWidth}% !important; }
-            #scheduleTable td { height:auto !important; min-height:62px; }
-            #scheduleTable td.time-cell { position:static !important; width:${timeColumnWidth}% !important; min-width:0 !important; height:auto !important; background:#f7f9fa !important; color:#334555 !important; text-align:center !important; vertical-align:middle !important; white-space:normal !important; font-weight:750 !important; }
-            #scheduleTable td.schedule-cell { width:${dayColumnWidth}% !important; min-width:0 !important; height:auto !important; min-height:72px; }
-            #scheduleTable .schedule-cell-content { display:block !important; height:auto !important; max-height:none !important; overflow:visible !important; visibility:visible !important; }
-            #scheduleTable .schedule-export-time { display:block; margin:2px 0 5px; color:#334d3d; font-size:8pt; font-weight:800; }
-            #scheduleTable .cell-course { color:#182b3a; font-size:9pt; font-weight:800; }
-            #scheduleTable .cell-subject { color:#344758; font-size:8pt; }
-            #scheduleTable .cell-instructor { color:#516170; font-size:7.5pt; }
-            #scheduleTable .cell-year, #scheduleTable .cell-major, #scheduleTable .cell-program, #scheduleTable .cell-subject-type { font-size:7pt; }
-            #scheduleTable .break-row td { height:auto !important; background:#f1f3f5 !important; text-align:center !important; }
+            @page { size:A4 landscape; margin:7mm; }
+            * { box-sizing:border-box; }
+            html, body { width:100%; margin:0; padding:0; background:#fff; color:#263b30; font-family:Arial,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+            .print-page { display:flex; flex-direction:column; width:100%; height:196mm; max-height:196mm; overflow:hidden; page-break-inside:avoid; break-inside:avoid; }
+            .print-title { display:flex; flex:0 0 18mm; align-items:center; justify-content:space-between; gap:14px; padding:0 1mm 3mm; border-bottom:2px solid #d8c18c; }
+            .print-title-copy { min-width:0; }
+            .print-kicker { margin:0 0 1mm; color:#718846; font-size:7pt; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+            .print-title h1 { margin:0; color:#173b33; font:800 22pt/1.05 Arial,sans-serif; letter-spacing:-.035em; }
+            .print-title h1 span { color:#4e7258; font-family:Georgia,serif; font-size:19pt; font-style:italic; font-weight:500; }
+            .print-term { flex:0 0 auto; color:#617368; font-size:8pt; font-weight:700; text-align:right; }
+            .print-table-wrap { flex:1 1 auto; min-height:0; overflow:hidden; padding-top:3mm; }
+            #scheduleTable { width:100% !important; height:100% !important; min-width:0 !important; max-width:none !important; border-collapse:collapse !important; table-layout:fixed !important; font-size:${8 * density}pt; }
+            #scheduleTable thead { display:table-header-group; }
+            #scheduleTable th, #scheduleTable td { box-sizing:border-box; border:1px solid #829286 !important; padding:${Math.max(1, 2 * density).toFixed(2)}mm ${Math.max(1, 1.5 * density).toFixed(2)}mm !important; overflow:hidden !important; overflow-wrap:anywhere; vertical-align:middle; }
+            #scheduleTable th { position:static !important; width:${dayColumnWidth}% !important; min-width:0 !important; height:8mm !important; background:#e7eee5 !important; color:#234533 !important; text-align:center !important; font-size:${8 * density}pt !important; font-weight:800 !important; letter-spacing:.04em; }
+            #scheduleTable th.time-header { width:${timeColumnWidth}% !important; background:#dfe9dd !important; }
+            #scheduleTable tbody tr.schedule-print-row { height:${Math.max(6.8, Math.min(14.8, 164 / rowCount)).toFixed(2)}mm !important; }
+            #scheduleTable tbody tr.break-row { height:6mm !important; }
+            #scheduleTable td.time-cell { position:static !important; width:${timeColumnWidth}% !important; min-width:0 !important; background:#f6f3e8 !important; color:#354d3e !important; text-align:center !important; vertical-align:middle !important; white-space:normal !important; font-size:${7.2 * density}pt !important; font-weight:800 !important; }
+            #scheduleTable td.schedule-cell { width:${dayColumnWidth}% !important; min-width:0 !important; height:inherit !important; background:#fff !important; color:#263b30 !important; }
+            #scheduleTable td.schedule-cell[style*="background-color"] { background:#fff !important; }
+            #scheduleTable .schedule-cell-content, #scheduleTable .print-cell-content { display:block !important; width:100%; height:100% !important; max-height:100% !important; overflow:hidden !important; visibility:visible !important; }
+            #scheduleTable .print-schedule-entry { display:flex; flex-direction:column; gap:.45mm; max-height:100%; overflow:hidden; line-height:1.08; }
+            #scheduleTable .print-schedule-entry + .print-schedule-entry { margin-top:1mm; padding-top:1mm; border-top:1px dashed #ccd7cd; }
+            #scheduleTable .print-course-code { color:#183d2b; font-size:${8.2 * density}pt; font-weight:850; line-height:1.1; }
+            #scheduleTable .print-course-details { color:#43584a; font-size:${6.5 * density}pt; font-weight:600; line-height:1.12; }
+            #scheduleTable .print-schedule-reservation { color:#805b24; font-size:${7 * density}pt; font-weight:800; }
+            #scheduleTable .break-row td { height:6mm !important; background:#edf1ea !important; color:#536957 !important; text-align:center !important; font-size:7pt !important; font-weight:850 !important; letter-spacing:.14em; }
+            @media print { .print-page { page-break-after:avoid; } }
         `;
     }
 
@@ -4861,7 +5084,7 @@ let roomTimeSlotCounter = 0;
             return;
         }
 
-        const printDocument = `<!doctype html><html><head><meta charset="utf-8"><title>Class Schedule</title><style>${scheduleExportCss(exportTable)}</style></head><body>${exportTable.outerHTML}</body></html>`;
+        const printDocument = `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(scheduleExportRoomName)} Schedule</title><style>${scheduleExportCss(exportTable)}</style></head><body><main class="print-page"><header class="print-title"><div class="print-title-copy"><p class="print-kicker">Room timetable</p><h1>${escapeHtml(scheduleExportRoomName)} <span>Schedule</span></h1></div><div class="print-term">${escapeHtml(scheduleExportTermName)}</div></header><div class="print-table-wrap">${exportTable.outerHTML}</div></main></body></html>`;
         printWindow.document.open();
         printWindow.document.write(printDocument);
         printWindow.document.close();
@@ -4878,7 +5101,7 @@ let roomTimeSlotCounter = 0;
         const exportTable = prepareScheduleExportTable();
         if (!exportTable) return;
 
-        const workbookHtml = `<!doctype html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="ProgId" content="Excel.Sheet"><meta name="Generator" content="Microsoft Excel"><style>${scheduleExportCss(exportTable)}</style></head><body>${exportTable.outerHTML}</body></html>`;
+        const workbookHtml = `<!doctype html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="ProgId" content="Excel.Sheet"><meta name="Generator" content="Microsoft Excel"><style>${scheduleExportCss(exportTable)}</style></head><body><main class="print-page"><header class="print-title"><div class="print-title-copy"><p class="print-kicker">Room timetable</p><h1>${escapeHtml(scheduleExportRoomName)} <span>Schedule</span></h1></div><div class="print-term">${escapeHtml(scheduleExportTermName)}</div></header><div class="print-table-wrap">${exportTable.outerHTML}</div></main></body></html>`;
         const blob = new Blob(['\ufeff', workbookHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -4896,61 +5119,6 @@ let roomTimeSlotCounter = 0;
     // =====================================================
 // EDITABLE TIME CELLS
 // =====================================================
-
-function attachTimeCellEvents() {
-    if (isPublishedScheduleView) return;
-    document.querySelectorAll('.editable-time').forEach(timeCell => {
-
-        if (timeCell.dataset.timeEventsAttached === '1') {
-            return;
-        }
-
-        timeCell.dataset.timeEventsAttached = '1';
-
-        function syncTimeToCells() {
-            const row = timeCell.closest('tr');
-
-            if (!row) {
-                return;
-            }
-
-            const time =
-                timeCell.innerText.trim();
-
-            const side =
-                timeCell.dataset.side;
-
-            row.querySelectorAll(
-                '.schedule-cell[data-side="' + side + '"]'
-            ).forEach(function(cell) {
-                cell.dataset.time = time;
-            });
-
-            const rowPosition = scheduleGridRows().indexOf(row);
-            document.querySelectorAll(
-                '#scheduleTable .schedule-cell[data-side="' + side + '"]'
-            ).forEach(function(cell) {
-                if (Number(cell.dataset.rowPosition) === rowPosition) {
-                    cell.dataset.scheduleBaseTime = time;
-                }
-            });
-
-            renderScheduleBlocks();
-        }
-
-        syncTimeToCells();
-
-        timeCell.addEventListener('input', syncTimeToCells);
-        timeCell.addEventListener('blur', syncTimeToCells);
-
-        timeCell.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                this.blur();
-            }
-        });
-    });
-}
 
 // ============================================================
 // MERGE WITH EXISTING CLASS
@@ -6789,7 +6957,7 @@ if (confirmMergeProgram) {
     function scheduleGridRows()
     {
         return Array.from(document.querySelectorAll(
-            '#scheduleBody > tr:not(.break-row):not(.add-time-before-break-row)'
+            '#scheduleBody > tr:not(.break-row)'
         ));
     }
 
@@ -6871,14 +7039,14 @@ if (confirmMergeProgram) {
 
     function scheduleTimeCellForRow(row, side)
     {
-        return row.querySelector('.editable-time[data-side="' + side + '"]');
+        return row.querySelector('.time-cell[data-side="' + side + '"]');
     }
 
     function timeRangeForScheduleRow(row, side)
     {
         const timeCell = scheduleTimeCellForRow(row, side);
         return timeCell
-            ? { cell: timeCell, range: parseScheduleRange(timeCell.innerText.trim()) }
+            ? { cell: timeCell, range: parseScheduleRange(scheduleTimeText(timeCell)) }
             : null;
     }
 
@@ -6966,63 +7134,56 @@ if (confirmMergeProgram) {
         if (startY === null || endY === null) return true;
 
         return Array.from(document.querySelectorAll(
-            '#scheduleBody > tr.break-row, #scheduleBody > tr.add-time-before-break-row'
+            '#scheduleBody > tr.break-row'
         )).some(function(row) {
             const rect = row.getBoundingClientRect();
             return startY < rect.bottom && endY > rect.top;
         });
     }
 
-    function scheduleResizeWouldConflict(sourceCell, start, end)
+    function scheduleResizeWouldConflict(sourceCell, start, end, targetEntries = [])
     {
         const day = sourceCell.dataset.day;
+        const roomId = String(sourceCell.dataset.roomId || '');
+        const targets = new Set(targetEntries);
         const otherCells = Array.from(document.querySelectorAll('#scheduleTable .schedule-cell'));
 
         for (const other of otherCells) {
-            if (other === sourceCell || other.dataset.day !== day) continue;
+            if (other.dataset.day !== day) continue;
+            if (roomId && String(other.dataset.roomId || '') !== roomId) continue;
             for (const entry of getCellScheduleEntries(other)) {
-                if (sourceCell.dataset.scheduleId
-                    && String(entry.schedule_id || '') === String(sourceCell.dataset.scheduleId)) continue;
+                if (targets.has(entry)) continue;
                 const otherRange = parseScheduleRange(entry.time || '');
                 if (entry.course && otherRange && start < otherRange.end && end > otherRange.start) return true;
             }
 
-            if (other.dataset.reservationId) {
-                const reservedRange = parseScheduleRange(other.dataset.reservationTime || other.dataset.time || '');
-                if (reservedRange && start < reservedRange.end && end > reservedRange.start) {
-                    return true;
-                }
-            }
-        }
-
-        const sourceEntries = getCellScheduleEntries(sourceCell);
-        const sourceEntry = sourceEntries.find(function(entry) {
-            return String(entry.schedule_id || '') === String(sourceCell.dataset.scheduleId || '');
-        }) || sourceEntries[0];
-        for (const entry of sourceEntries) {
-            if (entry === sourceEntry) continue;
-            const otherRange = parseScheduleRange(entry.time || '');
-            if (entry.course && otherRange && start < otherRange.end && end > otherRange.start) return true;
+            try {
+                const ranges = JSON.parse(other.dataset.reservationRanges || '[]');
+                if (ranges.some(function(item) {
+                    const range = parseScheduleRange(String(item.start || '') + '-' + String(item.end || ''));
+                    return range && start < range.end && end > range.start;
+                })) return true;
+            } catch (_) {}
         }
 
         return false;
     }
 
-    function buildScheduleResizePlan(sourceCell, candidate, original, edge, snapshots)
+    function buildScheduleResizePlan(sourceCell, candidate, targetEntries)
     {
         if (candidate.end - candidate.start < 30) return null;
-        if (candidate.start < (13 * 60) && candidate.end > (12 * 60)) return null;
-        // Let the chair resize the visible block freely. The publish action
-        // performs the authoritative schedule conflict checks before saving.
-        const plan = new Map([[sourceCell, candidate]]);
-        if (sourceCell.dataset.manualMergeAxis === 'horizontal' && sourceCell.dataset.manualMergeId) {
-            getManualMergeMembers(sourceCell).forEach(function(member) {
-                if (member !== sourceCell && member.dataset.course) {
-                    plan.set(member, { start: candidate.start, end: candidate.end });
-                }
-            });
+        const plan = new Map();
+        for (const entry of targetEntries) {
+            const entryCell = entry.cell || sourceCell;
+            if (scheduleRangeCrossesBreak(entryCell.dataset.day, entryCell.dataset.side, candidate.start, candidate.end)) {
+                return null;
+            }
+            if (scheduleResizeWouldConflict(entryCell, candidate.start, candidate.end, targetEntries)) {
+                return null;
+            }
+            plan.set(entry, { start: candidate.start, end: candidate.end });
         }
-        return plan;
+        return plan.size ? plan : null;
     }
 
     function selectedScheduleSourceCell(visualCell = selectedCell)
@@ -7084,7 +7245,7 @@ if (confirmMergeProgram) {
         return scheduleBlockLayer;
     }
 
-    function positionScheduleBlock(block, cell, start, end, visualCell = cell, spanCells = [visualCell])
+    function positionScheduleBlock(block, cell, start, end, visualCell = cell, spanCells = [visualCell], scheduleEntry = null)
     {
         const wrapper = document.querySelector('[data-schedule-sheet]');
         const layer = getScheduleBlockLayer();
@@ -7101,20 +7262,20 @@ if (confirmMergeProgram) {
         block.style.width = Math.max(anchorRect.width, lastRect.right - anchorRect.left) + 'px';
         block.style.height = (endY - startY) + 'px';
         block.dataset.duration = String(end - start);
-        block.title = [cell.dataset.course, cell.dataset.subject, cell.dataset.instructor, formatScheduleRangeLabel(start, end), 'Drag the top or bottom grip to adjust by 30 minutes.'].filter(Boolean).join(' · ');
-        block.setAttribute('aria-label', [cell.dataset.course || 'Scheduled class', cell.dataset.subject, cell.dataset.instructor, formatScheduleRangeLabel(start, end)].filter(Boolean).join(', ') + '.');
-        block.classList.toggle('is-selected', visualCell.classList.contains('selected-cell'));
+        const course = scheduleEntry?.course || cell.dataset.course;
+        const subject = scheduleEntry?.subject || cell.dataset.subject;
+        const instructor = scheduleEntry?.instructor || cell.dataset.instructor;
+        block.title = [course, subject, instructor, formatScheduleRangeLabel(start, end), 'Drag the top or bottom grip to adjust by 30 minutes.'].filter(Boolean).join(' · ');
+        block.setAttribute('aria-label', [course || 'Scheduled class', subject, instructor, formatScheduleRangeLabel(start, end)].filter(Boolean).join(', ') + '.');
+        block.classList.toggle('is-selected', scheduleEntry && selectedScheduleEntry
+            ? selectedScheduleEntry === scheduleEntry
+            : visualCell.classList.contains('selected-cell'));
         return true;
     }
 
-    function exactCellScheduleSignature(cell)
+    function scheduleEntrySignature(entry, cell)
     {
-        if (!cell || cell.dataset.manualMergeId || cell.dataset.reservationId) return '';
-        const crossScheduleView = document.body.classList.contains('cross-scheduling-editor');
-        if (cell.dataset.locked === '1' && (!crossScheduleView || !cell.dataset.scheduleId)) return '';
-        const entries = getCellScheduleEntries(cell).filter(entry => String(entry.course || '').trim());
-        if (entries.length !== 1) return '';
-        const entry = entries[0];
+        if (!entry || !cell) return '';
         const range = parseScheduleRange(entry.time || cell.dataset.scheduleTime || cell.dataset.time || '');
         if (!range) return '';
         const sharedIds = Array.isArray(entry.shared_offering_ids)
@@ -7125,6 +7286,16 @@ if (confirmMergeProgram) {
             entry.year, entry.major, entry.program, entry.department_id, entry.color, entry.subject_type,
             range.start, range.end, sharedIds
         ].map(value => String(value ?? '').trim().toLowerCase()));
+    }
+
+    function exactCellScheduleSignature(cell)
+    {
+        if (!cell || cell.dataset.manualMergeId || cell.dataset.reservationId) return '';
+        const crossScheduleView = document.body.classList.contains('cross-scheduling-editor');
+        if (cell.dataset.locked === '1' && (!crossScheduleView || !cell.dataset.scheduleId)) return '';
+        const entries = getCellScheduleEntries(cell).filter(entry => String(entry.course || '').trim());
+        if (entries.length !== 1) return '';
+        return scheduleEntrySignature(entries[0], cell);
     }
 
     function getAdjacentIdenticalScheduleCells(anchor, allCells)
@@ -7147,6 +7318,48 @@ if (confirmMergeProgram) {
             run.push(rowCells[index]);
         }
         return run;
+    }
+
+    function scheduleEntryDetailsSignature(entry, cell)
+    {
+        if (!entry || !cell) return '';
+        const sharedIds = Array.isArray(entry.shared_offering_ids)
+            ? entry.shared_offering_ids.map(String).sort().join('|')
+            : String(entry.shared_offering_ids || '').split(',').map(value => value.trim()).filter(Boolean).sort().join('|');
+        return JSON.stringify([
+            entry.course, entry.subject, entry.instructor, entry.faculty_id, entry.faculty_subject_id,
+            entry.year, entry.major, entry.program, entry.department_id, entry.color, entry.subject_type,
+            sharedIds, cell.dataset.roomId, cell.dataset.semester, cell.dataset.academicYear,
+        ].map(value => String(value ?? '').trim().toLowerCase()));
+    }
+
+    // Keep saved rows separate; combine only their visual representation when
+    // matching assignments touch exactly in the same room/day cell.
+    function mergeAdjacentScheduleEntriesForDisplay(items)
+    {
+        const sorted = items.map(function(item) {
+            return {
+                cell: item.cell,
+                entry: item.entry,
+                range: parseScheduleRange(item.entry.time || item.cell.dataset.scheduleTime || item.cell.dataset.time || ''),
+                signature: scheduleEntryDetailsSignature(item.entry, item.cell),
+            };
+        }).filter(item => item.range).sort((a, b) => a.range.start - b.range.start || a.range.end - b.range.end);
+
+        const groups = [];
+        sorted.forEach(function(item) {
+            const previous = groups[groups.length - 1];
+            if (previous && previous.cell === item.cell && previous.signature === item.signature
+                && previous.range.end === item.range.start) {
+                previous.range.end = item.range.end;
+                previous.sourceEntries.push(item.entry);
+            } else {
+                groups.push({ cell: item.cell, entry: item.entry,
+                    range: { start: item.range.start, end: item.range.end },
+                    signature: item.signature, sourceEntries: [item.entry] });
+            }
+        });
+        return groups;
     }
 
     function selectAutoMergedScheduleCells(cells, primary, toggle = true)
@@ -7213,7 +7426,7 @@ if (confirmMergeProgram) {
         return Boolean(signature) && cells.every(cell => exactCellScheduleSignature(cell) === signature);
     }
 
-    function addScheduleResizeHandle(block, cell, edge, visualCell = cell, spanCells = [visualCell])
+    function addScheduleResizeHandle(block, cell, edge, visualCell = cell, spanCells = [visualCell], targetEntries = [])
     {
         const handle = document.createElement('button');
         handle.type = 'button';
@@ -7233,50 +7446,59 @@ if (confirmMergeProgram) {
             event.preventDefault();
             event.stopPropagation();
 
-            // Select the cell first; the next drag of a resize grip adjusts it.
-            if (!visualCell.classList.contains('selected-cell')) {
-                visualCell.click();
-                return;
+            // Select the visible merge group without consuming this drag gesture.
+            if (!spanCells.every(sourceCell => sourceCell.classList.contains('selected-cell'))) {
+                document.querySelectorAll('#scheduleTable .schedule-cell.selected-cell').forEach(function(selected) {
+                    selected.classList.remove('selected-cell');
+                    selected.setAttribute('aria-selected', 'false');
+                });
+                spanCells.forEach(function(sourceCell) {
+                    sourceCell.classList.add('selected-cell');
+                    sourceCell.setAttribute('aria-selected', 'true');
+                });
+                selectedCell = visualCell;
+                activeAutoMergeCells = spanCells.length > 1 ? spanCells.slice() : [];
+                selectedScheduleInterval = null;
+                selectCell(visualCell, false);
+                updateMergeControls();
             }
+            selectedScheduleEntry = targetEntries.find(entry => entry?.cell === cell)
+                || targetEntries[0]
+                || getCellScheduleEntries(cell)[0]
+                || null;
             resizeGestureActive = true;
             if (event.pointerId !== undefined && handle.setPointerCapture) {
                 try { handle.setPointerCapture(event.pointerId); } catch (error) { /* Window-level tracking remains available. */ }
             }
             const pointerId = event.pointerId;
 
-            const initial = parseScheduleRange(cell.dataset.scheduleTime || cell.dataset.time || '');
+            targetEntries = Array.from(new Set(targetEntries.length ? targetEntries : [getCellScheduleEntries(cell)[0]]))
+                .filter(Boolean);
+            const initial = parseScheduleRange(targetEntries.find(entry => entry.cell === cell)?.time || targetEntries[0]?.time || cell.dataset.scheduleTime || cell.dataset.time || '');
             if (!initial) {
                 resizeGestureActive = false;
                 return;
             }
 
             const original = { start: initial.start, end: initial.end };
-            const spanDays = new Set(spanCells.map(item => String(item.dataset.day || '')));
-            const snapshots = new Map(Array.from(document.querySelectorAll('#scheduleTable .schedule-cell'))
-                .filter(function(item) {
-                    return spanDays.has(String(item.dataset.day || ''))
-                        && item.dataset.side === cell.dataset.side
-                        && item.dataset.course
-                        && !item.dataset.reservationId;
-                })
+            const entrySnapshots = new Map(targetEntries.map(function(entry) {
+                return [entry, {
+                    time: entry.time || '',
+                    base_time: entry.base_time || '',
+                    row_position: entry.row_position,
+                }];
+            }));
+            const cellSnapshots = new Map(targetEntries.map(entry => entry.cell || cell)
+                .filter((item, index, items) => items.indexOf(item) === index)
                 .map(function(item) {
-                    const range = parseScheduleRange(item.dataset.scheduleTime || item.dataset.time || '');
-                    return [item, range ? {
-                        range: range,
+                    return [item, {
                         scheduleTime: item.dataset.scheduleTime || item.dataset.time || '',
                         startMinute: item.dataset.scheduleStartMinute || '',
                         endMinute: item.dataset.scheduleEndMinute || '',
                         baseTime: item.dataset.scheduleBaseTime || item.dataset.time || '',
                         rowPosition: item.dataset.rowPosition || '',
-                        entryTimes: getCellScheduleEntries(item).map(entry => ({
-                            entry: entry,
-                            time: entry.time || '',
-                            base_time: entry.base_time || '',
-                            row_position: entry.row_position,
-                        })),
-                    } : null];
-                })
-                .filter(function(entry) { return entry[1] !== null; }));
+                    }];
+                }));
             let current = { start: initial.start, end: initial.end };
             let lastError = '';
             let didResize = false;
@@ -7292,61 +7514,42 @@ if (confirmMergeProgram) {
                     end: edge === 'end' ? minute : original.end
                 };
 
-                const plans = [];
-                const plannedDays = new Set();
-                let invalidPlan = false;
-                spanCells.forEach(function(spanCell) {
-                    const spanRange = parseScheduleRange(spanCell.dataset.scheduleTime || spanCell.dataset.time || '');
-                    if (!spanRange) {
-                        invalidPlan = true;
-                        return;
-                    }
-                    const day = String(spanCell.dataset.day || '');
-                    if (plannedDays.has(day)) return;
-                    plannedDays.add(day);
-                    const daySnapshots = new Map(Array.from(snapshots.entries()).filter(([snapshotCell]) => snapshotCell.dataset.day === day));
-                    const dayOriginal = { start: spanRange.start, end: spanRange.end };
-                    const dayPlan = buildScheduleResizePlan(spanCell, candidate, dayOriginal, edge, daySnapshots);
-                    if (!dayPlan) {
-                        invalidPlan = true;
-                        return;
-                    }
-                    plans.push(dayPlan);
+                entrySnapshots.forEach(function(snapshot, entry) {
+                    entry.time = snapshot.time;
+                    entry.base_time = snapshot.base_time;
+                    entry.row_position = snapshot.row_position;
                 });
-                if (invalidPlan || !plans.length) {
-                    lastError = 'A class must be at least 30 minutes long and cannot cross the lunch break.';
+                cellSnapshots.forEach(function(snapshot, targetCell) {
+                    targetCell.dataset.scheduleTime = snapshot.scheduleTime;
+                    targetCell.dataset.scheduleStartMinute = snapshot.startMinute;
+                    targetCell.dataset.scheduleEndMinute = snapshot.endMinute;
+                    targetCell.dataset.scheduleBaseTime = snapshot.baseTime;
+                    targetCell.dataset.rowPosition = snapshot.rowPosition;
+                });
+
+                const plan = buildScheduleResizePlan(cell, candidate, targetEntries);
+                if (!plan) {
+                    lastError = 'A class must be at least 30 minutes long, stay outside the lunch break, and avoid other classes and room reservations.';
                     block.classList.add('resize-conflict');
                     return;
                 }
 
-                snapshots.forEach(function(snapshot, plannedCell) {
-                    plannedCell.dataset.scheduleTime = snapshot.scheduleTime;
-                    plannedCell.dataset.scheduleStartMinute = snapshot.startMinute;
-                    plannedCell.dataset.scheduleEndMinute = snapshot.endMinute;
-                    plannedCell.dataset.scheduleBaseTime = snapshot.baseTime;
-                    plannedCell.dataset.rowPosition = snapshot.rowPosition;
-                    snapshot.entryTimes.forEach(function(saved) {
-                        saved.entry.time = saved.time;
-                        saved.entry.base_time = saved.base_time;
-                        saved.entry.row_position = saved.row_position;
-                    });
-                });
-                plans.forEach(function(plan) {
-                    plan.forEach(function(range, plannedCell) {
-                        plannedCell.dataset.scheduleTime = formatScheduleRange(range.start, range.end);
-                        plannedCell.dataset.scheduleStartMinute = String(range.start);
-                        plannedCell.dataset.scheduleEndMinute = String(range.end);
-                        const position = scheduleRowPositionAtMinute(plannedCell.dataset.day, plannedCell.dataset.side, range.start);
-                        if (position) {
-                            plannedCell.dataset.rowPosition = String(position.index);
-                            plannedCell.dataset.scheduleBaseTime = position.time;
-                        }
-                        getCellScheduleEntries(plannedCell).forEach(function(entry) {
-                            entry.time = formatScheduleRange(range.start, range.end);
-                            entry.base_time = plannedCell.dataset.scheduleBaseTime || plannedCell.dataset.time || '';
-                            entry.row_position = Number(plannedCell.dataset.rowPosition || 0);
-                        });
-                    });
+                plan.forEach(function(range, entry) {
+                    const entryCell = entry.cell || cell;
+                    entry.time = formatScheduleRange(range.start, range.end);
+                    const position = scheduleRowPositionAtMinute(entryCell.dataset.day, entryCell.dataset.side, range.start);
+                    if (position) {
+                        entry.row_position = position.index;
+                        entry.base_time = position.time;
+                    }
+
+                    if (getCellScheduleEntries(entryCell)[0] === entry) {
+                        entryCell.dataset.scheduleTime = entry.time;
+                        entryCell.dataset.scheduleStartMinute = String(range.start);
+                        entryCell.dataset.scheduleEndMinute = String(range.end);
+                        entryCell.dataset.rowPosition = String(entry.row_position ?? entryCell.dataset.rowPosition ?? '');
+                        entryCell.dataset.scheduleBaseTime = entry.base_time || entryCell.dataset.time || '';
+                    }
                 });
 
                 lastError = '';
@@ -7357,7 +7560,7 @@ if (confirmMergeProgram) {
                 if (timeLabel) {
                     timeLabel.textContent = formatScheduleRangeLabel(current.start, current.end);
                 }
-                positionScheduleBlock(block, cell, current.start, current.end, visualCell, spanCells);
+                positionScheduleBlock(block, cell, current.start, current.end, visualCell, spanCells, targetEntries.find(entry => entry.cell === cell) || targetEntries[0]);
             };
 
             const finish = function(upEvent) {
@@ -7400,6 +7603,29 @@ if (confirmMergeProgram) {
         layer.replaceChildren();
 
         const allCells = Array.from(document.querySelectorAll('#scheduleTable .schedule-cell'));
+        allCells.forEach(function(cell) {
+            cell.classList.remove('schedule-block-source');
+            cell.classList.toggle('half-hour-interval-cell', selectedScheduleInterval?.cell === cell);
+        });
+
+        if (selectedScheduleInterval?.cell?.isConnected) {
+            const cell = selectedScheduleInterval.cell;
+            const startY = scheduleYAtMinute(cell.dataset.day, cell.dataset.side, selectedScheduleInterval.start, 'start');
+            const endY = scheduleYAtMinute(cell.dataset.day, cell.dataset.side, selectedScheduleInterval.end, 'end');
+            const wrapper = document.querySelector('[data-schedule-sheet]');
+            if (startY !== null && endY !== null && endY > startY && wrapper) {
+                const cellRect = cell.getBoundingClientRect();
+                const wrapperRect = wrapper.getBoundingClientRect();
+                const selection = document.createElement('div');
+                selection.className = 'schedule-half-hour-selection';
+                selection.setAttribute('aria-hidden', 'true');
+                selection.style.left = (cellRect.left - wrapperRect.left - wrapper.clientLeft + wrapper.scrollLeft) + 'px';
+                selection.style.top = (startY - wrapperRect.top - wrapper.clientTop + wrapper.scrollTop) + 'px';
+                selection.style.width = cellRect.width + 'px';
+                selection.style.height = (endY - startY) + 'px';
+                layer.appendChild(selection);
+            }
+        }
 
         if (isPublishedScheduleView) {
             allCells.forEach(function(cell) {
@@ -7440,14 +7666,15 @@ if (confirmMergeProgram) {
                 ? entries
                 : entries.slice(0, 1);
 
-            groupedEntries.forEach(function(item, entryIndex) {
+            mergeAdjacentScheduleEntriesForDisplay(groupedEntries).forEach(function(item, entryIndex) {
                 const cell = item.cell;
                 const entry = item.entry;
-                const range = parseScheduleRange(entry.time || cell.dataset.scheduleTime || cell.dataset.time || '');
+                const sourceEntries = item.sourceEntries || [entry];
+                const range = item.range;
                 if (!range) return;
 
                 entry.cell = cell;
-                entry.time = formatScheduleRange(range.start, range.end);
+                if (sourceEntries.length === 1) entry.time = formatScheduleRange(range.start, range.end);
                 if (cell.dataset.course === entry.course && String(cell.dataset.scheduleId || '') === String(entry.schedule_id || '')) {
                     cell.dataset.scheduleTime = entry.time;
                     cell.dataset.scheduleStartMinute = String(range.start);
@@ -7526,6 +7753,7 @@ if (confirmMergeProgram) {
                         : (visualCell.click(), visualCell.classList.contains('selected-cell'));
                     selectedScheduleEntry = groupSelected ? entry : null;
                     selectedScheduleInterval = null;
+                    renderScheduleBlocks();
                 });
 
                 if (!isPublishedScheduleView) block.addEventListener('contextmenu', function(event) {
@@ -7536,6 +7764,7 @@ if (confirmMergeProgram) {
                     else if (!visualCell.classList.contains('selected-cell')) visualCell.click();
                     selectedScheduleEntry = entry;
                     selectedScheduleInterval = null;
+                    renderScheduleBlocks();
                     openScheduleEntryPopup(visualCell, entry, null);
                 });
 
@@ -7546,15 +7775,31 @@ if (confirmMergeProgram) {
                         else visualCell.click();
                         selectedScheduleEntry = entry;
                         selectedScheduleInterval = null;
+                        renderScheduleBlocks();
                     }
                 });
 
-                const canResize = !isPublishedScheduleView && cell.dataset.locked !== '1' && entryIndex === 0;
+                const resizeSignature = scheduleEntrySignature(entry, cell);
+                const resizeEntries = mergeId && visualCell.dataset.manualMergeAxis === 'horizontal'
+                    ? mergeMembers.flatMap(function(member) {
+                        return getCellScheduleEntries(member).find(function(candidate) {
+                            return scheduleEntrySignature(candidate, member) === resizeSignature;
+                        }) || [];
+                    }).filter(Boolean)
+                    : (!mergeId && autoMergedCells.length > 1
+                        ? autoMergedCells.map(function(member) {
+                            return getCellScheduleEntries(member).find(function(candidate) {
+                                return scheduleEntrySignature(candidate, member) === resizeSignature;
+                            });
+                        }).filter(Boolean)
+                        : [entry]);
+                const canResize = !isPublishedScheduleView && cell.dataset.locked !== '1'
+                    && sourceEntries.length === 1 && Boolean(resizeSignature);
                 let resizeStart = null;
                 let resizeEnd = null;
                 if (canResize) {
-                    resizeStart = addScheduleResizeHandle(block, cell, 'start', visualCell, autoMergedCells);
-                    resizeEnd = addScheduleResizeHandle(block, cell, 'end', visualCell, autoMergedCells);
+                    resizeStart = addScheduleResizeHandle(block, cell, 'start', visualCell, autoMergedCells, resizeEntries);
+                    resizeEnd = addScheduleResizeHandle(block, cell, 'end', visualCell, autoMergedCells, resizeEntries);
                     block.addEventListener('pointerdown', function(event) {
                         if (event.target.closest('.schedule-resize-handle')) return;
                         const rect = block.getBoundingClientRect();
@@ -7565,7 +7810,7 @@ if (confirmMergeProgram) {
                 }
 
                 layer.appendChild(block);
-                if (!positionScheduleBlock(block, cell, range.start, range.end, visualCell, !mergeId ? autoMergedCells : [visualCell])) {
+                if (!positionScheduleBlock(block, cell, range.start, range.end, visualCell, !mergeId ? autoMergedCells : [visualCell], entry)) {
                     block.remove();
                     return;
                 }
@@ -7575,8 +7820,12 @@ if (confirmMergeProgram) {
                     : (cell.dataset.locked === '1' ? 'Right-click to request a course merge.' : 'Right-click to edit this entry.');
                 block.title = [entry.course, entry.subject, entry.instructor, formatScheduleRangeLabel(range.start, range.end), blockActionHint].filter(Boolean).join(' · ');
                 if (!isPublishedScheduleView) block.setAttribute('aria-label', [entry.course || 'Scheduled class', entry.subject, entry.instructor, formatScheduleRangeLabel(range.start, range.end), blockActionHint].filter(Boolean).join(', ') + '.');
-                visualCell.classList.add('schedule-block-source');
-                if (cell !== visualCell) cell.classList.add('schedule-block-source');
+                const coveredCells = mergeId
+                    ? (visualCell.dataset.manualMergeAxis === 'horizontal' ? mergeMembers : [visualCell])
+                    : autoMergedCells;
+                coveredCells.forEach(function(sourceCell) {
+                    sourceCell.classList.add('schedule-block-source');
+                });
             });
 
             if (!entries.length) visualCell.classList.remove('schedule-block-source');
@@ -7691,9 +7940,6 @@ if (mergeProgramOverlay) {
         };
 }
 // ------------------------------------------------------------
-// Existing time-cell events
-attachTimeCellEvents();
-
 const scheduleBlockWrapper = document.querySelector('[data-schedule-sheet]');
 scheduleBlockWrapper?.addEventListener('scroll', renderScheduleBlocks, { passive: true });
 window.addEventListener('resize', renderScheduleBlocks);

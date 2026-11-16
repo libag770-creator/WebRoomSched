@@ -7,6 +7,12 @@
     <nav class="faculty-sidebar-nav" aria-label="Instructor Portal">
         <span class="faculty-sidebar-section">GENERAL</span>
         <ul class="sidebar-menu">
+            <li class="{{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
+                <a href="{{ route('audit-logs.index', ['type' => 'override']) }}" @if(request()->routeIs('audit-logs.*')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Audit Logs</span>
+                </a>
+            </li>
             <li class="{{ request()->routeIs('faculty.dashboard') ? 'active' : '' }}">
                 <a href="{{ route('faculty.dashboard') }}" @if(request()->routeIs('faculty.dashboard')) aria-current="page" @endif>
                     <span class="faculty-nav-icon"><i class="fa-solid fa-table-columns" aria-hidden="true"></i></span>

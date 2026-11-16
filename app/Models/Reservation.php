@@ -23,12 +23,15 @@ class Reservation extends Model
         'end_time',
         'purpose',
         'status',
+        'saturday_approval_acknowledged_at',
+        'saturday_approval_acknowledged_by',
     ];
 
     protected $casts = [
         'date' => 'date',
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
+        'saturday_approval_acknowledged_at' => 'datetime',
     ];
 
     public function room()

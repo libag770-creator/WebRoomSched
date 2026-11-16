@@ -8,6 +8,12 @@
     <nav class="faculty-sidebar-nav" aria-label="College chair portal">
         <span class="faculty-sidebar-section">OVERVIEW</span>
         <ul class="sidebar-menu">
+            <li class="{{ request()->routeIs('audit-logs.*') ? 'active' : '' }}">
+                <a href="{{ route('audit-logs.index', ['type' => 'override']) }}" @if(request()->routeIs('audit-logs.*')) aria-current="page" @endif>
+                    <span class="faculty-nav-icon"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i></span>
+                    <span class="sidebar-text">Audit Logs</span>
+                </a>
+            </li>
             <li class="{{ request()->routeIs('chair.dashboard', 'chair.dashboard.page') ? 'active' : '' }}">
                 <a href="{{ route('chair.dashboard') }}" @if(request()->routeIs('chair.dashboard', 'chair.dashboard.page')) aria-current="page" @endif>
                     <span class="faculty-nav-icon"><i class="fa-solid fa-table-columns" aria-hidden="true"></i></span>

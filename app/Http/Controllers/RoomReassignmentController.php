@@ -25,7 +25,8 @@ class RoomReassignmentController extends Controller
         ScheduleOverride::query()
             ->where('status', 'active')
             ->where('expires_at', '<=', now())
-            ->update(['status' => 'expired']);
+            ->get()
+            ->each(fn (ScheduleOverride $override) => DB::transaction(fn () => $override->update(['status' => 'expired'])));
 
         $departments = Department::with('buildings.rooms')->orderBy('name')->get();
         $rooms = Room::with(['department', 'buildingRelation'])->orderBy('room_name')->get();
@@ -156,7 +157,7 @@ class RoomReassignmentController extends Controller
 
         if ($scheduleOverride->status === 'active') {
             $scheduleOverride->load(['room.buildingRelation', 'room.department', 'schedule.room.buildingRelation']);
-            $scheduleOverride->update(['status' => 'cancelled']);
+            DB::transaction(fn () => $scheduleOverride->update(['status' => 'cancelled']));
 
             $date = $scheduleOverride->override_date?->copy()->startOfDay();
             $range = $this->overrideRange($scheduleOverride);

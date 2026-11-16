@@ -457,6 +457,348 @@ public function index(Request $request, $roomId)
         )
     );
 }
+public function viewFacultySchedule(Request $request, int $facultyId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair' && $chair->department_id, 403, 'Unauthorized.');
+
+    $faculty = User::query()
+        ->active()
+        ->where('role', 'faculty')
+        ->findOrFail($facultyId);
+
+    $isOwnDepartment = (int) $faculty->department_id === (int) $chair->department_id;
+    $isImported = DB::table('department_faculty_imports')
+        ->where('department_id', $chair->department_id)
+        ->where('faculty_id', $faculty->id)
+        ->exists();
+    abort_unless($isOwnDepartment || $isImported, 404);
+
+    $activeTerm = $this->resolveAcademicTerm($request);
+    $schedules = Schedule::query()
+        ->with(['room.buildingRelation'])
+        ->where('academic_term_id', $activeTerm->id)
+        ->where(function ($query) use ($faculty) {
+            $query->where('faculty_id', $faculty->id)
+                ->orWhere(function ($legacy) use ($faculty) {
+                    $legacy->whereNull('faculty_id')->where('instructor', $faculty->name);
+                });
+        })
+        ->get();
+
+    $days = ['MON' => 'Monday', 'WED' => 'Wednesday', 'FRI' => 'Friday', 'TUE' => 'Tuesday', 'THU' => 'Thursday', 'SAT' => 'Saturday'];
+    $defaultTimes = [
+        '7:00-8:00', '8:00-9:00', '9:00-10:00', '10:00-11:00', '11:00-12:00',
+        '1:00-2:00', '2:00-3:00', '3:00-4:00', '4:00-5:00', '5:00-6:00', '6:00-7:00',
+    ];
+    $parseClock = function ($value) {
+        if (!preg_match('/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i', trim((string) $value), $matches)) return null;
+        $hour = (int) $matches[1];
+        $minute = (int) $matches[2];
+        $period = strtoupper($matches[3] ?? '');
+        if ($period === 'PM' && $hour < 12) $hour += 12;
+        if ($period === 'AM' && $hour === 12) $hour = 0;
+        if ($period === '' && $hour >= 1 && $hour <= 6) $hour += 12;
+        return $hour <= 23 && $minute <= 59 ? ($hour * 60) + $minute : null;
+    };
+    $defaultTimeMinutes = array_map(function ($time) use ($parseClock) {
+        $parts = explode('-', $time, 2);
+        return [$parseClock($parts[0]), $parseClock($parts[1] ?? '')];
+    }, $defaultTimes);
+    $formatRange = function (?int $startMinutes, ?int $endMinutes) {
+        if ($startMinutes === null || $endMinutes === null) return '';
+        $clock = function (int $minutes) {
+            $minutes = $minutes % 1440;
+            $hour = (int) floor($minutes / 60);
+            return [($hour % 12 ?: 12) . ':' . str_pad((string) ($minutes % 60), 2, '0', STR_PAD_LEFT), $hour < 12 ? 'AM' : 'PM'];
+        };
+        [$startClock, $startPeriod] = $clock($startMinutes);
+        [$endClock, $endPeriod] = $clock($endMinutes);
+        return $startPeriod === $endPeriod
+            ? $startClock . '–' . $endClock . ' ' . $endPeriod
+            : $startClock . ' ' . $startPeriod . '–' . $endClock . ' ' . $endPeriod;
+    };
+    $timeRows = [];
+    foreach ($defaultTimes as $position => $time) {
+        $timeRows[$position] = ['position' => $position, 'label' => $time, 'days' => []];
+    }
+
+    foreach ($schedules as $schedule) {
+        $dayValue = strtoupper(preg_replace('/[^A-Z]/i', '', trim((string) ($schedule->day_of_week ?: $schedule->day))));
+        $dayKeys = match ($dayValue) {
+            'MWF', 'MONWEDFRI' => ['MON', 'WED', 'FRI'],
+            'TTHS', 'TUETHUSAT', 'TTHSAT' => ['TUE', 'THU', 'SAT'],
+            'TTH', 'TUETHU' => ['TUE', 'THU'],
+            default => [match (substr($dayValue, 0, 3)) {
+                'MON' => 'MON', 'TUE' => 'TUE', 'WED' => 'WED', 'THU' => 'THU', 'FRI' => 'FRI', 'SAT' => 'SAT', default => '',
+            }],
+        };
+        $dayKeys = array_values(array_filter($dayKeys, fn ($dayKey) => isset($days[$dayKey])));
+        if (!$dayKeys) continue;
+
+        $rawTime = trim((string) $schedule->time);
+        $timeParts = preg_split('/\s*(?:-|–|—|to)\s*/i', $rawTime, 2);
+        $startRaw = trim((string) $schedule->start_time);
+        $endRaw = trim((string) $schedule->end_time);
+        if ($startRaw !== '') {
+            try {
+                $startCarbon = Carbon::parse($startRaw);
+                $startMinutes = ((int) $startCarbon->format('H') * 60) + (int) $startCarbon->format('i');
+                $startDisplay = $startCarbon->format('g:i');
+                $endDisplay = $endRaw !== '' ? Carbon::parse($endRaw)->format('g:i') : '';
+            } catch (\Throwable $exception) {
+                $startMinutes = $parseClock($timeParts[0] ?? '');
+                $startDisplay = $timeParts[0] ?? '';
+                $endDisplay = $timeParts[1] ?? '';
+            }
+        } else {
+            $startMinutes = $parseClock($timeParts[0] ?? '');
+            $endMinutes = $parseClock($timeParts[1] ?? '');
+            $startDisplay = $startMinutes !== null ? ((int) floor(($startMinutes % 1440) / 60) % 12 ?: 12) . ':' . str_pad((string) ($startMinutes % 60), 2, '0', STR_PAD_LEFT) : ($timeParts[0] ?? '');
+            $endDisplay = $endMinutes !== null ? ((int) floor(($endMinutes % 1440) / 60) % 12 ?: 12) . ':' . str_pad((string) ($endMinutes % 60), 2, '0', STR_PAD_LEFT) : ($timeParts[1] ?? '');
+        }
+        $timeLabel = $startDisplay !== '' && $endDisplay !== '' ? $startDisplay . '-' . $endDisplay : ($rawTime ?: 'Time not set');
+
+        $displayStartMinutes = $parseClock($timeParts[0] ?? '');
+        $displayEndMinutes = $parseClock($timeParts[1] ?? '');
+        try {
+            if ($startRaw !== '') {
+                $startCarbon = Carbon::parse($startRaw);
+                $displayStartMinutes = ((int) $startCarbon->format('H') * 60) + (int) $startCarbon->format('i');
+            }
+            if ($endRaw !== '') {
+                $endCarbon = Carbon::parse($endRaw);
+                $displayEndMinutes = ((int) $endCarbon->format('H') * 60) + (int) $endCarbon->format('i');
+            }
+        } catch (\Throwable $exception) {
+            // Keep the saved time label when a legacy time cannot be parsed.
+        }
+        $displayTime = $formatRange($displayStartMinutes, $displayEndMinutes) ?: $rawTime;
+
+        $position = null;
+        foreach ($defaultTimeMinutes as $index => [$slotStart, $slotEnd]) {
+            if ($startMinutes !== null && $slotStart !== null && $slotEnd !== null && $startMinutes >= $slotStart && $startMinutes < $slotEnd) {
+                $position = $index;
+                break;
+            }
+        }
+        if ($position === null && is_numeric($schedule->row_position)) {
+            $position = max(0, (int) $schedule->row_position);
+        }
+        if ($position === null) $position = count($defaultTimes);
+        if (!isset($timeRows[$position])) $timeRows[$position] = ['position' => $position, 'label' => $timeLabel, 'days' => []];
+
+        $schedule->setAttribute('spreadsheet_course', $schedule->course_code ?: $schedule->course ?: 'Class');
+        $schedule->setAttribute('spreadsheet_subject', $schedule->subject ?: $schedule->course_title ?: '');
+        $schedule->setAttribute('spreadsheet_time', $displayTime);
+        $schedule->setAttribute('spreadsheet_merge_signature', sha1(json_encode([
+            trim((string) ($schedule->course_code ?: $schedule->course ?: '')),
+            trim((string) ($schedule->subject ?: $schedule->course_title ?: '')),
+            trim((string) ($schedule->program ?? '')),
+            trim((string) ($schedule->year_level ?? '')),
+            trim((string) ($schedule->major ?? '')),
+            trim((string) ($schedule->subject_type ?? '')),
+            trim((string) ($schedule->time ?? '')),
+            (string) ($schedule->room_id ?? ''),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
+        foreach ($dayKeys as $dayKey) $timeRows[$position]['days'][$dayKey][] = $schedule;
+    }
+
+    ksort($timeRows);
+    $scheduleRows = collect(array_values($timeRows));
+
+    if ($request->ajax()) {
+        return view('chair.partials.faculty-schedule-grid', [
+            'faculty' => $faculty,
+            'activeTerm' => $activeTerm,
+            'days' => $days,
+            'scheduleRows' => $scheduleRows,
+            'scheduleModal' => true,
+        ]);
+    }
+
+    return view('chair.faculty-schedule', compact('chair', 'faculty', 'activeTerm', 'days', 'scheduleRows'));
+}
+
+public function viewFacultyScheduleSummary(Request $request, int $facultyId)
+{
+    $chair = Auth::user();
+    abort_unless($chair && $chair->role === 'chair' && $chair->department_id, 403, 'Unauthorized.');
+
+    $faculty = User::query()->active()->where('role', 'faculty')->findOrFail($facultyId);
+    $isOwnDepartment = (int) $faculty->department_id === (int) $chair->department_id;
+    $importRecord = DB::table('department_faculty_imports')
+        ->where('department_id', $chair->department_id)
+        ->where('faculty_id', $faculty->id)
+        ->first();
+    abort_unless($isOwnDepartment || $importRecord, 404);
+
+    $activeTerm = $this->resolveAcademicTerm($request);
+    $assignments = FacultySubject::query()
+        ->with(['subjectCatalog.program'])
+        ->where('faculty_id', $faculty->id)
+        ->get();
+
+    if (!$isOwnDepartment && $importRecord) {
+        $importedAt = $importRecord->created_at ? strtotime($importRecord->created_at) : null;
+        $assignments = $assignments->filter(function ($assignment) use ($chair, $importedAt) {
+            $catalogDepartmentId = $assignment->subjectCatalog?->program?->department_id;
+            if ($catalogDepartmentId !== null) return (int) $catalogDepartmentId === (int) $chair->department_id;
+            return $importedAt && $assignment->created_at && strtotime((string) $assignment->created_at) >= $importedAt;
+        })->values();
+    }
+
+    $summaryRows = [];
+    $assignmentIdToKey = [];
+    $assignmentKeysByCode = [];
+    foreach ($assignments as $assignment) {
+        $key = 'assignment-' . $assignment->id;
+        $catalog = $assignment->subjectCatalog;
+        $code = trim((string) ($assignment->course_code ?: $catalog?->course_code ?: ''));
+        $summaryRows[$key] = [
+            'code' => $code ?: 'Course code not set',
+            'title' => trim((string) ($assignment->subject ?: $catalog?->course_title ?: 'Untitled subject')),
+            'program' => trim((string) ($catalog?->program?->code ?: $assignment->program ?: 'Program not set')),
+            'year_level' => trim((string) ($assignment->year_level ?: $catalog?->year_level ?: '')),
+            'weekly_meetings' => 0,
+            'meetings' => [],
+        ];
+        $assignmentIdToKey[(int) $assignment->id] = $key;
+        if ($code !== '') $assignmentKeysByCode[mb_strtolower($code)][] = $key;
+    }
+
+    $schedules = Schedule::query()
+        ->with('facultySubject.subjectCatalog.program')
+        ->where('academic_term_id', $activeTerm->id)
+        ->where(function ($query) use ($faculty) {
+            $query->where('faculty_id', $faculty->id)
+                ->orWhere(function ($legacy) use ($faculty) {
+                    $legacy->whereNull('faculty_id')->where('instructor', $faculty->name);
+                });
+        })
+        ->get();
+
+    $parseMinutes = function ($value) {
+        if (!preg_match('/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i', trim((string) $value), $match)) return null;
+        $hour = (int) $match[1];
+        $minute = (int) $match[2];
+        $period = strtoupper($match[3] ?? '');
+        if ($period === 'PM' && $hour < 12) $hour += 12;
+        if ($period === 'AM' && $hour === 12) $hour = 0;
+        if ($period === '' && $hour >= 1 && $hour <= 6) $hour += 12;
+        return $hour <= 23 && $minute <= 59 ? $hour * 60 + $minute : null;
+    };
+    $formatMinute = function (int $minutes) {
+        $hour24 = (int) floor(($minutes % 1440) / 60);
+        return [($hour24 % 12 ?: 12) . ':' . str_pad((string) ($minutes % 60), 2, '0', STR_PAD_LEFT), $hour24 < 12 ? 'AM' : 'PM'];
+    };
+    $dayLabels = ['MON' => 'Mon', 'TUE' => 'Tue', 'WED' => 'Wed', 'THU' => 'Thu', 'FRI' => 'Fri', 'SAT' => 'Sat'];
+
+    foreach ($schedules as $schedule) {
+        $facultySubjectId = (int) ($schedule->faculty_subject_id ?? $schedule->facultySubject?->id ?? 0);
+        $key = $assignmentIdToKey[$facultySubjectId] ?? null;
+        $courseCode = trim((string) ($schedule->course_code ?: $schedule->course ?: ''));
+        if (!$key && $courseCode !== '') {
+            $candidates = $assignmentKeysByCode[mb_strtolower($courseCode)] ?? [];
+            $scheduleProgram = trim((string) ($schedule->program ?? ''));
+            $scheduleYear = trim((string) ($schedule->year_level ?? ''));
+            foreach ($candidates as $candidateKey) {
+                $candidate = $summaryRows[$candidateKey];
+                $candidateProgram = trim((string) $candidate['program']);
+                $programMatches = $scheduleProgram === '' || $candidateProgram === ''
+                    || strcasecmp($scheduleProgram, $candidateProgram) === 0
+                    || str_contains(mb_strtolower($scheduleProgram), '(' . mb_strtolower($candidateProgram) . ')')
+                    || str_contains(mb_strtolower($candidateProgram), '(' . mb_strtolower($scheduleProgram) . ')');
+                $yearMatches = $scheduleYear === '' || $candidate['year_level'] === ''
+                    || strcasecmp($scheduleYear, (string) $candidate['year_level']) === 0;
+                if ($programMatches && $yearMatches) {
+                    $key = $candidateKey;
+                    break;
+                }
+            }
+            $key ??= $candidates[0] ?? null;
+        }
+        if (!$key) {
+            $key = 'scheduled-' . sha1(mb_strtolower($courseCode . '|' . $schedule->subject . '|' . $schedule->program . '|' . $schedule->year_level));
+            $summaryRows[$key] ??= [
+                'code' => $courseCode ?: 'Course code not set',
+                'title' => trim((string) ($schedule->subject ?: 'Untitled subject')),
+                'program' => trim((string) ($schedule->program ?: 'Program not set')),
+                'year_level' => trim((string) $schedule->year_level),
+                'weekly_meetings' => 0,
+                'meetings' => [],
+            ];
+        }
+
+        $rawDays = strtoupper(preg_replace('/[^A-Z]/i', '', trim((string) ($schedule->day_of_week ?: $schedule->day))));
+        $dayKeys = match ($rawDays) {
+            'MWF', 'MONWEDFRI' => ['MON', 'WED', 'FRI'],
+            'TTHS', 'TUETHUSAT', 'TTHSAT' => ['TUE', 'THU', 'SAT'],
+            'TTH', 'TUETHU' => ['TUE', 'THU'],
+            default => [match (substr($rawDays, 0, 3)) {
+                'MON' => 'MON', 'TUE' => 'TUE', 'WED' => 'WED', 'THU' => 'THU', 'FRI' => 'FRI', 'SAT' => 'SAT', default => '',
+            }],
+        };
+        $dayKeys = array_values(array_filter($dayKeys, fn ($day) => isset($dayLabels[$day])));
+        if (!$dayKeys) continue;
+
+        $startRaw = trim((string) $schedule->start_time);
+        $endRaw = trim((string) $schedule->end_time);
+        $timeParts = preg_split('/\s*(?:-|–|—|to)\s*/i', trim((string) $schedule->time), 2);
+        $startMinutes = $parseMinutes($timeParts[0] ?? '');
+        $endMinutes = $parseMinutes($timeParts[1] ?? '');
+        try {
+            if ($startRaw !== '') $startMinutes = $parseMinutes(Carbon::parse($startRaw)->format('g:i A'));
+            if ($endRaw !== '') $endMinutes = $parseMinutes(Carbon::parse($endRaw)->format('g:i A'));
+        } catch (\Throwable $exception) {
+            // Use the time label if an older row contains an unparsable time value.
+        }
+        if ($startMinutes !== null && $endMinutes !== null) {
+            if ($endMinutes <= $startMinutes && $endRaw === '' && !preg_match('/\b(?:AM|PM)\b/i', (string) $schedule->time)) $endMinutes += 12 * 60;
+            [$startClock, $startPeriod] = $formatMinute($startMinutes);
+            [$endClock, $endPeriod] = $formatMinute($endMinutes);
+            $timeLabel = $startPeriod === $endPeriod
+                ? $startClock . '–' . $endClock . ' ' . $endPeriod
+                : $startClock . ' ' . $startPeriod . '–' . $endClock . ' ' . $endPeriod;
+        } else {
+            $timeLabel = trim((string) $schedule->time) ?: 'Time not set';
+        }
+
+        foreach ($dayKeys as $dayKey) {
+            $meetingKey = $timeLabel;
+            $summaryRows[$key]['meetings'][$meetingKey] ??= ['days' => [], 'day_counts' => [], 'time' => $timeLabel, 'count' => 0, 'order' => array_search($dayKey, array_keys($dayLabels), true)];
+            $summaryRows[$key]['meetings'][$meetingKey]['days'][$dayKey] = $dayLabels[$dayKey];
+            $summaryRows[$key]['meetings'][$meetingKey]['day_counts'][$dayKey] = ($summaryRows[$key]['meetings'][$meetingKey]['day_counts'][$dayKey] ?? 0) + 1;
+            $summaryRows[$key]['meetings'][$meetingKey]['order'] = min($summaryRows[$key]['meetings'][$meetingKey]['order'], array_search($dayKey, array_keys($dayLabels), true));
+            $summaryRows[$key]['meetings'][$meetingKey]['count']++;
+            $summaryRows[$key]['weekly_meetings']++;
+        }
+    }
+
+    $daySortOrder = array_flip(array_keys($dayLabels));
+    foreach ($summaryRows as &$summaryRow) {
+        $summaryRow['meetings'] = collect($summaryRow['meetings'])
+            ->map(function ($meeting) use ($daySortOrder) {
+                uksort($meeting['days'], fn ($left, $right) => ($daySortOrder[$left] ?? 99) <=> ($daySortOrder[$right] ?? 99));
+                return $meeting;
+            })
+            ->sortBy('order')
+            ->values();
+    }
+    unset($summaryRow);
+    $summaryRows = collect($summaryRows)->sortBy(fn ($row) => mb_strtolower($row['code'] . ' ' . $row['title']))->values();
+    $totalWeeklyMeetings = (int) $summaryRows->sum('weekly_meetings');
+    $unscheduledCount = $summaryRows->where('weekly_meetings', 0)->count();
+
+    return view('chair.partials.faculty-schedule-summary', [
+        'faculty' => $faculty,
+        'activeTerm' => $activeTerm,
+        'summaryRows' => $summaryRows,
+        'totalWeeklyMeetings' => $totalWeeklyMeetings,
+        'unscheduledCount' => $unscheduledCount,
+    ]);
+}
+
 public function setFaculty(Request $request)
 {
     if (!Auth::check() || Auth::user()->role !== 'chair') {
@@ -1511,13 +1853,7 @@ public function clearScheduleCells(Request $request)
                 'room_id',
                 $room->id
             )
-            ->whereIn(
-                'status',
-                [
-                    'Pending',
-                    'Approved'
-                ]
-            )
+            ->whereRaw('LOWER(TRIM(status)) IN (?, ?, ?)', ['pending', 'approved', 'reserved'])
             ->whereRaw(
                 'UPPER(day) = ?',
                 [$slotDay]
@@ -2804,7 +3140,9 @@ $schedules = $schedules
         ->where('room_id', $room->id)
         ->where('academic_term_id', $activeTerm->id)
         ->where('status', 'Reserved')
-        ->whereDate('date', Carbon::today()->format('Y-m-d'))
+        ->whereDate('date', '>=', Carbon::today()->format('Y-m-d'))
+        ->orderBy('date')
+        ->orderBy('start_time')
         ->get()
         ->filter(function ($reservation) {
             if (!$reservation->start_time || !$reservation->end_time) {
@@ -2818,7 +3156,7 @@ $schedules = $schedules
                     $reservation->end_time
                 );
 
-                return $end->greaterThan(Carbon::now());
+                return Carbon::parse($reservation->date)->isFuture() || $end->greaterThan(Carbon::now());
             } catch (\Throwable $e) {
                 return false;
             }
@@ -3821,6 +4159,7 @@ public function storeFacultySubject(Request $request)
         'course_code' => 'required|string|max:50',
         'cohort_subject_ids' => 'nullable|array|max:40',
         'cohort_subject_ids.*' => 'integer|distinct|exists:subjects,id',
+        'student_count' => 'required|integer|min:0|max:10000',
     ]);
 
    $faculty = User::where('id', $request->faculty_id)
@@ -3900,6 +4239,9 @@ public function storeFacultySubject(Request $request)
                 ->with('error', 'This instructor already has this course code with a different title. Use Merge Class for equivalent courses with different titles.');
         }
 
+        $existingAssignment->update([
+            'student_count' => (int) $request->input('student_count'),
+        ]);
         $existingAssignment->sharedCohorts()->syncWithoutDetaching(
             $selectedCohortIds->reject(fn ($id) => (int) $id === (int) $existingAssignment->subject_id)->all()
         );
@@ -3920,6 +4262,7 @@ public function storeFacultySubject(Request $request)
         'major' => $subjectEntry->program?->major,
         'program' => trim(($subjectEntry->program?->name ?? '') . ' (' . ($subjectEntry->program?->code ?? '') . ')'),
         'subject_type' => Subject::typeFromCourseCode($subjectEntry->course_code),
+        'student_count' => (int) $request->input('student_count'),
     ]);
 
     $facultySubject->sharedCohorts()->sync(
@@ -3946,6 +4289,7 @@ public function updateFacultySubject(Request $request, $id)
         'year_level' => 'nullable|string|max:50',
         'major' => 'nullable|string|max:100',
         'program' => 'nullable|string|max:100',
+        'student_count' => 'required|integer|min:0|max:10000',
     ]);
 
     $facultySubject = FacultySubject::with(['faculty', 'subjectCatalog.program'])
@@ -3976,9 +4320,19 @@ public function updateFacultySubject(Request $request, $id)
         ->firstOrFail();
 
     if ($facultySubject->subject_id) {
+        if ($request->hasAny(['course_code', 'subject', 'year_level', 'major', 'program'])) {
+            return redirect()
+                ->route('chair.setFaculty', ['faculty' => $faculty->id])
+                ->with('error', 'This assignment is linked to Manage Subjects. Update its catalog entry or remove and reassign it.');
+        }
+
+        $facultySubject->update([
+            'student_count' => (int) $request->input('student_count'),
+        ]);
+
         return redirect()
             ->route('chair.setFaculty', ['faculty' => $faculty->id])
-            ->with('error', 'This assignment is linked to Manage Subjects. Update its catalog entry or remove and reassign it.');
+            ->with('success', 'Student count updated.');
     }
 
     $courseCode = strtoupper(trim(
@@ -4023,6 +4377,7 @@ public function updateFacultySubject(Request $request, $id)
         'major' => $major,
         'program' => $program,
         'subject_type' => Subject::typeFromCourseCode($courseCode),
+        'student_count' => (int) $request->input('student_count'),
     ]);
 
     return redirect()
@@ -8091,7 +8446,7 @@ private function findFacultyScheduleConflict(
                     );
 
                     if ($end->lessThanOrEqualTo($now)) {
-                        $reservation->update(['status' => 'Expired']);
+                        DB::transaction(fn () => $reservation->update(['status' => 'Expired']));
                     }
                 } catch (\Throwable $e) {
                     // Leave malformed legacy rows untouched.

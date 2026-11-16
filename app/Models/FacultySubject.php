@@ -13,6 +13,7 @@ class FacultySubject extends Model
         'course_code',
         'subject',
         'year_level',
+        'student_count',
         'major',
         'program',
     ];

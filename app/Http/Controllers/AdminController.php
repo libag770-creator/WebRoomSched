@@ -325,7 +325,8 @@ public function viewSchedule(Room $room)
                             ->where('end_time', '<=', $nowTime);
                     });
             })
-            ->update(['status' => 'Expired']);
+            ->get()
+            ->each(fn (Reservation $reservation) => DB::transaction(fn () => $reservation->update(['status' => 'Expired'])));
 
         $roomSwapsBySchedule = [];
         $swaps = RoomSwapRequest::with([
@@ -571,7 +572,7 @@ public function viewSchedule(Room $room)
             ->orderBy('date')
             ->orderBy('start_time')
             ->get()
-            ->map(function ($reservation) {
+            ->map(function ($reservation) use ($room) {
                 return [
                     'id' => $reservation->id,
                     'user_id' => $reservation->user_id,
@@ -582,6 +583,8 @@ public function viewSchedule(Room $room)
                     'start_time' => $reservation->start_time ? Carbon::parse($reservation->start_time)->format('H:i') : null,
                     'end_time' => $reservation->end_time ? Carbon::parse($reservation->end_time)->format('H:i') : null,
                     'purpose' => $reservation->purpose ?? 'Room Reservation',
+                    'room_id' => (int) $room->id,
+                    'room_name' => $room->room_name,
                     'course_code' => $reservation->subject?->course_code ?? $reservation->facultySubject?->course_code,
                     'subject' => $reservation->subject?->course_title ?? $reservation->facultySubject?->subject,
                     'user_name' => $reservation->user?->name ?? 'Instructor',

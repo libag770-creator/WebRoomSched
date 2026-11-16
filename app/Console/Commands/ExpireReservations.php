@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Reservation;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class ExpireReservations extends Command
 {
@@ -73,9 +74,7 @@ class ExpireReservations extends Command
 
             if (now()->greaterThanOrEqualTo($expiration)) {
 
-                $reservation->update([
-                    'status' => 'Expired'
-                ]);
+                DB::transaction(fn () => $reservation->update(['status' => 'Expired']));
 
                 $expiredCount++;
             }

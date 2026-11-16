@@ -464,7 +464,7 @@ class FacultyController extends Controller
                 ->with('error', 'Cancel an active reservation before removing its history.');
         }
 
-        $reservation->delete();
+        DB::transaction(fn () => $reservation->delete());
 
         return redirect()
             ->route('faculty.bookings')
@@ -485,7 +485,7 @@ class FacultyController extends Controller
                 ->with('error', 'Only active reservations can be cancelled.');
         }
 
-        $reservation->update(['status' => 'Cancelled']);
+        DB::transaction(fn () => $reservation->update(['status' => 'Cancelled']));
 
         return redirect()
             ->route('faculty.bookings')
@@ -536,7 +536,7 @@ class FacultyController extends Controller
 
     'date' => 'required|date',
 
-    'time_slot_id' => 'required|string|max:120',
+    'time_slot_id' => 'nullable|string|max:120',
 
     'time' => 'nullable|string|max:50',
 
@@ -548,6 +548,8 @@ class FacultyController extends Controller
     'subject_id' => 'nullable|integer|exists:subjects,id',
 
     'schedule_id' => 'nullable|integer|exists:schedules,id',
+    'purpose' => 'nullable|string|max:500',
+    'saturday_approval_acknowledgement' => 'nullable|accepted',
 
 ]);
 
@@ -654,6 +656,11 @@ class FacultyController extends Controller
 
 
     $day = strtoupper($date->format('D'));
+    if ($day === 'SAT' && !$request->boolean('saturday_approval_acknowledgement')) {
+        return back()->withErrors([
+            'saturday_approval_acknowledgement' => 'Saturday reservations require prior in-person staff approval. Confirm that approval before submitting.',
+        ])->withInput();
+    }
 
     if ($date->lt(Carbon::today())) {
         return back()->with('error', 'Choose today or a future date for your reservation.');
@@ -755,14 +762,28 @@ class FacultyController extends Controller
         'SUN' => 'SUNDAY', default => $day,
     };
 
-    $publishedRoomSlot = RoomScheduleTimeSlot::query()
+    $publishedRoomSlots = RoomScheduleTimeSlot::query()
         ->where('room_id', $room->id)
         ->where('academic_term_id', $activeTerm->id)
         ->where('is_active', true)
         ->whereIn(DB::raw('UPPER(TRIM(day))'), [$day, $fullDay])
-        ->whereTime('start_time', $startTime)
-        ->whereTime('end_time', $endTime)
-        ->exists();
+        ->get()
+        ->sortBy(fn ($publishedSlot) => Carbon::parse($publishedSlot->start_time)->format('H:i'));
+    $publishedCoverageEnd = null;
+    foreach ($publishedRoomSlots as $publishedSlot) {
+        $publishedStart = Carbon::parse($publishedSlot->start_time)->format('H:i');
+        $publishedEnd = Carbon::parse($publishedSlot->end_time)->format('H:i');
+        if ($publishedEnd <= $publishedStart) continue;
+        if ($publishedCoverageEnd === null) {
+            if ($publishedEnd <= $startTime || $publishedStart > $startTime) continue;
+            $publishedCoverageEnd = $publishedEnd;
+        } else {
+            if ($publishedStart > $publishedCoverageEnd) break;
+            if ($publishedEnd > $publishedCoverageEnd) $publishedCoverageEnd = $publishedEnd;
+        }
+        if ($publishedCoverageEnd >= $endTime) break;
+    }
+    $publishedRoomSlot = $publishedCoverageEnd !== null && $publishedCoverageEnd >= $endTime;
 
     if (!$publishedRoomSlot) {
         return back()->with('error', 'That room is not published for the selected day and time slot. Please search again.');
@@ -1074,7 +1095,33 @@ class FacultyController extends Controller
             } catch (\Throwable $e) {
                 continue;
             }
-            if ($requestedStart->lt($existingEnd) && $requestedEnd->gt($existingStart)) return 'conflict';
+        if ($requestedStart->lt($existingEnd) && $requestedEnd->gt($existingStart)) return 'conflict';
+        }
+
+        // Schedule rows can be published after the search results loaded. Recheck
+        // them while holding the room lock immediately before creating the booking.
+        $fullDay = match ($day) {
+            'MON' => 'MONDAY', 'TUE' => 'TUESDAY', 'WED' => 'WEDNESDAY',
+            'THU' => 'THURSDAY', 'FRI' => 'FRIDAY', 'SAT' => 'SATURDAY',
+            'SUN' => 'SUNDAY', default => $day,
+        };
+        $latestSchedules = Schedule::query()
+            ->where('room_id', $room->id)
+            ->where('academic_term_id', $activeTerm->id)
+            ->where(function ($query) use ($day, $fullDay) {
+                $query->whereRaw('UPPER(TRIM(day)) = ?', [$day])
+                    ->orWhereRaw('UPPER(TRIM(day)) = ?', [$fullDay]);
+            })->get();
+        foreach ($latestSchedules as $latestSchedule) {
+            $parts = preg_split('/\s*-\s*/', trim((string) $latestSchedule->time), 2);
+            if (count($parts) !== 2) continue;
+            try {
+                $classStart = Carbon::parse($date->format('Y-m-d') . ' ' . trim($parts[0]));
+                $classEnd = Carbon::parse($date->format('Y-m-d') . ' ' . trim($parts[1]));
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if ($requestedStart->lt($classEnd) && $requestedEnd->gt($classStart)) return 'class_conflict';
         }
 
         Reservation::create([
@@ -1089,10 +1136,12 @@ class FacultyController extends Controller
             'time' => $reservationTime,
             'start_time' => $startTime,
             'end_time' => $endTime,
-            'purpose' => $catalogSubject
+            'purpose' => trim((string) $request->input('purpose')) ?: ($catalogSubject
                 ? trim($catalogSubject->course_code . ' — ' . $catalogSubject->course_title)
-                : ($room->purpose ?? 'Room Reservation'),
+                : ($room->purpose ?? 'Room Reservation')),
             'status' => 'Reserved',
+            'saturday_approval_acknowledged_at' => $day === 'SAT' ? now() : null,
+            'saturday_approval_acknowledged_by' => $day === 'SAT' ? $faculty->id : null,
         ]);
 
         return false;
@@ -1104,6 +1153,9 @@ class FacultyController extends Controller
 
     if ($reservationResult === 'conflict') {
         return back()->with('error', 'This room and time were just reserved by another instructor. Please choose another room or date.');
+    }
+    if ($reservationResult === 'class_conflict') {
+        return back()->with('error', 'A class was scheduled in this room after your search. Please choose another room or time.');
     }
 
     $startClock = $startTime instanceof Carbon ? $startTime->format('H:i') : Carbon::parse($startTime)->format('H:i');
@@ -1161,6 +1213,10 @@ class FacultyController extends Controller
 
         'time_slot_id' => $request->input('time_slot_id'),
 
+        'start_time' => $startTime,
+
+        'end_time' => $endTime,
+
         'date' => $date->format('Y-m-d'),
 
     ])
@@ -1169,7 +1225,9 @@ class FacultyController extends Controller
 
         'success',
 
-        'Room reserved successfully. The room is reserved for the selected date and time.'
+        'Reservation confirmed (Reserved) for ' . $room->room_name . ' on ' . $date->format('F j, Y')
+            . ' from ' . Carbon::parse($startTime)->format('g:i A') . ' to ' . Carbon::parse($endTime)->format('g:i A')
+            . '. The room is reserved under the current automatic reservation policy.'
 
     );
 
@@ -1603,6 +1661,8 @@ public function vacantRooms(Request $request)
     }
 
     $selectedTimeSlotId = $request->input('time_slot_id');
+    $requestedStartValue = $request->filled('start_time') ? $clock($request->input('start_time')) : null;
+    $requestedEndValue = $request->filled('end_time') ? $clock($request->input('end_time')) : null;
 
     $selectedTimeSlot = null;
 
@@ -1678,6 +1738,16 @@ public function vacantRooms(Request $request)
 
         }
 
+    }
+
+    if (!$selectedTimeSlot && $requestedStartValue && $requestedEndValue) {
+        $selectedTimeSlot = (object) [
+            'id' => 'range:' . $requestedStartValue . '-' . $requestedEndValue,
+            'day' => $selectedDay,
+            'start_time' => $requestedStartValue,
+            'end_time' => $requestedEndValue,
+        ];
+        $selectedTimeSlotId = $selectedTimeSlot->id;
     }
 
 
@@ -1785,7 +1855,12 @@ public function vacantRooms(Request $request)
 
 
 
-                foreach ($rooms as $room) {
+                $searchTimeHasStarted = $reservationDate
+                    && Carbon::parse($reservationDate)->isToday()
+                    && Carbon::parse($reservationDate . ' ' . $slotStartValue)->lessThanOrEqualTo(Carbon::now());
+                $roomsToSearch = $searchTimeHasStarted ? collect() : $rooms;
+
+                foreach ($roomsToSearch as $room) {
 
                     /*
 
@@ -1797,41 +1872,33 @@ public function vacantRooms(Request $request)
 
                     */
 
-                    $hasRoomTimeSlot = $roomTimeSlots->contains(function ($roomSlot) use (
-
-                        $room,
-
-                        $day,
-
-                        $slotStartValue,
-
-                        $slotEndValue,
-
-                        $normalizeDay,
-
-                        $clock
-
-                    ) {
-
-                        return (int) $roomSlot->room_id === (int) $room->id
-
+                    $publishedRows = $roomTimeSlots
+                        ->filter(fn ($roomSlot) => (int) $roomSlot->room_id === (int) $room->id
                             && $normalizeDay($roomSlot->day) === $day
+                            && (bool) $roomSlot->is_active
+                            && $clock($roomSlot->start_time)
+                            && $clock($roomSlot->end_time))
+                        ->sortBy(fn ($roomSlot) => $clock($roomSlot->start_time))
+                        ->values();
 
-                            && $clock($roomSlot->start_time) === $slotStartValue
-
-                            && $clock($roomSlot->end_time) === $slotEndValue
-
-                            && (bool) $roomSlot->is_active;
-
-                    });
-
-
-
-                    if (!$hasRoomTimeSlot) {
-
-                        continue;
-
+                    // Long reservations can span adjacent published time rows.
+                    $coverageEnd = null;
+                    foreach ($publishedRows as $publishedRow) {
+                        $rowStart = $clock($publishedRow->start_time);
+                        $rowEnd = $clock($publishedRow->end_time);
+                        if ($rowEnd <= $rowStart) continue;
+                        if ($coverageEnd === null) {
+                            if ($rowEnd <= $slotStartValue || $rowStart > $slotStartValue) continue;
+                            $coverageEnd = $rowEnd;
+                        } else {
+                            if ($rowStart > $coverageEnd) break;
+                            if ($rowEnd > $coverageEnd) $coverageEnd = $rowEnd;
+                        }
+                        if ($coverageEnd >= $slotEndValue) {
+                            break;
+                        }
                     }
+                    $hasRoomTimeSlot = $coverageEnd !== null && $coverageEnd >= $slotEndValue;
 
 
 
@@ -1986,6 +2053,7 @@ public function vacantRooms(Request $request)
                     */
 
                     $reserved = false;
+                    $fullyReserved = false;
                     $overlappingReservations = collect();
 
 
@@ -2050,6 +2118,9 @@ public function vacantRooms(Request $request)
                             ) {
 
                                 $reserved = true;
+                                if ($reservationStart->lte($slotStart) && $reservationEnd->gte($slotEnd)) {
+                                    $fullyReserved = true;
+                                }
                                 $overlappingReservations->push($reservation);
 
                             }
@@ -2074,17 +2145,19 @@ public function vacantRooms(Request $request)
 
                     */
 
-                    if ($occupied) {
+                    if (!$hasRoomTimeSlot) {
+                        $status = 'Unavailable';
+
+                    } elseif ($occupied) {
 
                         $status = 'Occupied';
 
                     } elseif ($reserved) {
 
-                        $status = 'Reserved';
+                        $status = $fullyReserved ? 'Reserved' : 'Partially Occupied';
 
                     } elseif ($hasConflictingSchedule) {
-
-                        continue;
+                        $status = 'Partially Occupied';
 
                     } else {
 
@@ -2099,6 +2172,13 @@ public function vacantRooms(Request $request)
                         'room' => $room,
 
                         'status' => $status,
+                        'availability_reason' => !$hasRoomTimeSlot
+                            ? 'This room is not published for the entire requested time range.'
+                            : ($occupied
+                                ? 'A scheduled class covers the requested time.'
+                                : ($hasConflictingSchedule
+                                    ? 'A scheduled class overlaps part of the requested time range.'
+                                    : ($reserved ? ($fullyReserved ? 'An existing reservation covers the requested time.' : 'An existing reservation overlaps part of the requested time range.') : null))),
 
                         'day' => $day,
 
@@ -3625,7 +3705,7 @@ $schedules = $schedulesQuery
 
             ->map(
 
-                function ($reservation) use ($roomTimeSlotRows) {
+                function ($reservation) use ($roomTimeSlotRows, $room) {
 
 
 
@@ -3756,6 +3836,8 @@ $schedules = $schedulesQuery
                             $reservation->purpose
 
                             ?? 'Room Reservation',
+                        'room_id' => (int) $room->id,
+                        'room_name' => $room->room_name,
 
                         'course_code' => $reservation->subject?->course_code ?? $reservation->facultySubject?->course_code,
 
@@ -4558,11 +4640,7 @@ public function mySchedules()
 
                     if ($end->lessThanOrEqualTo($now)) {
 
-                        $reservation->update([
-
-                            'status' => 'Expired',
-
-                        ]);
+                        DB::transaction(fn () => $reservation->update(['status' => 'Expired']));
 
                     }
 

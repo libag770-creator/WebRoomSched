@@ -236,6 +236,11 @@
 .published-schedule-block-layer { position:absolute; inset:0; z-index:8; pointer-events:none; }
 .published-schedule-source-hidden { visibility:hidden !important; height:0 !important; min-height:0 !important; max-height:0 !important; margin:0 !important; padding:0 !important; border-width:0 !important; overflow:hidden !important; }
 .published-schedule-block { position:absolute !important; min-height:0 !important; max-height:none; margin:0; padding:5px 7px; overflow:hidden; border:1px solid rgba(50,112,77,.32); border-radius:8px; box-sizing:border-box; justify-content:flex-start; z-index:1; }
+.published-schedule-block.shared-reservation-entry { display:grid !important; align-content:start; gap:4px; padding:6px 7px; border-color:#ead9ad; border-left:4px solid #c99736; background:linear-gradient(145deg,#fff8e8,#fffdf8); color:#34483a; pointer-events:auto !important; cursor:pointer; }
+.published-schedule-block.shared-reservation-entry .reservation-course { margin:1px 0 0; color:#79551a; font-size:11px; font-weight:900; }
+.published-schedule-block.shared-reservation-entry .reservation-purpose { margin:0; color:#66572f; font-size:9px; }
+.published-schedule-block.shared-reservation-entry[data-duration-minutes="30"] { gap:2px; padding:3px 4px; }
+.published-schedule-block.shared-reservation-entry[data-duration-minutes="30"] .reservation-purpose,.published-schedule-block.shared-reservation-entry[data-duration-minutes="30"] .reservation-expiration { display:none !important; }
 .published-schedule-block[data-duration-minutes="30"] { padding:3px 4px; }
 .published-schedule-block[data-duration-minutes="30"] .class-course { font-size:8px; line-height:1.05; }
 .published-schedule-block[data-duration-minutes="30"] .class-subject,.published-schedule-block[data-duration-minutes="30"] .class-instructor,.published-schedule-block[data-duration-minutes="30"] .class-program,.published-schedule-block[data-duration-minutes="30"] .class-major,.published-schedule-block[data-duration-minutes="30"] .class-type,.published-schedule-block[data-duration-minutes="30"] .merged-course-details,.published-schedule-block[data-duration-minutes="30"] .schedule-override-notice,.published-schedule-block[data-duration-minutes="30"] .room-swap-details { display:block !important; margin:1px 0 0; font-size:7px; line-height:1.05; }
@@ -2167,9 +2172,13 @@ function renderSchedule(
             // Match by the actual reservation time first. Room-specific slot
             // rows may use a default row_position of 0, which would otherwise
             // place every booking in the first row.
-            let reservationPosition = defaultTimes.findIndex(function(slot) {
-                return normalizeScheduleStartTime(slot) === reservationStart;
-            });
+            let reservationPosition = publishedScheduleRowPosition(
+                [reservation.start_time, reservation.end_time].filter(Boolean).join('-'),
+                timeSlots,
+                normalizedDay,
+                defaultTimes
+            );
+            if (reservationPosition === null) reservationPosition = -1;
 
             if (reservationPosition < 0) {
                 const suppliedPosition = reservation.row_position;
@@ -2617,9 +2626,10 @@ function renderPublishedScheduleBlocks(content, manualMerges = null)
     const usedHorizontalMerges = new Set();
     Array.from(table.querySelectorAll('td[data-view-schedule-time]')).forEach(function(cell) {
         const range = publishedScheduleRange(cell.dataset.viewScheduleTime);
-        const source = cell.querySelector('.class-entry');
+        const source = cell.querySelector('.class-entry, .shared-reservation-entry');
         const side = sideByDay[String(cell.dataset.viewScheduleDay || '').toUpperCase().slice(0, 3)];
         if (!range || !source || !side) return;
+        const isReservationSource = source.matches('.shared-reservation-entry');
 
         let top = yAtMinute(side, range.start, 'start');
         let bottom = yAtMinute(side, range.end, 'end');
@@ -2629,7 +2639,7 @@ function renderPublishedScheduleBlocks(content, manualMerges = null)
         const day = String(cell.dataset.viewScheduleDay || '').trim().toUpperCase().slice(0, 3);
         const rowPosition = Number(cell.closest('tr')?.dataset.rowPosition);
         const rowTime = cell.closest('td')?.dataset.manualRowTime || '';
-        const mergeIndex = manualMerges.findIndex(function(merge) {
+        const mergeIndex = isReservationSource ? -1 : manualMerges.findIndex(function(merge) {
             return merge.axis === 'horizontal' && (merge.cells || []).some(function(coordinate) {
                 if (String(coordinate.day || '').toUpperCase() !== day) return false;
                 const coordinatePosition = Number(coordinate.row_position);
@@ -2660,7 +2670,7 @@ function renderPublishedScheduleBlocks(content, manualMerges = null)
             }).filter(Boolean);
             if (mergedCells.length > 1) usedHorizontalMerges.add(mergeIndex);
         } else {
-            const verticalIndex = manualMerges.findIndex(function(merge) {
+            const verticalIndex = isReservationSource ? -1 : manualMerges.findIndex(function(merge) {
                 return merge.axis === 'vertical' && (merge.cells || []).some(function(coordinate) {
                     if (String(coordinate.day || '').toUpperCase() !== day) return false;
                     const coordinatePosition = Number(coordinate.row_position);
@@ -2750,15 +2760,20 @@ function buildReservationCell(reservations)
     const timeLabel = [formatReservationClock(first.start_time), formatReservationClock(first.end_time)].filter(Boolean).join(' – ');
     const courseCode = first.course_code || 'Room reservation';
     const courseTitle = first.subject || (reservations.length > 1 ? 'Open to review all reserved dates' : (first.purpose || 'Room reservation'));
+    const roomName = first.room_name || 'Selected room';
 
     return `
-        <td class="shared-reservation-cell">
+        <td class="shared-reservation-cell" data-view-schedule-time="${escapeHtml([first.start_time, first.end_time].filter(Boolean).join('-'))}" data-view-schedule-day="${escapeHtml(first.day || '')}" data-view-schedule-room-id="${escapeHtml(first.room_id || '')}">
             <button type="button" class="temporary-reservation-entry shared-reservation-entry"
+                data-view-schedule-time="${escapeHtml([first.start_time, first.end_time].filter(Boolean).join('-'))}"
+                data-view-schedule-day="${escapeHtml(first.day || '')}"
+                data-view-schedule-room-id="${escapeHtml(first.room_id || '')}"
                 data-reservations="${encoded}"
                 aria-label="${escapeHtml(courseCode)}. ${escapeHtml(dateLabel)}. Open reservation details.">
-                <span class="reservation-entry-top"><span class="reservation-badge"><i class="fa-solid fa-calendar-check"></i> Room reserved</span><time class="reservation-time">${escapeHtml(timeLabel)}</time></span>
+                <span class="reservation-entry-top"><span class="reservation-badge"><i class="fa-solid fa-calendar-check"></i> One-day booking</span><time class="reservation-time">${escapeHtml(timeLabel)}</time></span>
                 <span class="reservation-course">${escapeHtml(courseCode)}</span>
                 <span class="reservation-purpose">${escapeHtml(courseTitle)}</span>
+                <span class="reservation-purpose"><i class="fa-solid fa-door-open"></i> ${escapeHtml(roomName)}</span>
                 <span class="reservation-requester">${escapeHtml(dateLabel)}</span>
                 <span class="reservation-expiration"><i class="fa-solid fa-arrow-up-right-from-square"></i> View details</span>
             </button>
@@ -2789,7 +2804,7 @@ window.openRoomReservationDetails = function(button)
         const time = [formatReservationClock(item.start_time), formatReservationClock(item.end_time)].filter(Boolean).join(' – ');
         const code = item.course_code || 'Room reservation';
         const title = item.subject || item.purpose || 'General room use';
-        return `<article class="room-reservation-detail-card"><div class="reservation-detail-top"><strong>${escapeHtml(date)}</strong><span>${escapeHtml(time)}</span></div><strong class="reservation-detail-code">${escapeHtml(code)}</strong><p class="reservation-detail-title">${escapeHtml(title)}</p><div class="reservation-detail-footer"><span><i class="fa-solid fa-user"></i> ${escapeHtml(item.user_name || 'Instructor')}</span></div></article>`;
+        return `<article class="room-reservation-detail-card"><div class="reservation-detail-top"><strong>${escapeHtml(date)}</strong><span>${escapeHtml(time)}</span></div><strong class="reservation-detail-code">${escapeHtml(code)}</strong><p class="reservation-detail-title">${escapeHtml(title)}</p><div class="reservation-detail-footer"><span><i class="fa-solid fa-door-open"></i> ${escapeHtml(item.room_name || 'Selected room')}</span><span><i class="fa-solid fa-user"></i> ${escapeHtml(item.user_name || 'Instructor')}</span></div></article>`;
     }).join('');
 
     let modal = document.getElementById('roomReservationDetailsModal');

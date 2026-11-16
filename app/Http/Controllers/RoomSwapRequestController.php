@@ -20,6 +20,7 @@ use App\Models\Schedule;
 use App\Models\ScheduleOverride;
 
 use App\Models\User;
+use App\Services\AuditLogRecorder;
 use App\Notifications\RoomSwapNotification;
 
 use Carbon\Carbon;
@@ -640,33 +641,24 @@ if ((int) $targetFaculty->id === (int) $user->id) {
 
 
 
-        $swap = RoomSwapRequest::create([
-
-            'requester_id' => $user->id,
-
-            'target_user_id' => $targetFaculty->id,
-
-            'requester_schedule_id' => $requesterSchedule->id,
-
-            'target_schedule_id' => $targetSchedule->id,
-
-            'requester_room_id' => $requesterSchedule->room_id,
-
-            'target_room_id' => $targetSchedule->room_id,
-
-            'swap_type' => $validated['swap_type'],
-
-            'swap_date' => $validated['swap_type'] === 'temporary' ? $validated['swap_date'] : null,
-
-            'start_time' => $validated['swap_type'] === 'temporary' ? $validated['start_time'] : null,
-
-            'end_time' => $validated['swap_type'] === 'temporary' ? $validated['end_time'] : null,
-
-            'reason' => trim($validated['reason']),
-
-            'status' => 'pending',
-
-        ]);
+        $swap = DB::transaction(function () use ($user, $targetFaculty, $requesterSchedule, $targetSchedule, $validated) {
+            $created = RoomSwapRequest::create([
+                'requester_id' => $user->id,
+                'target_user_id' => $targetFaculty->id,
+                'requester_schedule_id' => $requesterSchedule->id,
+                'target_schedule_id' => $targetSchedule->id,
+                'requester_room_id' => $requesterSchedule->room_id,
+                'target_room_id' => $targetSchedule->room_id,
+                'swap_type' => $validated['swap_type'],
+                'swap_date' => $validated['swap_type'] === 'temporary' ? $validated['swap_date'] : null,
+                'start_time' => $validated['swap_type'] === 'temporary' ? $validated['start_time'] : null,
+                'end_time' => $validated['swap_type'] === 'temporary' ? $validated['end_time'] : null,
+                'reason' => trim($validated['reason']),
+                'status' => 'pending',
+            ]);
+            $this->recordSwapAudit($created, 'created', null, 'pending');
+            return $created;
+        });
 
         $targetFaculty->notify(new RoomSwapNotification($swap, 'requested'));
 
@@ -1217,6 +1209,18 @@ if (
     }
 }
 
+            $auditRecorder = app(AuditLogRecorder::class);
+            $swapRooms = array_values(array_unique([(int) $requesterSchedule->room_id, (int) $targetSchedule->room_id]));
+            $swapScheduleIds = [(int) $requesterSchedule->id, (int) $targetSchedule->id];
+            $swapFocus = [
+                'date' => $swap->swap_date?->format('Y-m-d'),
+                'day' => $requesterSchedule->day,
+                'start_time' => $swap->start_time ?: $requesterSchedule->start_time,
+                'end_time' => $swap->end_time ?: $requesterSchedule->end_time,
+                'schedule_ids' => $swapScheduleIds,
+            ];
+            $swapSnapshotBefore = $auditRecorder->captureRooms($swapRooms, $swapScheduleIds, $swapFocus);
+
             /*
             |--------------------------------------------------------------------------
             | APPROVE THE REQUEST
@@ -1274,6 +1278,32 @@ if (
 
             $swap->status = 'approved';
             $swap->save();
+
+            $isPermanentSwap = ($swap->swap_type ?? 'temporary') === 'permanent';
+            $virtualAssignments = $isPermanentSwap ? [] : [
+                $requesterSchedule->id => (int) $swap->target_room_id,
+                $targetSchedule->id => (int) $swap->requester_room_id,
+            ];
+            $swapSnapshotAfter = $auditRecorder->captureRooms(
+                $swapRooms,
+                $swapScheduleIds,
+                $swapFocus,
+                $virtualAssignments
+            );
+            $auditRecorder->record('room_swap', 'approved', [
+                'room_ids' => $swapRooms,
+                'schedule_ids' => $swapScheduleIds,
+                'related_user_ids' => [(int) $swap->requester_id, (int) $swap->target_user_id],
+                'department_ids' => [(int) $requesterSchedule->department_id, (int) $targetSchedule->department_id],
+                'reason' => $swap->reason,
+                'description' => ($isPermanentSwap ? 'Permanent' : 'Temporary') . ' room swap approved between the two scheduled classes.',
+                'before' => ['status' => 'pending', 'request' => $swap->getOriginal()],
+                'after' => ['status' => 'approved', 'request' => $swap->getAttributes()],
+                'status_before' => 'pending',
+                'status_after' => 'approved',
+                'snapshot_before' => $swapSnapshotBefore,
+                'snapshot_after' => $swapSnapshotAfter,
+            ]);
 
         });
 
@@ -1424,10 +1454,14 @@ if (
 
 
 
-        $swap->update([
-            'status' => 'declined',
-            'decline_reason' => trim($validated['decline_reason']),
-        ]);
+        DB::transaction(function () use ($swap, $validated) {
+            $swap->update([
+                'status' => 'declined',
+                'decline_reason' => trim($validated['decline_reason']),
+            ]);
+            $this->recordSwapAudit($swap, 'declined', 'pending', 'declined');
+        });
+
 
         $swap->load(['requester', 'targetUser', 'requesterRoom', 'targetRoom']);
         $this->markIncomingSwapNotificationRead((int) $swap->target_user_id, (int) $swap->id);
@@ -1467,9 +1501,10 @@ if (
             );
         }
 
-        $swap->update([
-            'status' => 'cancelled',
-        ]);
+        DB::transaction(function () use ($swap) {
+            $swap->update(['status' => 'cancelled']);
+            $this->recordSwapAudit($swap, 'cancelled', 'pending', 'cancelled');
+        });
 
         return back()->with(
             'success',
@@ -1485,6 +1520,40 @@ if (
     private function cleanupExpiredSwaps(): void
 {
     RoomSwapRequest::expireElapsedTemporarySwaps();
+}
+
+private function recordSwapAudit(RoomSwapRequest $swap, string $action, ?string $beforeStatus, ?string $afterStatus): void
+{
+    $swap->loadMissing(['requesterRoom.department', 'targetRoom.department', 'requesterSchedule', 'targetSchedule']);
+    $roomIds = array_values(array_unique(array_filter([(int) $swap->requester_room_id, (int) $swap->target_room_id])));
+    $scheduleIds = array_values(array_filter([(int) $swap->requester_schedule_id, (int) $swap->target_schedule_id]));
+    $firstSchedule = $swap->requesterSchedule ?: $swap->targetSchedule;
+    $focus = [
+        'date' => $swap->swap_date?->format('Y-m-d'),
+        'day' => $firstSchedule?->day,
+        'start_time' => $swap->start_time ?: $firstSchedule?->start_time,
+        'end_time' => $swap->end_time ?: $firstSchedule?->end_time,
+        'schedule_ids' => $scheduleIds,
+    ];
+    $recorder = app(AuditLogRecorder::class);
+    $snapshot = $recorder->captureRooms($roomIds, $scheduleIds, $focus);
+
+    $recorder->record('room_swap', $action, [
+        'room_ids' => $roomIds,
+        'schedule_ids' => $scheduleIds,
+        'related_user_ids' => [(int) $swap->requester_id, (int) $swap->target_user_id],
+        'department_ids' => [(int) $swap->requesterRoom?->department_id, (int) $swap->targetRoom?->department_id, (int) $swap->requesterSchedule?->department_id, (int) $swap->targetSchedule?->department_id],
+        'reason' => $swap->reason ?: $swap->decline_reason,
+        'description' => $action === 'created'
+            ? ucfirst((string) ($swap->swap_type ?: 'temporary')) . ' room swap request created.'
+            : 'Room swap request status changed from ' . ($beforeStatus ?: 'none') . ' to ' . ($afterStatus ?: 'unknown') . '.',
+        'before' => $beforeStatus ? ['status' => $beforeStatus] : null,
+        'after' => ['status' => $afterStatus, 'swap_type' => $swap->swap_type],
+        'status_before' => $beforeStatus,
+        'status_after' => $afterStatus,
+        'snapshot_before' => $snapshot,
+        'snapshot_after' => $snapshot,
+    ]);
 }
     private function resolveAcademicTerm(Request $request): ?AcademicTerm
 

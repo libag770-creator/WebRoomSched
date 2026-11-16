@@ -15,7 +15,19 @@ class Department extends Model
         'code',
         'name',
         'logo',
+        'student_access_code',
+        'student_access_code_hash',
     ];
+
+    protected $hidden = [
+        'student_access_code',
+        'student_access_code_hash',
+    ];
+
+    protected function casts(): array
+    {
+        return ['student_access_code' => 'encrypted'];
+    }
 
 
     /*
@@ -70,4 +82,4 @@ class Department extends Model
     }
 
 }
-  
+

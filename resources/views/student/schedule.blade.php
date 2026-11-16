@@ -229,6 +229,10 @@
             font-size: 14px;
         }
 
+        .student-access-department { display:flex; align-items:center; gap:8px; margin-top:8px; }
+        .student-access-department span { color:rgba(255,255,255,.9); font-weight:750; }
+        .student-access-department button { border:1px solid rgba(255,255,255,.35); border-radius:8px; padding:6px 9px; background:rgba(255,255,255,.12); color:#fff; font-size:10px; font-weight:750; }
+
 
         .active-term-badge {
             display: inline-flex;
@@ -1779,6 +1783,7 @@
         .student-schedule-body .student-excel-table .student-noon-break td { height:30px; padding:7px; background:#f3f1e8; color:#8d7d56; font-size:10px; font-weight:850; letter-spacing:.14em; text-align:center; }
         .student-schedule-block-layer { position:absolute; inset:0; z-index:8; pointer-events:none; }
         .student-schedule-block { position:absolute; display:flex; min-height:0; flex-direction:column; gap:3px; padding:7px 8px; overflow:hidden; border:1px solid rgba(50,112,77,.32); border-left:4px solid #32704d; border-radius:9px; background:linear-gradient(145deg,#f0f7ef,#fbfdf9); box-shadow:0 3px 9px rgba(31,57,43,.08); box-sizing:border-box; color:#34483d; pointer-events:auto; }
+        .student-schedule-block.student-reservation-block { background:#fff7df; border:2px dashed #b7791f; border-left:5px solid #b7791f; color:#633c08; }
         .student-schedule-block.student-temporary-room-swap { border-color:#c9a7e8; border-left-color:#7e22ce; background:linear-gradient(145deg,#f6edff,#fcf9ff); box-shadow:0 3px 9px rgba(126,34,206,.12); }
         .student-schedule-block::-webkit-scrollbar { display:none; }
         .student-schedule-block .student-block-heading { display:flex; min-width:0; align-items:flex-start; justify-content:space-between; gap:4px; }
@@ -1898,6 +1903,7 @@
                         View your published class schedule by college,
                         program, and year level.
                     </p>
+                <p style="margin-top:6px;font-size:12px;font-weight:700">{{ $accessDepartment->name }}</p>
 
                 </div>
 
@@ -1928,6 +1934,12 @@
                         NO ACTIVE TERM
                     </div>
                 @endif
+
+                <form class="student-access-department" method="POST" action="{{ route('student.access.exit') }}">
+                    @csrf
+                    <span>College access</span>
+                    <button type="submit">Change code</button>
+                </form>
 
             </div>
 
@@ -2741,7 +2753,7 @@
                     <div class="message-box empty">
 
                         No published programs are available
-                        for this department.
+                        for this college.
 
                     </div>
 
@@ -3362,6 +3374,24 @@
                     ? data.schedules
                     : [];
 
+            activeSchedules = activeSchedules.concat(
+                (Array.isArray(data.reservations) ? data.reservations : []).map(function(item) {
+                    return {
+                        reservation_id: item.id,
+                        day: item.day,
+                        time: item.time,
+                        course_code: 'ROOM RESERVED',
+                        subject: item.purpose || 'Room reservation',
+                        instructor: item.requester || 'Instructor',
+                        room: item.room || 'Room',
+                        room_id: item.room_id,
+                        reservation_date: item.date,
+                        reservation_status: item.status || 'Reserved',
+                        is_reservation: true
+                    };
+                })
+            );
+
 
             if (activeAcademicTermId) {
 
@@ -3657,7 +3687,8 @@
                 item.section,
                 item.semester,
                 item.academic_year,
-                approvedSharedOfferings.join(';')
+                approvedSharedOfferings.join(';'),
+                item.reservation_id || ''
             ].map(value => String(value || '').trim().toLowerCase()).join('¦');
             const groupKey = [side, range.start, range.end, identity].join('::');
             const dayOrder = dayOrderBySide[side].indexOf(day);
@@ -3710,7 +3741,10 @@
             const block = document.createElement('article');
             block.className = 'student-schedule-block' + (run.length > 1 ? ' student-schedule-block-merged' : '');
             if (item.room_swap?.swap_type === 'temporary') block.classList.add('student-temporary-room-swap');
-            if (item.id) block.id = 'student-schedule-' + Number(item.id);
+            if (item.reservation_id) {
+                block.id = 'student-reservation-' + String(item.reservation_id);
+                block.classList.add('student-reservation-block');
+            } else if (item.id) block.id = 'student-schedule-' + Number(item.id);
             block.dataset.durationMinutes = String(range.end - range.start);
             block.setAttribute('aria-label', [run.map(entry => entry.day).join(', '), item.course_code, item.subject, item.instructor, item.time, roomNames.join(', ')].filter(Boolean).join(' · '));
             block.style.left = (firstRect.left - wrapperRect.left - wrapper.clientLeft + wrapper.scrollLeft) + 'px';
@@ -3725,15 +3759,17 @@
                 item.course_code,
                 instructorName ? 'Instructor: ' + instructorName : '',
                 'Time: ' + studentFormatScheduleTime(item.time || ''),
-                roomLabel ? 'Room: ' + roomLabel : ''
+                roomLabel ? 'Room: ' + roomLabel : '',
+                item.reservation_date ? 'Date: ' + item.reservation_date : '',
+                item.is_reservation ? 'Status: ' + (item.reservation_status || 'Reserved') : ''
             ].filter(Boolean).join(' · ');
             block.setAttribute('aria-label', block.title);
             block.innerHTML =
                 '<div class="student-block-heading">' +
-                    '<strong class="student-block-code">' + escapeHtml(item.course_code || 'Course') + '</strong>' +
+                    '<strong class="student-block-code">' + escapeHtml(item.is_reservation ? 'ROOM RESERVED' : (item.course_code || 'Course')) + '</strong>' +
                     '<span class="student-block-time">Time: ' + escapeHtml(studentFormatScheduleTime(item.time || '')) + '</span>' +
                 '</div>' +
-                (instructorName ? '<div class="student-block-instructor">Instructor: ' + escapeHtml(instructorName) + '</div>' : '') +
+                (item.is_reservation && item.reservation_date ? '<div class="student-block-instructor">Date: ' + escapeHtml(item.reservation_date) + ' · ' + escapeHtml(item.reservation_status || 'Reserved') + '</div>' : (instructorName ? '<div class="student-block-instructor">Instructor: ' + escapeHtml(instructorName) + '</div>' : '')) +
                 (roomLabel ? '<div class="student-block-room">Room: ' + escapeHtml(roomLabel) + '</div>' : '');
             layer.appendChild(block);
         });
@@ -3805,8 +3841,8 @@
                     const instructor = String(item.instructor || item.faculty?.name || '').trim();
                     const room = entry.rooms.length ? entry.rooms.join(' · ') : String(item.room || item.room_name || 'Room not set').trim();
                     return '<tr><td class="student-mobile-time">' + escapeHtml(studentFormatScheduleTime(item.time || '')) + '</td>' +
-                        '<td><div class="student-mobile-entry' + (item.room_swap?.swap_type === 'temporary' ? ' student-temporary-room-swap' : '') + '"><strong>' + escapeHtml(item.course_code || 'Course') + '</strong>' +
-                            (instructor ? '<span>Instructor: ' + escapeHtml(instructor) + '</span>' : '') +
+                        '<td><div class="student-mobile-entry' + (item.is_reservation ? ' student-reservation-block' : (item.room_swap?.swap_type === 'temporary' ? ' student-temporary-room-swap' : '')) + '"><strong>' + escapeHtml(item.is_reservation ? 'ROOM RESERVED' : (item.course_code || 'Course')) + '</strong>' +
+                            (item.is_reservation ? '<span>Date: ' + escapeHtml(item.reservation_date || '') + ' · ' + escapeHtml(item.reservation_status || 'Reserved') + '</span><span>Requested by: ' + escapeHtml(instructor || 'Instructor') + '</span>' : (instructor ? '<span>Instructor: ' + escapeHtml(instructor) + '</span>' : '')) +
                             '<span>Room: ' + escapeHtml(room) + '</span></div></td></tr>';
                 }).join('') : '<tr><td colspan="2" class="student-mobile-empty">No classes scheduled for this day.</td></tr>') +
                 '</tbody></table>';

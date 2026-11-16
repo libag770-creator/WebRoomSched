@@ -1318,6 +1318,19 @@ body.chair-excel-clay {
     box-shadow: inset 0 0 0 3px var(--sheet-blue);
 }
 
+#scheduleTable td.schedule-cell.selected-cell.half-hour-interval-cell {
+    box-shadow: none;
+}
+
+.schedule-half-hour-selection {
+    position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+    border: 2px solid var(--sheet-blue);
+    background: rgb(51 122 183 / 18%);
+    pointer-events: none;
+}
+
 #scheduleTable td.schedule-cell:focus-visible {
     z-index: 2;
     outline: 3px solid var(--sheet-green);

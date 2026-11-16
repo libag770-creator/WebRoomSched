@@ -758,7 +758,7 @@
                 .faculty-vacant-view .vacant-subtitle { position:relative; z-index:1; max-width:700px; margin:0; color:#e0e9e1; font-size:15px; font-weight:550; line-height:1.65; }
                 .faculty-vacant-view .alert { width:min(100%,1480px); margin:0 auto 16px; padding:14px 16px; border-radius:12px; font-size:14px; font-weight:700; }
                 .faculty-vacant-view .search-box { margin:0 0 20px; padding:21px; border-color:#dce6dc; border-radius:18px; background:linear-gradient(145deg,#fff,#fbfcf9); box-shadow:0 9px 25px rgba(31,57,43,.05); }
-                .faculty-vacant-view .search-row { display:grid; grid-template-columns:minmax(180px,.9fr) minmax(160px,.8fr) minmax(230px,1.15fr) auto; align-items:end; gap:13px; }
+                .faculty-vacant-view .search-row { display:grid; grid-template-columns:minmax(180px,.9fr) minmax(230px,1.15fr) minmax(230px,1.15fr) auto; align-items:end; gap:13px; }
                 .faculty-vacant-view .form-group { min-width:0; gap:8px; }
                 .faculty-vacant-view .form-group label { color:#43584a; font-size:13px; font-weight:850; }
                 .faculty-vacant-view .select-control,.faculty-vacant-view .date-control { position:relative; width:100%; min-width:0; }
@@ -873,7 +873,7 @@
                     <p class="vacant-eyebrow">INSTRUCTOR WORKSPACE / ROOM AVAILABILITY</p>
                     <h1 class="vacant-title">Find a vacant room</h1>
                     <p class="vacant-subtitle">
-                        Choose a day and official time slot to check classroom availability. Time slots follow the Chair's schedule.
+                        Choose a date and the full time you need. We’ll show rooms that are available for the entire period.
                     </p>
                 </div>
 
@@ -899,109 +899,18 @@
                             </div>
                         </div>
 
-                        {{-- DAY --}}
                         <div class="form-group">
-
-                            <label for="daySearch">
-                                Day
-                            </label>
-
-                            <div class="select-control">
-                                <i class="fa-regular fa-calendar" aria-hidden="true"></i>
-                                <select id="daySearch" name="day" required aria-label="Choose a day">
-
-                                <option value="">
-                                    Select Day
-                                </option>
-
-                                @php
-                                    $dayNames = [
-                                        'MON' => 'Monday',
-                                        'TUE' => 'Tuesday',
-                                        'WED' => 'Wednesday',
-                                        'THU' => 'Thursday',
-                                        'FRI' => 'Friday',
-                                        'SAT' => 'Saturday',
-                                    ];
-
-                                    $selectedDayValue = strtoupper(
-                                        (string) ($selectedDay ?? request('day', ''))
-                                    );
-                                @endphp
-
-                                @foreach($dayNames as $dayCode => $dayName)
-
-                                    <option
-                                        value="{{ $dayCode }}"
-                                        {{ $selectedDayValue === $dayCode ? 'selected' : '' }}
-                                    >
-                                        {{ $dayName }}
-                                    </option>
-
-                                @endforeach
-
-                                </select>
+                            <label for="startTimeSearch">Start time</label>
+                            <div class="date-control">
+                                <input id="startTimeSearch" type="time" name="start_time" required value="{{ request('start_time', '08:00') }}" aria-label="Choose a start time">
                             </div>
-
                         </div>
 
-
-                        {{-- TIME SLOT --}}
                         <div class="form-group">
-
-                            <label for="timeSlotSearch">
-                                Time
-                            </label>
-
-                            <div class="select-control">
-                                <i class="fa-regular fa-clock" aria-hidden="true"></i>
-                                <select id="timeSlotSearch" name="time_slot_id" required aria-label="Choose a time slot">
-
-                                <option value="">
-                                    Select Day First
-                                </option>
-
-                                @foreach(($timeSlots ?? collect()) as $slot)
-
-                                    @php
-                                        $slotDay = strtoupper(
-                                            trim((string) $slot->day)
-                                        );
-
-                                        $slotStart = \Carbon\Carbon::parse(
-                                            $slot->start_time
-                                        )->format('H:i');
-
-                                        $slotEnd = \Carbon\Carbon::parse(
-                                            $slot->end_time
-                                        )->format('H:i');
-
-                                        $slotLabel =
-                                            \Carbon\Carbon::parse(
-                                                $slot->start_time
-                                            )->format('g:i A')
-                                            .
-                                            ' - '
-                                            .
-                                            \Carbon\Carbon::parse(
-                                                $slot->end_time
-                                            )->format('g:i A');
-                                    @endphp
-
-                                    <option
-                                        value="{{ $slot->id }}"
-                                        data-day="{{ $slotDay }}"
-                                        data-time="{{ $slotStart }}-{{ $slotEnd }}"
-                                        {{ (string) ($selectedTimeSlotId ?? request('time_slot_id', '')) === (string) $slot->id ? 'selected' : '' }}
-                                    >
-                                        {{ $slotLabel }}
-                                    </option>
-
-                                @endforeach
-
-                                </select>
+                            <label for="endTimeSearch">End time</label>
+                            <div class="date-control">
+                                <input id="endTimeSearch" type="time" name="end_time" required value="{{ request('end_time', '09:00') }}" aria-label="Choose an end time">
                             </div>
-
                         </div>
 
 
@@ -1012,7 +921,7 @@
                             id="searchButton"
                         >
                             <i class="fa-solid fa-magnifying-glass"></i>
-                            Search
+                            Find rooms
                         </button>
 
                     </div>
@@ -1042,14 +951,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    const daySearch =
-        document.getElementById('daySearch');
-
     const dateSearch =
         document.getElementById('dateSearch');
 
-    const timeSlotSearch =
-        document.getElementById('timeSlotSearch');
+    const startTimeSearch = document.getElementById('startTimeSearch');
+    const endTimeSearch = document.getElementById('endTimeSearch');
 
     const searchForm =
         document.getElementById('vacantSearchForm');
@@ -1060,182 +966,14 @@ document.addEventListener('DOMContentLoaded', function () {
     let activeRequest = null;
 
     function showSearchPrompt() {
-        if (resultsContainer) {
-            resultsContainer.innerHTML = '<div class="no-results"><i class="fa-regular fa-clock"></i><div style="margin-top:8px;">Choose a matching day and time slot to see room availability.</div></div>';
-        }
+        if (resultsContainer) resultsContainer.innerHTML = '<div class="no-results"><i class="fa-regular fa-clock"></i><div style="margin-top:8px;">Choose a date and a valid start/end time to find rooms.</div></div>';
     }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | FILTER TIME SLOTS BY DAY
-    |--------------------------------------------------------------------------
-    */
-
-    function filterTimeSlots() {
-
-        if (!daySearch || !timeSlotSearch) {
-            return;
-        }
-
-        const selectedDay =
-            daySearch.value.trim().toUpperCase();
-
-        const currentValue =
-            timeSlotSearch.value;
-
-        let hasVisibleSlot = false;
-
-        Array.from(
-            timeSlotSearch.options
-        ).forEach(function (option, index) {
-
-            if (index === 0) {
-                option.hidden = false;
-                option.disabled = false;
-                return;
-            }
-
-            const optionDay =
-                (option.dataset.day || '')
-                    .trim()
-                    .toUpperCase();
-
-            const matches =
-                selectedDay !== '' &&
-                optionDay === selectedDay;
-
-            option.hidden = !matches;
-            option.disabled = !matches;
-
-            if (matches) {
-                hasVisibleSlot = true;
-            }
-        });
-
-
-        const currentOption =
-            timeSlotSearch.querySelector(
-                'option[value="' +
-                CSS.escape(currentValue) +
-                '"]'
-            );
-
-
-        if (
-            !currentOption ||
-            currentOption.disabled ||
-            currentOption.hidden
-        ) {
-
-            timeSlotSearch.value = '';
-
-        }
-
-
-        if (!selectedDay) {
-
-            timeSlotSearch.value = '';
-
-            timeSlotSearch.options[0].textContent =
-                'Select Day First';
-
-        } else if (!hasVisibleSlot) {
-
-            timeSlotSearch.value = '';
-
-            timeSlotSearch.options[0].textContent =
-                'No Time Slots Available';
-
-        } else {
-
-            timeSlotSearch.options[0].textContent =
-                'Select Time';
-
-        }
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | INITIALIZE
-    |--------------------------------------------------------------------------
-    */
-
-    filterTimeSlots();
-
-
-    if (daySearch) {
-
-        daySearch.addEventListener(
-            'change',
-            function () {
-
-                if (dateSearch && daySearch.value) {
-                    const indexes = { MON:1, TUE:2, WED:3, THU:4, FRI:5, SAT:6, SUN:0 };
-                    const target = indexes[daySearch.value.toUpperCase()];
-                    if (target !== undefined) {
-                        const date = dateSearch.value ? new Date(dateSearch.value + 'T12:00:00') : new Date();
-                        date.setHours(12, 0, 0, 0);
-                        date.setDate(date.getDate() + ((target - date.getDay() + 7) % 7));
-                        dateSearch.value = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
-                    }
-                }
-
-                filterTimeSlots();
-
-                if (!timeSlotSearch || !timeSlotSearch.value) showSearchPrompt();
-
-                /*
-                 * Search automatically when both
-                 * values are available.
-                 */
-                if (
-                    daySearch.value &&
-                    timeSlotSearch &&
-                    timeSlotSearch.value
-                ) {
-                    runSearch();
-                }
-            }
-        );
-
-    }
-
-    if (dateSearch) {
-        dateSearch.addEventListener('change', function () {
-            if (!dateSearch.value) return;
-            const date = new Date(dateSearch.value + 'T12:00:00');
-            const dayCodes = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
-            const matchingDay = dayCodes[date.getDay()];
-            if (daySearch && Array.from(daySearch.options).some(option => option.value === matchingDay)) {
-                daySearch.value = matchingDay;
-                filterTimeSlots();
-            }
-            if (!timeSlotSearch || !timeSlotSearch.value) showSearchPrompt();
-            if (daySearch && daySearch.value && timeSlotSearch && timeSlotSearch.value) runSearch();
-        });
-    }
-
-
-    if (timeSlotSearch) {
-
-        timeSlotSearch.addEventListener(
-            'change',
-            function () {
-
-                if (
-                    daySearch &&
-                    daySearch.value &&
-                    timeSlotSearch.value
-                ) {
-                    runSearch();
-                }
-
-            }
-        );
-
-    }
+    if (searchForm) searchForm.addEventListener('submit', function (event) { event.preventDefault(); runSearch(); });
+    if (dateSearch) dateSearch.addEventListener('change', runSearch);
+    if (startTimeSearch) startTimeSearch.addEventListener('change', runSearch);
+    if (endTimeSearch) endTimeSearch.addEventListener('change', runSearch);
 
 
     /*
@@ -1248,26 +986,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (
             !searchForm ||
-            !daySearch ||
             !dateSearch ||
-            !timeSlotSearch ||
+            !startTimeSearch ||
+            !endTimeSearch ||
             !resultsContainer
         ) {
             return;
         }
 
 
-        const day =
-            daySearch.value.trim();
-
-        const timeSlotId =
-            timeSlotSearch.value.trim();
-
-
-        if (!day || !timeSlotId || !dateSearch.value) {
-
+        if (!dateSearch.value || !startTimeSearch.value || !endTimeSearch.value || endTimeSearch.value <= startTimeSearch.value) {
+            showSearchPrompt();
             return;
-
         }
 
 
@@ -1295,17 +1025,10 @@ document.addEventListener('DOMContentLoaded', function () {
             );
 
 
-        url.searchParams.set(
-            'day',
-            day
-        );
-
-        url.searchParams.set(
-            'time_slot_id',
-            timeSlotId
-        );
-
         url.searchParams.set('date', dateSearch.value);
+        url.searchParams.set('start_time', startTimeSearch.value);
+        url.searchParams.set('end_time', endTimeSearch.value);
+        url.searchParams.set('day', ['SUN','MON','TUE','WED','THU','FRI','SAT'][new Date(dateSearch.value + 'T12:00:00').getDay()]);
 
         const pageUrl = new URL(url.toString());
         pageUrl.searchParams.delete('partial');
@@ -1443,36 +1166,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | FORM SUBMIT
-    |--------------------------------------------------------------------------
-    */
-
-    if (searchForm) {
-
-        searchForm.addEventListener(
-            'submit',
-            function (event) {
-
-                event.preventDefault();
-
-                if (
-                    daySearch &&
-                    timeSlotSearch &&
-                    daySearch.value &&
-                    timeSlotSearch.value
-                ) {
-
-                    runSearch();
-
-                }
-
-            }
-        );
-
-    }
 
 });
 </script>

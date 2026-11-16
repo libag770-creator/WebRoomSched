@@ -12,6 +12,7 @@ use App\Models\RoomScheduleTimeSlot;
 use App\Models\ScheduleCellMerge;
 use App\Models\Program;
 use App\Models\RoomSwapRequest;
+use App\Models\Reservation;
 use Carbon\Carbon;
 
 class StudentController extends Controller
@@ -130,9 +131,8 @@ class StudentController extends Controller
      */
     public function schedule()
     {
-        $departments = Department::query()
-            ->orderBy('name', 'asc')
-            ->get();
+        $accessDepartment = Department::findOrFail(session('student_access_department_id'));
+        $departments = collect([$accessDepartment]);
 
         /*
          * Get the currently active academic term.
@@ -152,6 +152,7 @@ class StudentController extends Controller
             'student.schedule',
             compact(
                 'departments',
+                'accessDepartment',
                 'activeTerm',
                 'semester',
                 'academicYear'
@@ -176,6 +177,7 @@ class StudentController extends Controller
      */
     public function getPrograms(Request $request)
     {
+        $request->merge(['department_id' => (int) session('student_access_department_id')]);
         $request->validate([
             'department_id' => [
                 'required',
@@ -370,6 +372,7 @@ class StudentController extends Controller
      */
     public function getYearLevels(Request $request)
     {
+        $request->merge(['department_id' => (int) session('student_access_department_id')]);
         $request->validate([
             'department_id' => [
                 'required',
@@ -580,6 +583,8 @@ class StudentController extends Controller
     public function getSchedules(Request $request)
     {
         RoomSwapRequest::expireElapsedTemporarySwaps();
+
+        $request->merge(['department_id' => (int) session('student_access_department_id')]);
 
         $request->validate([
             'department_id' => [
@@ -899,12 +904,40 @@ class StudentController extends Controller
                 }
             )->values();
 
+            // Reservations are date-specific overlays on the selected program's
+            // rooms. Return only active, upcoming entries for those rooms.
+            $reservations = Reservation::query()
+                ->with(['room:id,room_name', 'user:id,name', 'subject:id,course_code,course_title'])
+                ->whereIn('room_id', $roomIds)
+                ->where('academic_term_id', $activeTerm->id)
+                ->where('status', 'Reserved')
+                ->whereDate('date', '>=', Carbon::today())
+                ->orderBy('date')->orderBy('start_time')
+                ->get()
+                ->map(fn (Reservation $reservation) => [
+                    'id' => (int) $reservation->id,
+                    'room_id' => (int) $reservation->room_id,
+                    'room' => $reservation->room?->room_name,
+                    'date' => $reservation->date?->format('Y-m-d'),
+                    'day' => strtoupper(substr((string) ($reservation->day ?: $reservation->date?->format('D')), 0, 3)),
+                    'time' => $reservation->time ?: (($reservation->start_time && $reservation->end_time)
+                        ? (Carbon::parse($reservation->start_time)->format('H:i') . '-' . Carbon::parse($reservation->end_time)->format('H:i'))
+                        : ''),
+                    'purpose' => $reservation->subject
+                        ? trim(($reservation->subject->course_code ?? '') . ' — ' . ($reservation->subject->course_title ?? ''))
+                        : ($reservation->purpose ?: 'Room reservation'),
+                    'requester' => $reservation->user?->name,
+                    'status' => (string) $reservation->status,
+                ])->values();
+
 
             return response()->json([
                 'success' => true,
 
                 'schedules' =>
                     $schedules,
+
+                'reservations' => $reservations,
 
                 'room_layouts' => $roomLayouts,
 

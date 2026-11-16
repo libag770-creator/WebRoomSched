@@ -14,8 +14,11 @@ use App\Http\Controllers\RoomReassignmentController;
 use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\DepartmentLogoController;
 use App\Http\Controllers\ProfilePhotoController;
+use App\Http\Controllers\AuditLogController;
 
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentAccessController;
+use App\Http\Middleware\RequireStudentAccessCode;
 
 /*
 |--------------------------------------------------------------------------
@@ -298,6 +301,11 @@ Route::delete(
 */
 
 
+Route::get('/student/access', [StudentAccessController::class, 'show'])->name('student.access');
+Route::post('/student/access', [StudentAccessController::class, 'verify'])->name('student.access.verify');
+Route::post('/student/access/exit', [StudentAccessController::class, 'exit'])->name('student.access.exit');
+
+Route::middleware(RequireStudentAccessCode::class)->group(function () {
 Route::get(
     '/student/schedule',
     [StudentController::class, 'schedule']
@@ -320,6 +328,7 @@ Route::get(
     '/student/schedule/data',
     [StudentController::class, 'getSchedules']
 )->name('student.schedule.data');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -510,6 +519,9 @@ Route::middleware('auth')->group(function () {
         'requests'
     ])->name('chair.requests');
 
+    Route::post('/chair/student-access-code', [StudentAccessController::class, 'saveForChair'])
+        ->name('chair.student-access-code.update');
+
  Route::put('/chair/room/{room}/permission', [
     ChairController::class,
     'updateRoomPermission'
@@ -591,6 +603,14 @@ Route::delete(
         ChairController::class,
         'setFaculty'
     ])->name('chair.setFaculty');
+
+    Route::get('/chair/faculty/{faculty}/schedule', [ChairController::class, 'viewFacultySchedule'])
+        ->whereNumber('faculty')
+        ->name('chair.faculty.schedule');
+
+    Route::get('/chair/faculty/{faculty}/schedule-summary', [ChairController::class, 'viewFacultyScheduleSummary'])
+        ->whereNumber('faculty')
+        ->name('chair.faculty.schedule-summary');
 
     
 Route::post('/chair/import-faculty', [
@@ -837,6 +857,17 @@ Route::post('/chair/modifyschedule/clear', [
 
 // Account profile and sign-in settings (available to any authenticated user).
 Route::middleware('auth')->group(function () {
+    Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])
+        ->whereNumber('auditLog')->name('audit-logs.show');
+
+    Route::get('/help', function () {
+        $role = auth()->user()->role;
+        abort_unless(in_array($role, ['admin', 'chair', 'faculty'], true), 403);
+
+        return view('help.index', compact('role'));
+    })->name('help');
+
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
 
