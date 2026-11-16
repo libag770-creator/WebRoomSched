@@ -1623,7 +1623,12 @@
         .student-schedule-body .page-header-content { width:100%; align-items:center; gap:24px; }
         .student-schedule-body .header-left { gap:16px; }
         .student-schedule-body .header-icon { width:54px; height:54px; flex:0 0 54px; border:1px solid rgba(255,255,255,.16); border-radius:15px; background:rgba(255,255,255,.12); color:#e6d39f; font-size:23px; }
-        .student-schedule-body .page-header h1 { margin-bottom:10px; color:#fff; font:800 clamp(31px,3vw,42px)/1.12 'Manrope','DM Sans',sans-serif; letter-spacing:-.045em; }
+      .student-schedule-body .page-header h1 {
+    margin-bottom: 10px;
+    color: #fff !important;
+    font: 800 clamp(31px,3vw,42px)/1.12 'Manrope','DM Sans',sans-serif !important;
+    letter-spacing: -.045em !important;
+}
         .student-schedule-body .page-header p { max-width:660px; color:#e0e9e1; font-size:14px; font-weight:550; line-height:1.6; }
         .student-schedule-body .academic-info { position:relative; z-index:1; align-items:flex-end; gap:5px; color:#d6e1d7; font-size:12px; font-weight:650; }
         .student-schedule-body .academic-info strong { color:#fff; font-size:16px; font-weight:850; }
