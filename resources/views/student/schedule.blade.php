@@ -1869,7 +1869,16 @@
         @media print {
             .student-schedule-body .student-excel-wrapper { display:block !important; max-height:none !important; overflow:visible !important; }
         }
-    </style>
+    
+        /* The access code already identifies the student’s college. */
+        .student-schedule-body .department-panel,
+        .student-schedule-body #stepDepartment { display:none !important; }
+        .student-schedule-body .main-layout { grid-template-columns:minmax(0,1fr) !important; }
+        .student-schedule-body .steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .student-schedule-body .schedule-footer { display:none !important; }
+        @media(max-width:850px) {
+            .student-schedule-body .steps { grid-template-columns:1fr; }
+        }</style>
 
 </head>
 
@@ -1984,7 +1993,7 @@
         >
 
             <div class="step-number">
-                2
+                1
             </div>
 
             <div class="step-text">
@@ -2008,7 +2017,7 @@
         >
 
             <div class="step-number">
-                3
+                2
             </div>
 
             <div class="step-text">
@@ -2140,7 +2149,7 @@
 
                 <h2>
                     @if($activeTerm)
-                        Select Your College
+                        Select a Program
                     @else
                         No Active Academic Term
                     @endif
@@ -2148,9 +2157,7 @@
 
                 <p>
                     @if($activeTerm)
-                        Start by selecting your college from the
-                        list. The available programs will automatically
-                        be loaded from the published schedules for
+                        Choose a program to view published schedules for
                         <strong>
                             {{ $activeTerm->academic_year }}
                             •
@@ -2180,7 +2187,7 @@
                     <div class="selection-heading-left">
 
                         <div class="selection-label">
-                            Step 2
+                            Step 1
                         </div>
 
                         <div class="selection-title">
@@ -2227,7 +2234,7 @@
                     <div class="selection-heading-left">
 
                         <div class="selection-label">
-                            Step 3
+                            Step 2
                         </div>
 
                         <div class="selection-title">
@@ -2642,6 +2649,10 @@
     /* =========================================================
        LOAD PROGRAMS
     ========================================================= */
+    if (departmentButtons.length > 0) {
+        selectDepartment(departmentButtons[0]);
+    }
+
 
     function loadPrograms()
     {
