@@ -28,6 +28,19 @@
 .week-reserve-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}.week-reserve-summary-item{padding:10px;border:1px solid #e4e9e6;border-radius:9px;background:#f8faf9}.week-reserve-label{font-size:9px;text-transform:uppercase;color:#667085;font-weight:700}.week-reserve-value{margin-top:3px;font-size:12px;color:#1f2937;font-weight:800}
 .week-reserve-field{margin-top:12px}.week-reserve-field label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#344054}.week-reserve-field select,.week-reserve-subject-search{width:100%;min-height:42px;padding:10px 12px;border:1px solid #d0d5dd;border-radius:9px;background:#fff;font-size:13px;color:#1f2937;box-sizing:border-box}.week-reserve-subject-search{margin-bottom:8px}.week-reserve-subject-search:focus,.week-reserve-field select:focus{outline:0;border-color:#4d8b65;box-shadow:0 0 0 3px rgba(50,112,77,.12)}.week-reserve-no-subjects{margin:7px 0 0;color:#9a3d35;font-size:11px;font-weight:700}.week-reserve-help{font-size:10px;color:#667085;margin-top:6px;line-height:1.35}.week-reserve-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.week-reserve-cancel,.week-reserve-submit{border:0;border-radius:9px;padding:10px 15px;font-weight:800;cursor:pointer}.week-reserve-cancel{background:#eef2f0;color:#344054}.week-reserve-submit{background:#17894f;color:#fff}.week-reserve-submit:disabled{background:#b9c1bc;cursor:not-allowed}
 body.week-reservation-open{overflow:hidden}
+.reservation-confirmation{position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(16,24,40,.58);box-sizing:border-box}
+.reservation-confirmation[hidden]{display:none}
+.reservation-confirmation-card{width:min(440px,100%);padding:24px;border:1px solid #dce8dd;border-radius:18px;background:#fff;box-shadow:0 24px 70px rgba(10,35,22,.28)}
+.reservation-confirmation-icon{display:grid;place-items:center;width:46px;height:46px;margin-bottom:15px;border-radius:14px;background:#eaf5ec;color:#245940;font-size:20px}
+.reservation-confirmation-card h3{margin:0;color:#193e2d;font-size:20px;font-weight:850}
+.reservation-confirmation-card>p{margin:7px 0 16px;color:#68786e;font-size:13px;line-height:1.5}
+.reservation-confirmation-details{display:grid;gap:8px;padding:13px;border:1px solid #e2eae1;border-radius:12px;background:#f8faf7}
+.reservation-confirmation-detail{display:flex;justify-content:space-between;gap:14px;color:#69776d;font-size:12px}
+.reservation-confirmation-detail strong{color:#244333;text-align:right}
+.reservation-confirmation-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+.reservation-confirmation-actions button{min-height:42px;padding:0 16px;border:0;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer}
+.reservation-confirmation-cancel{background:#edf1ed;color:#34483a}
+.reservation-confirmation-accept{background:#245940;color:#fff}
 @media(max-width:950px){.rooms{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.rooms{grid-template-columns:1fr}.week-reserve-summary{grid-template-columns:1fr}}
 </style>
@@ -91,7 +104,10 @@ body.week-reservation-open{overflow:hidden}
                 @foreach($organizedBuildings as $buildingRooms)
                     @php
                         $firstRoom = $buildingRooms->first()['room'];
-                        $buildingName = $firstRoom->building?->name ?? $firstRoom->building?->building_name ?? 'Building';
+                        $buildingName = $firstRoom->building?->name
+                            ?? $firstRoom->building?->building_name
+                            ?? (is_string($firstRoom->getRawOriginal('building')) ? trim($firstRoom->getRawOriginal('building')) : null)
+                            ?? 'Building';
                     @endphp
 
                     <div class="building">
@@ -245,6 +261,22 @@ body.week-reservation-open{overflow:hidden}
                                                     </div>
                                                 </div>
                                             </form>
+                                            <div class="reservation-confirmation" hidden role="dialog" aria-modal="true" aria-labelledby="reservationConfirmTitle-{{ $room->id }}">
+                                                <div class="reservation-confirmation-card">
+                                                    <div class="reservation-confirmation-icon"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i></div>
+                                                    <h3 id="reservationConfirmTitle-{{ $room->id }}">Confirm reservation</h3>
+                                                    <p>Please review the reservation details before submitting.</p>
+                                                    <div class="reservation-confirmation-details">
+                                                        <div class="reservation-confirmation-detail"><span>Room</span><strong data-confirm-room></strong></div>
+                                                        <div class="reservation-confirmation-detail"><span>Date</span><strong data-confirm-date></strong></div>
+                                                        <div class="reservation-confirmation-detail"><span>Time</span><strong data-confirm-time></strong></div>
+                                                    </div>
+                                                    <div class="reservation-confirmation-actions">
+                                                        <button type="button" class="reservation-confirmation-cancel" data-confirm-cancel>Go back</button>
+                                                        <button type="button" class="reservation-confirmation-accept" data-confirm-accept>Confirm reservation</button>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -357,14 +389,14 @@ body.week-reservation-open{overflow:hidden}
     document.addEventListener('input',function(event){if(event.target.id==='vacantRoomFilter') filterVacantRoomCards();});
     document.addEventListener('change',function(event){if(event.target.id==='vacantAvailableOnly') filterVacantRoomCards();});
 
-    // Confirm the selected room, date, and continuous time range before submitting.
+    // Show an in-page confirmation card before submitting the reservation.
     document.addEventListener('submit',function(event){
         const form=event.target.closest('.week-reserve-dialog form');
-        if(form){
+        if(form && !form.dataset.confirmed){
+            event.preventDefault();
             const dateInput=form.querySelector('input[name="date"]');
 
             if(!dateInput || !dateInput.value){
-                event.preventDefault();
                 alert('Please select a reservation date.');
                 return;
             }
@@ -372,10 +404,39 @@ body.week-reservation-open{overflow:hidden}
             const roomName=form.closest('.room-card')?.querySelector('.room-name')?.textContent?.trim() || 'this room';
             const date=new Date(dateInput.value + 'T12:00:00');
             const timeInput=form.querySelector('input[name="time"]');
-            const confirmed=window.confirm('Confirm reservation of ' + roomName + ' on ' + formatDate(date) + ' from ' + (timeInput?.value || 'the selected time') + '?');
-            if(!confirmed){
-                event.preventDefault();
-            }
+            const confirmation=form.parentElement.querySelector('.reservation-confirmation');
+            if(!confirmation) return;
+            const [startValue,endValue]=(timeInput?.value || '').split('-').map(value=>value.trim());
+            const formatTime=value=>{
+                if(!value) return 'Selected time';
+                const parts=value.match(/^(\d{1,2}):(\d{2})/);
+                if(!parts) return value;
+                const parsed=new Date();
+                parsed.setHours(Number(parts[1]),Number(parts[2]),0,0);
+                return parsed.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+            };
+            confirmation.querySelector('[data-confirm-room]').textContent=roomName;
+            confirmation.querySelector('[data-confirm-date]').textContent=formatDate(date);
+            confirmation.querySelector('[data-confirm-time]').textContent=formatTime(startValue)+' – '+formatTime(endValue);
+            confirmation.hidden=false;
+            confirmation.querySelector('[data-confirm-accept]').focus();
+        }
+    });
+
+    document.addEventListener('click',function(event){
+        const cancel=event.target.closest('[data-confirm-cancel]');
+        const accept=event.target.closest('[data-confirm-accept]');
+        if(cancel){
+            const confirmation=cancel.closest('.reservation-confirmation');
+            confirmation.hidden=true;
+            confirmation.parentElement.querySelector('form button[type="submit"]')?.focus();
+        }
+        if(accept){
+            const confirmation=accept.closest('.reservation-confirmation');
+            const form=confirmation?.parentElement.querySelector('form');
+            if(!form) return;
+            form.dataset.confirmed='1';
+            form.requestSubmit();
         }
     });
 

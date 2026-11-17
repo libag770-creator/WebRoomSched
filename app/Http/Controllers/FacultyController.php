@@ -549,7 +549,6 @@ class FacultyController extends Controller
 
     'schedule_id' => 'nullable|integer|exists:schedules,id',
     'purpose' => 'nullable|string|max:500',
-    'saturday_approval_acknowledgement' => 'nullable|accepted',
 
 ]);
 
