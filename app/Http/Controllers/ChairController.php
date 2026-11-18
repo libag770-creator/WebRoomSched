@@ -277,6 +277,9 @@ public function index(Request $request, $roomId)
     $schedules =
         Schedule::with([
 
+            'facultySubject.sharedCohorts.program',
+            'facultySubject.subjectCatalog.program',
+
             'merges' => function ($query) {
 
                 $query
@@ -456,6 +459,7 @@ public function index(Request $request, $roomId)
             'room',
             'facultySubjects',
             'schedules',
+            'reservations',
             'semester',
             'academicYear',
             'publishedScheduleOverrides',
@@ -9018,14 +9022,18 @@ public function lookupCatalogSubjects(Request $request)
     abort_unless($chair && $chair->role === 'chair', 403);
     $data = $request->validate(['course_code' => ['required', 'string', 'max:50']]);
     $courseCode = strtoupper(trim($data['course_code']));
+    $prefixLength = mb_strlen($courseCode);
 
     $matches = Subject::query()
         ->with('program:id,name,code,major,department_id,memorandum')
-        ->whereRaw('UPPER(course_code) = ?', [$courseCode])
+        ->whereRaw('UPPER(LEFT(course_code, ?)) = ?', [$prefixLength, $courseCode])
         ->whereHas('program', fn ($query) => $query->where('department_id', $chair->department_id))
+        ->orderByRaw('CASE WHEN UPPER(course_code) = ? THEN 0 ELSE 1 END', [$courseCode])
+        ->orderBy('course_code')
         ->orderBy('year_level')
         ->orderBy('semester')
         ->orderBy('program_id')
+        ->limit(40)
         ->get()
         ->map(fn (Subject $subject) => [
             'id' => $subject->id,

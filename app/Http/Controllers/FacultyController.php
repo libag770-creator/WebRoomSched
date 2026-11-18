@@ -2923,6 +2923,8 @@ $schedules = $schedulesQuery
                 'course_title' => $catalogSubject->course_title ?? $merge->facultySubject?->subject,
                 'program' => $programName,
                 'major' => $catalogSubject->program?->major ?? $merge->facultySubject?->major,
+                'year_level' => $catalogSubject->year_level ?? $merge->facultySubject?->year_level,
+                'semester' => $catalogSubject->semester ?? $merge->facultySubject?->semester,
                 'share_type' => $merge->share_type ?? 'merge',
             ];
             if ($programName) {
@@ -3400,7 +3402,9 @@ $schedules = $schedulesQuery
                 ->orWhere('room_id', $room->id);
         })
         ->where('status', 'active')
-        ->whereDate('override_date', '>=', Carbon::today()->toDateString())
+        ->where(function ($query) {
+            $query->whereDate('override_date', '>=', Carbon::today()->toDateString())->orWhereNull('override_date');
+        })
         ->where('expires_at', '>', now())
         ->orderBy('override_date')
         ->orderBy('start_time')
@@ -3489,6 +3493,7 @@ $schedules = $schedulesQuery
                 $mergedCourses,
                 $roomSwapsBySchedule,
                 $scheduleOverridesBySchedule,
+                $room,
                 $programCodeForSchedule
             ) {
 
@@ -3502,6 +3507,7 @@ $schedules = $schedulesQuery
                         return [
                             'id' => (int) $override->id,
                             'room_id' => (int) ($override->room_id ?: $room->id),
+                        'room_name' => $room->room_name,
                             'day' => strtoupper($override->override_date?->format('D') ?? ''),
                             'date' => $override->override_date?->format('Y-m-d'),
                             'start_time' => $override->start_time ? Carbon::parse($override->start_time)->format('H:i') : null,
@@ -3657,18 +3663,24 @@ $schedules = $schedulesQuery
 
 
     $roomOverrideData = ScheduleOverride::query()
-        ->where('room_id', $room->id)
-        ->whereNull('schedule_id')
+        ->with(['room', 'schedule.room'])
+        ->where(function ($query) use ($room, $schedules) {
+            $query->where('room_id', $room->id)
+                ->orWhereIn('schedule_id', $schedules->pluck('id')->unique());
+        })
         ->where('status', 'active')
-        ->whereDate('override_date', '>=', Carbon::today()->toDateString())
+        ->where(function ($query) {
+            $query->whereDate('override_date', '>=', Carbon::today()->toDateString())->orWhereNull('override_date');
+        })
         ->where('expires_at', '>', now())
         ->orderBy('override_date')
         ->orderBy('start_time')
         ->get()
-        ->map(function (ScheduleOverride $override) {
+        ->map(function (ScheduleOverride $override) use ($room) {
             return [
                 'id' => (int) $override->id,
                 'room_id' => (int) $override->room_id,
+                'room_name' => $override->room?->room_name ?: ($override->schedule?->room?->room_name ?: $room->room_name),
                 'day' => strtoupper($override->override_date?->format('D') ?? ''),
                 'date' => $override->override_date?->format('Y-m-d'),
                 'start_time' => $override->start_time ? Carbon::parse($override->start_time)->format('H:i') : null,
@@ -4294,6 +4306,30 @@ public function mySchedules()
         $schedule->setAttribute('program_code', $code ?: trim((string) ($programCodesByName[$label] ?? $label)));
     });
 
+    $myRoomIdsForSchedule = $mySchedules->pluck('room_id')->filter()->unique()->values();
+    $roomTimeSlots = $activeTerm && $myRoomIdsForSchedule->isNotEmpty()
+        ? RoomScheduleTimeSlot::query()
+            ->whereIn('room_id', $myRoomIdsForSchedule)
+            ->where('academic_term_id', $activeTerm->id)
+            ->where('is_active', true)
+            ->orderBy('row_position')
+            ->orderBy('start_time')
+            ->get()
+        : collect();
+    $manualCellMerges = $activeTerm && $myRoomIdsForSchedule->isNotEmpty()
+        ? ScheduleCellMerge::query()
+            ->whereIn('room_id', $myRoomIdsForSchedule)
+            ->where('academic_term_id', $activeTerm->id)
+            ->orderBy('id')
+            ->get(['room_id', 'axis', 'cells'])
+            ->map(fn (ScheduleCellMerge $merge) => [
+                'room_id' => (int) $merge->room_id,
+                'axis' => $merge->axis,
+                'cells' => $merge->cells ?? [],
+            ])
+            ->values()
+        : collect();
+
 
 
     /*
@@ -4391,15 +4427,36 @@ public function mySchedules()
         ->get();
 
     $myScheduleIds = $mySchedules->pluck('id')->unique();
-    $myRoomIds = $mySchedules->pluck('room_id')->filter()->unique();
+    $myDisplayRoomIdBySchedule = $mySchedules->mapWithKeys(fn ($schedule) => [(int) $schedule->id => (int) ($schedule->room_id ?? 0)]);
+    $displayRoomIds = $mySchedules->pluck('room_id')->filter()->map(fn ($id) => (int) $id)->unique()->values();
+    foreach ($roomSwapRequests as $swapRequest) {
+        $ownedSchedule = (int) $swapRequest->requester_id === (int) $faculty->id
+            ? $swapRequest->requesterSchedule
+            : $swapRequest->targetSchedule;
+        if (!$ownedSchedule) continue;
+        $destinationRoomId = (int) $swapRequest->requester_id === (int) $faculty->id
+            ? $swapRequest->target_room_id
+            : $swapRequest->requester_room_id;
+        if ($destinationRoomId) {
+            $myDisplayRoomIdBySchedule->put((int) $ownedSchedule->id, (int) $destinationRoomId);
+            $displayRoomIds->push((int) $destinationRoomId);
+        }
+    }
+    $displayRoomIds = $displayRoomIds->unique()->values();
     $scheduleOverrideCandidates = ScheduleOverride::with(['schedule', 'room'])
         ->where('status', 'active')
-        ->whereDate('override_date', '>=', Carbon::today()->toDateString())
+        ->where(function ($query) {
+            $query->whereDate('override_date', '>=', Carbon::today()->toDateString())->orWhereNull('override_date');
+        })
         ->where('expires_at', '>', now())
-        ->where(function ($query) use ($myScheduleIds, $myRoomIds, $faculty) {
+        ->where(function ($query) use ($myScheduleIds, $displayRoomIds, $faculty) {
             $query->where(function ($legacy) use ($myScheduleIds, $faculty) {
-                $legacy->whereIn('schedule_id', $myScheduleIds)->where('faculty_id', $faculty->id);
-            })->orWhereIn('room_id', $myRoomIds);
+                $legacy->whereIn('schedule_id', $myScheduleIds)
+                    ->where(function ($owner) use ($faculty) {
+                        $owner->whereNull('faculty_id')->orWhere('faculty_id', $faculty->id);
+                    });
+            });
+            if ($displayRoomIds->isNotEmpty()) $query->orWhereIn('room_id', $displayRoomIds);
         })
         ->orderBy('override_date')
         ->orderBy('start_time')
@@ -4421,14 +4478,14 @@ public function mySchedules()
 
     $scheduleOverridesByScheduleId = collect();
     foreach ($mySchedules as $mySchedule) {
-        $applicable = $scheduleOverrideCandidates->filter(function (ScheduleOverride $override) use ($mySchedule, $faculty, $parseMinutes) {
-            if ((int) $override->schedule_id === (int) $mySchedule->id && (int) $override->faculty_id === (int) $faculty->id) {
-                return true;
-            }
-
-            if (!$override->room_id || (int) $override->room_id !== (int) $mySchedule->room_id || !$override->override_date) {
+        $displayRoomId = (int) ($myDisplayRoomIdBySchedule->get((int) $mySchedule->id) ?: $mySchedule->room_id);
+        $applicable = $scheduleOverrideCandidates->filter(function (ScheduleOverride $override) use ($mySchedule, $faculty, $parseMinutes, $displayRoomId) {
+            $directScheduleMatch = (int) $override->schedule_id === (int) $mySchedule->id;
+            if ($directScheduleMatch && $override->faculty_id && (int) $override->faculty_id !== (int) $faculty->id) {
                 return false;
             }
+            $overrideRoomId = (int) ($override->room_id ?: ($directScheduleMatch ? $displayRoomId : 0));
+            if (!$overrideRoomId || $overrideRoomId !== $displayRoomId || !$override->override_date) return false;
 
             $scheduleDay = strtoupper(substr(trim((string) ($mySchedule->day_of_week ?: $mySchedule->day)), 0, 3));
             if ($scheduleDay !== strtoupper($override->override_date->format('D'))) {
@@ -4453,11 +4510,29 @@ public function mySchedules()
         $scheduleOverridesByScheduleId->put((int) $mySchedule->id, $applicable);
     }
 
+    $visibleOverrideCandidates = $scheduleOverrideCandidates->filter(function (ScheduleOverride $override) use ($myScheduleIds, $displayRoomIds, $faculty) {
+        if ($override->schedule_id && $myScheduleIds->contains((int) $override->schedule_id)
+            && (!$override->faculty_id || (int) $override->faculty_id === (int) $faculty->id)) {
+            return true;
+        }
+        return $override->room_id && $displayRoomIds->contains((int) $override->room_id);
+    });
     $facultyScheduleOverrides = $scheduleOverridesByScheduleId
         ->flatten(1)
+        ->merge($visibleOverrideCandidates)
         ->unique('id')
         ->sortBy(fn (ScheduleOverride $override) => ($override->override_date?->format('Y-m-d') ?? '') . ' ' . ($override->start_time ?? ''))
         ->values();
+    $affectedScheduleLabelsByOverride = [];
+    foreach ($mySchedules as $mySchedule) {
+        foreach ($scheduleOverridesByScheduleId->get((int) $mySchedule->id, collect()) as $override) {
+            $label = trim((string) ($mySchedule->course_code ?: $mySchedule->subject ?: 'Scheduled class'));
+            $affectedScheduleLabelsByOverride[$override->id][] = $label;
+        }
+    }
+    $facultyScheduleOverrides->each(function (ScheduleOverride $override) use ($affectedScheduleLabelsByOverride) {
+        $override->setAttribute('affected_schedule_labels', array_values(array_unique($affectedScheduleLabelsByOverride[$override->id] ?? [])));
+    });
 
     return view(
 
@@ -4470,6 +4545,10 @@ public function mySchedules()
             'activeTerm',
 
             'timeSlots',
+
+            'roomTimeSlots',
+
+            'manualCellMerges',
 
             'temporaryReservations',
 

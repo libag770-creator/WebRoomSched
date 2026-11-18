@@ -636,10 +636,31 @@
         .faculty-my-schedules-view .faculty-label { margin-top:4px; color:#64746a; font-size:12px; font-weight:600; }
         .faculty-my-schedules-view .term-badge { padding:8px 12px; border:1px solid #d9e6d8; border-radius:999px; background:#edf5eb; color:#24563d; font-size:12px; font-weight:850; }
         .faculty-my-schedules-view .excel-wrapper { position:relative; max-height:calc(100vh - 310px); min-height:420px; overflow:auto; border:1px solid #dce6dc; border-radius:17px; background:#fff; box-shadow:0 10px 28px rgba(31,57,43,.06); scrollbar-color:#b9cdbd #f5f8f4; scrollbar-width:thin; }
+        /* The shared sheet controls intentionally make other schedules fit their container.
+           Keep this personal timetable at its readable spreadsheet width and scroll on small screens. */
+        .faculty-my-schedules-view [data-fit-schedule-container] { min-width:0 !important; max-width:100% !important; overflow:auto !important; scrollbar-width:thin !important; }
+        .faculty-my-schedules-view table.excel-table[data-fit-schedule] { display:table !important; width:1320px !important; min-width:1320px !important; max-width:none !important; table-layout:fixed !important; }
+        .faculty-my-schedules-view table.excel-table[data-fit-schedule] th,
+        .faculty-my-schedules-view table.excel-table[data-fit-schedule] td { min-width:0 !important; max-width:none !important; overflow-wrap:normal; }
+        .faculty-my-schedules-view table.excel-table[data-fit-schedule] .time-column { width:120px !important; min-width:120px !important; max-width:120px !important; }
         .faculty-my-schedules-view .my-schedule-block-layer { position:absolute; inset:0; z-index:8; pointer-events:none; }
         .faculty-my-schedules-view .my-schedule-source-hidden { visibility:hidden !important; height:0 !important; min-height:0 !important; max-height:0 !important; margin:0 !important; padding:0 !important; border-width:0 !important; overflow:hidden !important; }
         .faculty-my-schedules-view .my-schedule-duration-block { position:absolute !important; min-height:0 !important; max-height:none; margin:0; padding:6px 8px; overflow:hidden; box-sizing:border-box; z-index:1; }
         .faculty-my-schedules-view .my-schedule-duration-block { pointer-events:none; cursor:default; }
+        .faculty-my-schedules-view .my-schedule-duration-block .my-schedule-majors-trigger { position:relative; z-index:3; pointer-events:auto; }
+        .faculty-my-schedules-view .my-schedule-majors-trigger { display:inline-flex; align-items:center; width:max-content; max-width:100%; margin-top:5px; padding:4px 8px; border:1px solid #cfe2d2; border-radius:999px; background:#edf6ee; color:#245940; font-family:inherit; font-size:9px; font-weight:800; line-height:1.2; white-space:nowrap; cursor:pointer; }
+        .faculty-my-schedules-view .my-schedule-majors-trigger:hover,.faculty-my-schedules-view .my-schedule-majors-trigger:focus-visible { border-color:#78a987; background:#e0efe2; outline:2px solid rgba(50,112,77,.18); outline-offset:1px; }
+        .my-schedule-majors-overlay[hidden] { display:none !important; }
+        body.my-schedule-majors-open { overflow:hidden; }
+        .my-schedule-majors-overlay { position:fixed; inset:0; z-index:1002000; display:grid; place-items:center; padding:18px; background:rgb(18 31 25 / 48%); backdrop-filter:blur(3px); }
+        .my-schedule-majors-dialog { width:min(480px,100%); max-height:min(78vh,620px); overflow:auto; border:1px solid #dce7dc; border-radius:16px; background:#fff; color:#263b30; box-shadow:0 24px 70px rgb(15 35 25 / 25%); }
+        .my-schedule-majors-dialog header { position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 18px; border-bottom:1px solid #e5ece5; background:#fff; }
+        .my-schedule-majors-dialog h2 { margin:0; color:#173b33; font-size:17px; font-weight:850; }
+        .my-schedule-majors-close { width:36px; height:36px; border:1px solid #dce5dc; border-radius:9px; background:#f6f8f5; color:#385744; font-size:23px; cursor:pointer; }
+        .my-schedule-majors-list { display:grid; gap:7px; margin:0; padding:16px 18px 19px; list-style:none; }
+        .my-schedule-majors-list li { padding:9px 11px; border:1px solid #e2ebe2; border-radius:8px; background:#f7faf6; color:#263b30; font-size:13px; line-height:1.4; overflow-wrap:anywhere; }
+        .my-schedule-majors-dialog :focus-visible { outline:2px solid #32704d; outline-offset:2px; }
+        @media(max-width:520px) { .my-schedule-majors-overlay { align-items:end; padding:8px; } .my-schedule-majors-dialog { width:100%; max-height:85vh; border-radius:15px 15px 10px 10px; } }
         .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] { padding:5px 6px !important; }
         .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .class-course { padding-right:64px; font-size:9px; line-height:1.05; overflow-wrap:anywhere; }
         .faculty-my-schedules-view .my-schedule-duration-block[data-duration-minutes="30"] .class-time { top:5px !important; right:5px !important; max-width:calc(100% - 10px); padding:2px 4px; font-size:7.5px; line-height:1.1; }
@@ -676,6 +697,18 @@
         .faculty-my-schedules-view .room-name { display:block; margin-top:6px; padding-top:5px; border-top:1px solid #e8eee7; color:#365644; font-size:10px; font-weight:850; line-height:1.35; overflow-wrap:anywhere; }
         .faculty-my-schedules-view .room-name i { color:#32704d; }
         .faculty-my-schedules-view .temporary-reservation-entry { display:grid; align-content:start; gap:5px; min-width:0; min-height:0; max-height:none; padding:8px 9px; overflow:visible; border-color:#ead9ad; border-radius:10px; background:linear-gradient(145deg,#fff7e6,#fffdf8); box-shadow:inset 3px 0 #c99736; }
+        .faculty-my-schedules-view .my-reservation-date-line { display:block; min-width:0; color:#786744; font-size:9px; line-height:1.25; overflow-wrap:anywhere; }
+        .faculty-my-schedules-view .my-reservation-details-trigger { position:relative; z-index:3; width:max-content; max-width:100%; margin-top:3px; padding:4px 7px; border:1px solid #dfc982; border-radius:999px; background:#fff3d5; color:#755514; font-family:inherit; font-size:9px; font-weight:800; line-height:1.2; cursor:pointer; pointer-events:auto; }
+        .my-reservation-details-overlay[hidden] { display:none !important; }
+        .my-reservation-details-overlay { position:fixed; inset:0; z-index:1002001; display:grid; place-items:center; padding:18px; background:rgb(18 31 25 / 48%); backdrop-filter:blur(3px); }
+        .my-reservation-details-dialog { width:min(520px,100%); max-height:min(82vh,640px); overflow:auto; border:1px solid #e7d7ad; border-radius:16px; background:#fff; color:#34483a; box-shadow:0 24px 70px rgb(15 35 25 / 25%); }
+        .my-reservation-details-dialog header { position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 18px; border-bottom:1px solid #eee7d6; background:#fffcf4; }
+        .my-reservation-details-dialog h2 { margin:0; color:#604817; font-size:17px; font-weight:850; }
+        .my-reservation-details-dialog header button { width:36px; height:36px; border:1px solid #e5dcc6; border-radius:9px; background:#fff; color:#685d45; font-size:23px; cursor:pointer; }
+        .my-reservation-details-list { display:grid; gap:8px; padding:15px 18px 18px; }
+        .my-reservation-detail-card { display:grid; gap:5px; padding:11px; border:1px solid #eee4ca; border-radius:10px; background:#fffdf8; color:#5d5138; font-size:12px; }
+        .my-reservation-detail-card strong { color:#79551a; }
+        .my-reservation-detail-card :focus-visible { outline:2px solid #32704d; outline-offset:2px; }
         .faculty-my-schedules-view .temporary-reservation-header { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:4px; min-width:0; }
         .faculty-my-schedules-view .temporary-reservation-badge { justify-self:start; min-width:0; padding:3px 6px; border-radius:5px; background:#fff0c7; color:#79551a; font-size:9px; font-weight:900; white-space:normal; }
         .faculty-my-schedules-view .temporary-reservation-course { min-width:0; margin:0; color:#79551a; font-size:12px; font-weight:900; line-height:1.25; overflow-wrap:anywhere; }
@@ -697,6 +730,7 @@
         .faculty-my-schedules-view .my-schedule-override-entry { display:grid; width:100%; gap:3px; margin:0; padding:9px 10px; border:1px solid #efc4c1; border-left:4px solid #c63f3a; border-radius:8px; background:#fff; color:#63302d; font:inherit; font-size:11px; font-weight:500; line-height:1.4; text-align:left; cursor:pointer; }
         .faculty-my-schedules-view .my-schedule-override-entry:hover,.faculty-my-schedules-view .my-schedule-override-entry[aria-pressed="true"] { border-color:#c63f3a; background:#ffe9e7; box-shadow:0 0 0 2px rgba(198,63,58,.12); }
         .faculty-my-schedules-view .my-schedule-override-entry strong { color:#b33330; font-size:11px; font-weight:900; }
+        .faculty-my-schedules-view .my-schedule-override-match-status { display:block; margin-top:2px; color:#7b4d48; font-size:10px; font-weight:750; }
         .faculty-my-schedules-view .my-schedule-duration-block.my-schedule-override-overlap { border-color:#d87973 !important; background:linear-gradient(145deg,#fff0ef,#fff8f7) !important; box-shadow:inset 4px 0 #c63f3a,0 3px 9px rgba(138,36,32,.1) !important; }
         .faculty-my-schedules-view .my-schedule-override-day-highlight { position:absolute; top:0; bottom:0; z-index:0; border-left:4px solid #c63f3a; background:rgba(198,63,58,.26); pointer-events:none; }
         .faculty-my-schedules-view .my-schedule-duration-block > :not(.my-schedule-override-day-highlight) { position:relative; z-index:1; }
@@ -843,24 +877,20 @@
                             };
                             $overrideEntriesByDay = [];
                             foreach (($facultyScheduleOverrides ?? collect()) as $override) {
-                                $day = $normalizeScheduleDay($override->override_date?->format('D') ?? $override->schedule?->day);
-                                if (!$day) continue;
+                                $day = $normalizeScheduleDay($override->override_date?->format('D'));
+                                $dayGroup = $day ?: 'UNKNOWN';
                                 $startRaw = $override->start_time;
                                 $endRaw = $override->end_time;
-                                if ((!$startRaw || !$endRaw) && preg_match('/^\\s*(.+?)\\s*(?:-|–|—|to)\\s*(.+?)\\s*$/i', (string) ($override->schedule?->time ?? ''), $timeParts)) {
-                                    $startRaw ??= $timeParts[1];
-                                    $endRaw ??= $timeParts[2];
-                                }
                                 $start = $clockMinutes($startRaw);
                                 $end = $clockMinutes($endRaw);
-                                if ($start === null || $end === null || $end <= $start) continue;
-                                $startLabel = \Carbon\Carbon::parse($startRaw)->format('g:i A');
-                                $endLabel = \Carbon\Carbon::parse($endRaw)->format('g:i A');
-                                $overrideEntriesByDay[$day][] = [
+                                $validRange = $start !== null && $end !== null && $end > $start;
+                                $startLabel = $validRange ? \Carbon\Carbon::createFromTime(intdiv($start, 60), $start % 60)->format('g:i A') : null;
+                                $endLabel = $validRange ? \Carbon\Carbon::createFromTime(intdiv($end, 60), $end % 60)->format('g:i A') : null;
+                                $overrideEntriesByDay[$dayGroup][] = [
                                     'override' => $override,
                                     'start' => $start,
                                     'end' => $end,
-                                    'time' => $startLabel . ' – ' . $endLabel,
+                                    'time' => $validRange ? $startLabel . ' – ' . $endLabel : 'Time unavailable',
                                 ];
                             }
                         @endphp
@@ -876,26 +906,31 @@
                                             $overrideRoomId = $override->room_id ?: $override->schedule?->room_id;
                                             $overrideRoomName = $override->room?->room_name ?: ($override->schedule?->room?->room_name ?: ($overrideRoomId ? 'Room ' . $overrideRoomId : 'Room unavailable'));
                                             $overrideDateLabel = $override->override_date?->format('M j, Y') ?? 'Date unavailable';
+                                            $overrideDayLabel = $override->override_date?->format('l') ?? 'Day unavailable';
                                             $overridePurpose = $override->reason ?: 'Schedule override';
                                         @endphp
                                         <button type="button" class="my-schedule-override-entry" aria-pressed="false"
                                             data-override-id="{{ $override->id }}"
-                                            data-override-day="{{ $overrideDay }}"
+                                            data-override-day="{{ $overrideDay === 'UNKNOWN' ? '' : $overrideDay }}"
                                             data-override-room-id="{{ $overrideRoomId }}"
-                                            data-override-start="{{ $entry['start'] }}"
-                                            data-override-end="{{ $entry['end'] }}">
-                                            <strong>Admin override · {{ $overrideDateLabel }} · {{ $entry['time'] }}</strong>
+                                            data-override-start="{{ $entry['start'] ?? '' }}"
+                                            data-override-end="{{ $entry['end'] ?? '' }}">
+                                            <strong>Admin override · {{ $overrideDayLabel }}, {{ $overrideDateLabel }} · {{ $entry['time'] }}</strong>
                                             <span>Room: {{ $overrideRoomName }}</span>
+                                            @if(!empty($override->affected_schedule_labels))
+                                                <span>Affected schedules: {{ implode(', ', $override->affected_schedule_labels) }}</span>
+                                            @endif
                                             <span>Room occupant: {{ $override->occupied_by ?: 'Students and Faculties' }}</span>
                                             <span>Purpose: {{ $overridePurpose }}</span>
                                             @if($override->details)<span>{{ $override->details }}</span>@endif
+                                            <span class="my-schedule-override-match-status" aria-live="polite">Select to locate matching schedule blocks.</span>
                                         </button>
                                     @endforeach
                                 @endforeach
                             </section>
                         @endif
 
-                        <table class="excel-table" data-fit-schedule>
+                        <table class="excel-table" data-fit-schedule data-manual-cell-merges="{{ e(json_encode($manualCellMerges ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
 
                             <thead>
 
@@ -1087,11 +1122,11 @@
                                         |--------------------------------------------------------------------------
                                         */
 
-                                        $position = $positionFromScheduleTime($schedule->time);
-
-                                        if ($position === null) {
-                                            $position = $schedule->row_position;
-                                        }
+                                        // The chair's saved row position is authoritative. The time string
+                                        // remains the source for the exact block height and displayed range.
+                                        $position = is_numeric($schedule->row_position)
+                                            ? (int) $schedule->row_position
+                                            : $positionFromScheduleTime($schedule->time);
 
 
                                         /*
@@ -1165,10 +1200,7 @@
                                             $position;
 
 
-                                        if (
-                                            $position < 0 ||
-                                            $position > 10
-                                        ) {
+                                        if ($position < 0) {
 
                                             continue;
 
@@ -1292,24 +1324,18 @@
                                                 ? Carbon\Carbon::parse($reservation->date)->format('M j, Y')
                                                 : 'Date unavailable';
 
-                                            $reservationMeta = '';
-                                            $reservationMeta .= '<span>';
-                                            if ($program) {
-                                                $reservationMeta .= e($program) . ' · ';
-                                            }
-                                            $reservationMeta .= e($room) . '</span>';
-                                            if ($yearLevel) {
-                                                $reservationMeta .= '<span><strong>Year level</strong> ' . e($yearLevel) . '</span>';
-                                            }
+                                            $reservationDateIso = $reservation->date
+                                                ? Carbon\Carbon::parse($reservation->date)->format('Y-m-d')
+                                                : '';
+                                            $reservationCourseCode = $reservation->subject?->course_code ?? $reservation->facultySubject?->course_code ?? '';
+                                            $reservationInstructor = $reservation->user?->name ?? 'Instructor';
 
                                             return '
-                                                <div class="temporary-reservation-entry" data-class-time="' . e($reservationBlockTime) . '" data-class-room-id="' . e((string) ($reservation->room_id ?? '')) . '">
-                                                    <div class="temporary-reservation-header"><div class="temporary-reservation-badge"><i class="fa-solid fa-calendar-check"></i> ' . e($reservation->status ?: 'Reserved') . '</div><div class="temporary-reservation-time">' . e($time) . '</div></div>
-                                                    <div class="temporary-reservation-course">' . e($course) . '</div>
-                                                    <div class="temporary-reservation-detail">' . e($subject) . '</div>
-                                                    ' . ($reservationMeta !== '' ? '<div class="temporary-reservation-meta">' . $reservationMeta . '</div>' : '') . '
-                                                    <div class="temporary-reservation-time"><i class="fa-solid fa-user"></i> Requested by ' . e($reservation->user?->name ?? 'Instructor') . '</div>
-                                                    <div class="temporary-reservation-time"><i class="fa-regular fa-calendar"></i> ' . e($reservationDate) . '</div>
+                                                <div class="temporary-reservation-entry" data-class-time="' . e($reservationBlockTime) . '" data-class-room-id="' . e((string) ($reservation->room_id ?? '')) . '" data-reservation-date="' . e($reservationDateIso) . '" data-reservation-course="' . e($reservationCourseCode) . '" data-reservation-room="' . e($room) . '" data-reservation-user-id="' . e((string) ($reservation->user_id ?? '')) . '" data-reservation-user-name="' . e($reservationInstructor) . '">
+                                                    <div class="temporary-reservation-header"><div class="temporary-reservation-badge"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Reserved</div><div class="temporary-reservation-time">' . e($time) . '</div></div>
+                                                    ' . ($reservationCourseCode !== '' ? '<div class="temporary-reservation-course">' . e($reservationCourseCode) . '</div>' : '') . '
+                                                    <div class="temporary-reservation-time"><i class="fa-solid fa-door-open" aria-hidden="true"></i> ' . e($room) . '</div>
+                                                    <div class="temporary-reservation-time"><i class="fa-regular fa-calendar" aria-hidden="true"></i> ' . e($reservationDate) . '</div>
                                                 </div>
                                             ';
                                         };
@@ -1529,6 +1555,8 @@
                                                             ?? $mergedSubject->program?->major
                                                             ?? $merge->facultySubject?->major,
                                                         'year_level' => $mergedSubject->year_level ?? $merge->facultySubject?->year_level,
+                                                        'subject_id' => (int) ($merge->subject_id ?? $merge->facultySubject?->subject_id ?? 0),
+                                                        'share_type' => $merge->share_type ?? 'merge',
                                                     ];
                                                 })
                                                 ->filter()
@@ -1540,12 +1568,10 @@
                                                     ->values();
                                             };
                                             $courseCodes = $uniqueDisplayValues(collect([$schedule->course_code])->merge($approvedMergedCourses->pluck('course_code')));
-                                            $courseTitles = $uniqueDisplayValues(collect([$schedule->subject])->merge($approvedMergedCourses->pluck('course_title')));
                                             $programCodes = $uniqueDisplayValues(collect([$schedule->program_code ?: $schedule->program])->merge($approvedMergedCourses->pluck('program_code')));
                                             $yearLevels = $uniqueDisplayValues(collect([$schedule->year_level])->merge($approvedMergedCourses->pluck('year_level')));
                                             $majorNames = $uniqueDisplayValues(collect([$schedule->major])->merge($approvedMergedCourses->pluck('major')));
                                             $course = $courseCodes->isNotEmpty() ? $courseCodes->implode(' / ') : 'No Course Code';
-                                            $subject = $courseTitles->isNotEmpty() ? $courseTitles->implode(' / ') : 'No Subject';
                                             $program = $programCodes->isNotEmpty() ? $programCodes->implode(' / ') : 'Program Not Set';
                                             $classDetailItems = '';
                                             if ($programCodes->isNotEmpty()) {
@@ -1554,36 +1580,45 @@
                                             if ($yearLevels->isNotEmpty()) {
                                                 $classDetailItems .= '<span class="class-meta-item"><strong>Year level</strong> ' . e($yearLevels->implode(' / ')) . '</span>';
                                             }
-                                            if ($majorNames->isNotEmpty()) {
-                                                $classDetailItems .= '<span class="class-meta-item"><strong>Major</strong> ' . e($majorNames->implode(' / ')) . '</span>';
-                                            }
                                             $classDetailsMarkup = $classDetailItems !== ''
                                                 ? '<div class="class-detail">' . $classDetailItems . '</div>'
                                                 : '';
-                                            $roomMarkup = '<div class="room-name"><i class="fa-solid fa-door-open"></i> Room: '
+                                            $majorListMarkup = '';
+                                            if ($majorNames->isNotEmpty()) {
+                                                $majorListMarkup = '<button type="button" class="my-schedule-majors-trigger" data-major-list="'
+                                                    . e(json_encode($majorNames->values()->all(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES))
+                                                    . '" aria-haspopup="dialog" aria-label="Show ' . $majorNames->count() . ' included majors">Majors · '
+                                                    . $majorNames->count() . '</button>';
+                                            }
+                                            $roomMarkup = '<div class="room-name"><i class="fa-solid fa-door-open"></i> '
                                                 . e($room)
-                                                . ($building ? ' <span class="room-building-separator">·</span> Building: ' . e($building) : '')
+                                                . ($building ? ' <span class="room-building-separator">·</span> ' . e($building) : '')
                                                 . '</div>';
 
                                             $mergeKey = json_encode([
-                                                'course_codes' => $courseCodes->map(fn ($value) => mb_strtolower(trim((string) $value)))->all(),
-                                                'course_titles' => $courseTitles->map(fn ($value) => mb_strtolower(trim((string) $value)))->all(),
-                                                'programs' => $programCodes->map(fn ($value) => mb_strtolower(trim((string) $value)))->all(),
-                                                'years' => $yearLevels->map(fn ($value) => mb_strtolower(trim((string) $value)))->all(),
-                                                'majors' => $majorNames->map(fn ($value) => mb_strtolower(trim((string) $value)))->all(),
-                                                'subject_type' => mb_strtolower(trim((string) ($schedule->subject_type ?? ''))),
-                                                'time' => mb_strtolower(trim((string) ($schedule->time ?? ''))),
+                                                // Use the saved, user-facing assignment details. Internal catalog/link IDs
+                                                // may differ between weekday copies of one chair-assigned M/W/F class.
+                                                // Major membership is combined across those copies below.
+                                                'course_codes' => $courseCodes->map(fn ($value) => preg_replace('/\s+/u', '', mb_strtolower(trim((string) $value))))->all(),
+                                                'programs' => $programCodes->map(fn ($value) => mb_strtolower(preg_replace('/\s+/u', ' ', trim((string) $value))))->all(),
+                                                'years' => $yearLevels->map(fn ($value) => mb_strtolower(preg_replace('/\s+/u', ' ', trim((string) $value))))->all(),
+                                                'faculty_id' => (string) ($schedule->faculty_id ?? ''),
+                                                'instructor' => mb_strtolower(preg_replace('/\s+/u', ' ', trim((string) ($schedule->instructor ?? '')))),
+                                                'department_id' => (string) ($schedule->department_id ?? ''),
+                                                'subject' => mb_strtolower(preg_replace('/\s+/u', ' ', trim((string) ($schedule->subject ?? '')))),
+                                                'subject_type' => mb_strtolower(preg_replace('/\s+/u', ' ', trim((string) ($schedule->subject_type ?? '')))),
+                                                'section' => mb_strtolower(preg_replace('/\s+/u', ' ', trim((string) ($schedule->section ?? '')))),
+                                                'time' => mb_strtolower(trim((string) $formatScheduleDisplayTime($schedule->time ?? ''))),
                                                 'room_id' => (string) $displayRoomId,
                                             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
 
-                                            return '<div class="class-entry' . ($isTemporarySwap ? ' room-swapped-temporary' : '') . '" data-class-time="' . e($schedule->time ?? '') . '" data-class-room-id="' . e($displayRoomId) . '" data-class-merge-key="' . e($mergeKey ?: '') . '">'
+                                            return '<div class="class-entry' . ($isTemporarySwap ? ' room-swapped-temporary' : '') . '" data-schedule-id="' . e((string) $schedule->id) . '" data-class-time="' . e($schedule->time ?? '') . '" data-class-room-id="' . e($displayRoomId) . '" data-source-room-id="' . e((string) ($schedule->room_id ?? '')) . '" data-class-row-position="' . e((string) ($schedule->row_position ?? '')) . '" data-class-room-swap="' . ($isTemporarySwap ? '1' : '0') . '" data-class-merge-key="' . e($mergeKey ?: '') . '">'
                                                 . '<div class="class-course">' . e($course) . '</div>'
                                                 . '<div class="class-time">' . e($formatScheduleDisplayTime($schedule->time ?? '')) . '</div>'
-                                                . '<div class="class-subject">' . e($subject) . '</div>'
                                                 . $classDetailsMarkup
+                                                . $majorListMarkup
                                                 . $roomMarkup
-                                                . $swapMarkup
                                                 . '</div>';
 
                                         };
@@ -1618,15 +1653,67 @@
                                     $maxOfficialTimePosition = $timeSlots->isNotEmpty()
                                         ? (int) $timeSlots->max('row_position')
                                         : -1;
+                                    $maxRoomTimePosition = ($roomTimeSlots ?? collect())->isNotEmpty()
+                                        ? (int) $roomTimeSlots->max('row_position')
+                                        : -1;
 
                                     $publishedRowCount = max(
                                         9,
                                         $maxSchedulePosition + 1,
                                         $maxReservationPosition + 1,
-                                        $maxOfficialTimePosition + 1
+                                        $maxOfficialTimePosition + 1,
+                                        $maxRoomTimePosition + 1
                                     );
 
                                     $breakBeforePosition = 5;
+
+                                    $timeLabelForSide = function ($side, $position) use ($roomTimeSlots, $timeSlots, $defaultTimes, $formatScheduleDisplayTime) {
+                                        $days = [
+                                            'left' => ['MON', 'WED', 'FRI'],
+                                            'right' => ['TUE', 'THU'],
+                                            'sat' => ['SAT'],
+                                        ][$side] ?? [];
+                                        $formatSlot = static function ($slot) {
+                                            try {
+                                                return \Carbon\Carbon::parse($slot->start_time)->format('g:i A')
+                                                    . '–' . \Carbon\Carbon::parse($slot->end_time)->format('g:i A');
+                                            } catch (\Throwable $exception) {
+                                                return '';
+                                            }
+                                        };
+                                        $roomLabels = ($roomTimeSlots ?? collect())
+                                            ->filter(fn ($slot) => (int) $slot->row_position === (int) $position
+                                                && in_array(strtoupper(substr((string) $slot->day, 0, 3)), $days, true))
+                                            ->map($formatSlot)->filter()->unique()->values();
+                                        if ($roomLabels->isNotEmpty()) return $roomLabels->implode(' / ');
+                                        $officialLabels = ($timeSlots ?? collect())
+                                            ->filter(fn ($slot) => (int) $slot->row_position === (int) $position
+                                                && in_array(strtoupper(substr((string) $slot->day, 0, 3)), $days, true))
+                                            ->map($formatSlot)->filter()->unique()->values();
+                                        return $officialLabels->isNotEmpty()
+                                            ? $officialLabels->implode(' / ')
+                                            : ($defaultTimes[$position] ?? '');
+                                    };
+                                    $timeRangesForSide = function ($side, $position) use ($roomTimeSlots, $timeSlots) {
+                                        $days = [
+                                            'left' => ['MON', 'WED', 'FRI'],
+                                            'right' => ['TUE', 'THU'],
+                                            'sat' => ['SAT'],
+                                        ][$side] ?? [];
+                                        $ranges = ['rooms' => [], 'days' => []];
+                                        foreach (($roomTimeSlots ?? collect())->filter(fn ($slot) => (int) $slot->row_position === (int) $position
+                                            && in_array(strtoupper(substr((string) $slot->day, 0, 3)), $days, true)) as $slot) {
+                                            $day = strtoupper(substr((string) $slot->day, 0, 3));
+                                            $roomId = (string) $slot->room_id;
+                                            $ranges['rooms'][$roomId][$day] ??= Carbon\Carbon::parse($slot->start_time)->format('H:i') . '-' . Carbon\Carbon::parse($slot->end_time)->format('H:i');
+                                        }
+                                        foreach (($timeSlots ?? collect())->filter(fn ($slot) => (int) $slot->row_position === (int) $position
+                                            && in_array(strtoupper(substr((string) $slot->day, 0, 3)), $days, true)) as $slot) {
+                                            $day = strtoupper(substr((string) $slot->day, 0, 3));
+                                            $ranges['days'][$day] ??= Carbon\Carbon::parse($slot->start_time)->format('H:i') . '-' . Carbon\Carbon::parse($slot->end_time)->format('H:i');
+                                        }
+                                        return $ranges;
+                                    };
                                 @endphp
 
                                 @for(
@@ -1673,7 +1760,7 @@
                                         |--------------------------------------------------------------------------
                                         */
 
-                                        $leftTime = $defaultTimes[$position] ?? '';
+                                        $leftTime = $timeLabelForSide('left', $position);
 
 
                                         /*
@@ -1682,23 +1769,23 @@
                                         |--------------------------------------------------------------------------
                                         */
 
-                                        $rightTime = $defaultTimes[$position] ?? '';
+                                        $rightTime = $timeLabelForSide('right', $position);
 
 
                                         $saturdayTime =
-                                            $defaultTimes[$position] ?? '';
+                                            $timeLabelForSide('sat', $position);
 
                                     @endphp
 
 
-                                    <tr>
+                                    <tr data-row-position="{{ $position }}">
 
 
                                         <!-- =================================================
                                              LEFT TIME
                                         ================================================== -->
 
-                                        <td class="time-column" data-time-side="left">
+                                        <td class="time-column" data-time-side="left" data-time-ranges="{{ e(json_encode($timeRangesForSide('left', $position), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
 
                                             {{ $leftTime }}
 
@@ -1898,7 +1985,7 @@
                                              RIGHT TIME
                                         ================================================== -->
 
-                                        <td class="time-column" data-time-side="right">
+                                        <td class="time-column" data-time-side="right" data-time-ranges="{{ e(json_encode($timeRangesForSide('right', $position), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">
 
                                             {{ $rightTime }}
 
@@ -2037,7 +2124,7 @@
                                         ================================================== -->
 
                                         @if($hasSaturdaySchedule)
-                                        <td class="time-column" data-time-side="sat">{{ $saturdayTime }}</td>
+                                        <td class="time-column" data-time-side="sat" data-time-ranges="{{ e(json_encode($timeRangesForSide('sat', $position), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) }}">{{ $saturdayTime }}</td>
 
                                         <td class="schedule-cell" data-day="SAT">
 <div class="schedule-cell-stack">
@@ -2150,8 +2237,66 @@
 
 </div>
 
+<div class="my-schedule-majors-overlay" id="myScheduleMajorsDialog" hidden>
+    <section class="my-schedule-majors-dialog" role="dialog" aria-modal="true" aria-labelledby="myScheduleMajorsTitle" tabindex="-1">
+        <header>
+            <h2 id="myScheduleMajorsTitle">Included majors</h2>
+            <button type="button" class="my-schedule-majors-close" data-close-my-schedule-majors aria-label="Close major list">×</button>
+        </header>
+        <ul class="my-schedule-majors-list" id="myScheduleMajorsList"></ul>
+    </section>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+
+    const majorDialog = document.getElementById('myScheduleMajorsDialog');
+    const majorList = document.getElementById('myScheduleMajorsList');
+    let majorDialogReturnFocus = null;
+
+    function closeMajorDialog()
+    {
+        if (!majorDialog || majorDialog.hidden) return;
+        majorDialog.hidden = true;
+        document.body.classList.remove('my-schedule-majors-open');
+        const returnTarget = majorDialogReturnFocus;
+        majorDialogReturnFocus = null;
+        if (returnTarget?.isConnected) returnTarget.focus({ preventScroll: true });
+    }
+
+    document.addEventListener('click', function(event) {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        if (target.closest('[data-close-my-schedule-majors]') || target === majorDialog) {
+            closeMajorDialog();
+            return;
+        }
+        const trigger = target.closest('.my-schedule-majors-trigger');
+        if (!trigger || !majorDialog || !majorList) return;
+        let majors = [];
+        try { majors = JSON.parse(trigger.dataset.majorList || '[]'); } catch (_) {}
+        if (!Array.isArray(majors) || !majors.length) return;
+        majorList.replaceChildren();
+        [...new Set(majors.map(value => String(value || '').trim()).filter(Boolean))].forEach(function(major) {
+            const item = document.createElement('li');
+            item.textContent = major;
+            majorList.appendChild(item);
+        });
+        majorDialogReturnFocus = trigger;
+        majorDialog.hidden = false;
+        document.body.classList.add('my-schedule-majors-open');
+        majorDialog.querySelector('[data-close-my-schedule-majors]')?.focus({ preventScroll: true });
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (majorDialog && !majorDialog.hidden && event.key === 'Escape') {
+            event.preventDefault();
+            closeMajorDialog();
+        } else if (majorDialog && !majorDialog.hidden && event.key === 'Tab') {
+            event.preventDefault();
+            majorDialog.querySelector('[data-close-my-schedule-majors]')?.focus({ preventScroll: true });
+        }
+    });
 
     function scheduleSignature(cell)
     {
@@ -2173,7 +2318,45 @@ document.addEventListener('DOMContentLoaded', function () {
             return '';
         }
 
+        if (entries[0].dataset.classRoomSwap === '1') {
+            return '';
+        }
+
         return entries[0].dataset.classMergeKey || '';
+    }
+
+    function mergeMajorLists(scheduleNodes)
+    {
+        const primary = scheduleNodes.find(node => node instanceof Element);
+        if (!primary) return;
+
+        const majors = [];
+        scheduleNodes.forEach(function(node) {
+            const trigger = node.querySelector('.my-schedule-majors-trigger');
+            if (!trigger) return;
+            try {
+                const values = JSON.parse(trigger.dataset.majorList || '[]');
+                if (Array.isArray(values)) majors.push(...values);
+            } catch (_) {}
+        });
+        const uniqueMajors = [...new Map(majors
+            .map(value => String(value || '').trim())
+            .filter(Boolean)
+            .map(value => [value.toLocaleLowerCase(), value])).values()];
+        if (!uniqueMajors.length) return;
+
+        let trigger = primary.querySelector('.my-schedule-majors-trigger');
+        if (!trigger) {
+            trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'my-schedule-majors-trigger';
+            trigger.setAttribute('aria-haspopup', 'dialog');
+            const roomLine = primary.querySelector('.room-name');
+            primary.insertBefore(trigger, roomLine || null);
+        }
+        trigger.dataset.majorList = JSON.stringify(uniqueMajors);
+        trigger.setAttribute('aria-label', 'Show ' + uniqueMajors.length + ' included majors');
+        trigger.textContent = 'Majors · ' + uniqueMajors.length;
     }
 
     function mergeGroup(row, days)
@@ -2219,6 +2402,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (count >= 2) {
 
+                const mergedCells = days.slice(index, end).map(day =>
+                    row.querySelector('td[data-day="' + day + '"]')
+                ).filter(Boolean);
+                mergeMajorLists(mergedCells.flatMap(cell =>
+                    Array.from(cell.querySelectorAll('.schedule-cell-stack > .class-entry'))
+                ));
+
                 first.classList.add(
                     'merged-schedule-cell'
                 );
@@ -2247,6 +2437,63 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function applySavedHorizontalMerges(row, dayGroups, merges)
+    {
+        const dayOrder = { MON: 0, WED: 1, FRI: 2, TUE: 0, THU: 1, SAT: 0 };
+        (merges || []).filter(merge => String(merge.axis || '').toLowerCase() === 'horizontal').forEach(function(merge) {
+            const coordinates = (Array.isArray(merge.cells) ? merge.cells : [])
+                .map(function(coordinate) {
+                    return {
+                        day: String(coordinate.day || '').toUpperCase().slice(0, 3),
+                        row: Number(coordinate.row_position),
+                        side: String(coordinate.side || '').toLowerCase(),
+                    };
+                })
+                .filter(coordinate => Number.isInteger(coordinate.row) && dayOrder[coordinate.day] !== undefined);
+            if (coordinates.length < 2) return;
+            const rowPosition = Number(row.dataset.rowPosition);
+            const rowCoordinates = coordinates.filter(coordinate => coordinate.row === rowPosition);
+            if (rowCoordinates.length < 2) return;
+            const group = dayGroups.find(days => rowCoordinates.every(coordinate => days.includes(coordinate.day)));
+            if (!group) return;
+            rowCoordinates.sort((a, b) => group.indexOf(a.day) - group.indexOf(b.day));
+            const firstIndex = group.indexOf(rowCoordinates[0].day);
+            const consecutiveDays = group.slice(firstIndex, firstIndex + rowCoordinates.length);
+            if (consecutiveDays.length !== rowCoordinates.length || !consecutiveDays.every((day, index) => day === rowCoordinates[index].day)) return;
+
+            const cells = consecutiveDays.map(day => row.querySelector('td[data-day="' + day + '"]'));
+            if (cells.some(cell => !cell || cell.querySelector('.temporary-reservation-entry'))) return;
+            const scheduleNodes = cells.map(cell => Array.from(cell.querySelectorAll('.schedule-cell-stack > .class-entry')));
+            if (scheduleNodes.some(nodes => nodes.length > 1)) return;
+            const populated = scheduleNodes.flat();
+            if (!populated.length || populated.some(node => String(node.dataset.sourceRoomId || '') !== String(merge.room_id || ''))) return;
+            const signatures = [...new Set(populated.map(node => node.dataset.classMergeKey || ''))];
+            if (signatures.length !== 1 || !signatures[0]) return;
+
+            const anchor = cells[0];
+            const anchorStack = anchor.querySelector('.schedule-cell-stack');
+            if (!anchorStack) return;
+            const primaryNode = scheduleNodes[0][0] || populated[0];
+            mergeMajorLists(populated);
+            if (primaryNode.parentElement !== anchorStack) {
+                anchorStack.querySelector('.empty-cell')?.remove();
+                anchorStack.appendChild(primaryNode);
+            }
+            scheduleNodes.flat().filter(node => node !== primaryNode).forEach(node => node.remove());
+            anchor.classList.add('merged-schedule-cell');
+            anchor.colSpan = cells.length;
+            cells.slice(1).forEach(cell => cell.remove());
+        });
+    }
+
+    let savedCellMerges = [];
+    try {
+        savedCellMerges = JSON.parse(document.querySelector('.excel-table')?.dataset.manualCellMerges || '[]');
+        if (!Array.isArray(savedCellMerges)) savedCellMerges = [];
+    } catch (_) {
+        savedCellMerges = [];
+    }
+
     document
         .querySelectorAll('.excel-table tbody tr')
         .forEach(function (row) {
@@ -2255,6 +2502,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            applySavedHorizontalMerges(row, [['MON', 'WED', 'FRI'], ['TUE', 'THU'], ['SAT']], savedCellMerges);
+
             mergeGroup(
                 row,
                 ['MON', 'WED', 'FRI']
@@ -2262,7 +2511,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             mergeGroup(
                 row,
-                ['TUE', 'THU', 'SAT']
+                ['TUE', 'THU']
             );
         });
 
@@ -2303,12 +2552,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!layer) {
             layer = document.createElement('div');
             layer.className = 'my-schedule-block-layer';
-            layer.setAttribute('aria-hidden', 'true');
+            layer.setAttribute('role', 'group');
+            layer.setAttribute('aria-label', 'Instructor schedule blocks and major list controls');
             wrapper.appendChild(layer);
         }
         layer.replaceChildren();
 
-        function yAtMinute(side, minute, edge)
+        function yAtMinute(side, minute, edge, day, roomId)
         {
             const rows = Array.from(table.tBodies[0]?.rows || []).filter(function(row) {
                 return !row.classList.contains('noon-break-row');
@@ -2316,7 +2566,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             for (const row of rows) {
                 const timeCell = row.querySelector('[data-time-side="' + side + '"]');
-                const range = myScheduleRange(timeCell?.textContent || '');
+                let rowTime = '';
+                try {
+                    const timeRanges = JSON.parse(timeCell?.dataset.timeRanges || '{}');
+                    rowTime = timeRanges.rooms?.[String(roomId || '')]?.[String(day || '').toUpperCase()]
+                        || timeRanges.days?.[String(day || '').toUpperCase()]
+                        || '';
+                } catch (_) {}
+                const range = myScheduleRange(rowTime || timeCell?.textContent || '');
                 if (!range) continue;
                 if (edge === 'start' && minute === range.end) continue;
                 if (edge === 'end' && minute === range.start) continue;
@@ -2353,7 +2610,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const isReservation = source.matches('.temporary-reservation-entry');
             if (!cell || !range || !side) return;
             if (!isReservation && (cell.querySelectorAll('.class-entry[data-class-time]').length !== 1 || cell.querySelector('.temporary-reservation-entry[data-class-time]'))) return;
-
             let reservationSources = [source];
             if (isReservation) {
                 const groupKey = [cell.dataset.day, source.dataset.classRoomId, range.start, range.end].join('|');
@@ -2362,8 +2618,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 reservationSources = reservationSourceGroups.get(groupKey) || reservationSources;
             }
 
-            const top = yAtMinute(side, range.start, 'start');
-            const bottom = yAtMinute(side, range.end, 'end');
+            const scheduleDay = String(cell.dataset.day || '').toUpperCase().slice(0, 3);
+            const sourceRoomId = source.dataset.sourceRoomId || source.dataset.classRoomId || '';
+            const top = yAtMinute(side, range.start, 'start', scheduleDay, sourceRoomId);
+            const bottom = yAtMinute(side, range.end, 'end', scheduleDay, sourceRoomId);
             if (top === null || bottom === null || bottom <= top) return;
 
             const cellRect = cell.getBoundingClientRect();
@@ -2371,38 +2629,67 @@ document.addEventListener('DOMContentLoaded', function () {
             block.classList.add('my-schedule-duration-block');
             block.classList.remove('my-schedule-source-hidden');
             if (isReservation && reservationSources.length > 1) {
-                const summaries = reservationSources.map(function(item) {
-                    const date = item.querySelector('.fa-calendar')?.parentElement?.textContent.trim() || 'Date unavailable';
-                    const requester = (item.querySelector('.fa-user')?.parentElement?.textContent.trim() || 'Requested by Instructor')
-                        .replace(/^Requested by\s*/i, '');
-                    const details = item.querySelector('.temporary-reservation-detail')?.textContent.trim() || 'Reserved room use';
-                    return [date, 'Requested by ' + requester, details].filter(Boolean).join(' — ');
-                });
-                const dateLine = block.querySelector('.fa-calendar')?.parentElement;
-                const requesterLine = block.querySelector('.fa-user')?.parentElement;
-                if (dateLine) dateLine.textContent = [...new Set(summaries.map(item => item.split(' — ')[0]))].join('  /  ');
-                if (requesterLine) requesterLine.textContent = [...new Set(summaries.map(item => item.split(' — ')[1]))].join(', ');
-                const more = document.createElement('div');
-                more.className = 'temporary-reservation-more';
-                more.textContent = summaries.length + ' reservations: ' + summaries.join(' · ');
-                block.appendChild(more);
+                const items = reservationSources.map(function(item) {
+                    return {
+                        user_id: item.dataset.reservationUserId || '',
+                        user_name: item.dataset.reservationUserName || 'Instructor',
+                        date: item.dataset.reservationDate || '',
+                        course_code: item.dataset.reservationCourse || '',
+                        room_name: item.dataset.reservationRoom || '',
+                        start_time: String(Math.floor(range.start / 60)).padStart(2, '0') + ':' + String(range.start % 60).padStart(2, '0'),
+                        end_time: String(Math.floor(range.end / 60)).padStart(2, '0') + ':' + String(range.end % 60).padStart(2, '0'),
+                    };
+                }).sort(function(a, b) { return a.date.localeCompare(b.date) || a.start_time - b.start_time; });
+                const distinctUsers = new Set(items.map(item => item.user_id).filter(Boolean));
+                const distinctDates = new Set(items.map(item => item.date).filter(Boolean));
+                const popupAllowed = distinctUsers.size >= 2 && distinctDates.size >= 2;
+                const escapeText = function(value) { return String(value || '').replace(/[&<>"']/g, function(char) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char]; }); };
+                const dateLines = items.map(function(item) {
+                    const date = item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, {month:'short',day:'numeric',year:'numeric'}) : 'Date unavailable';
+                    const code = item.course_code ? ' · ' + escapeText(item.course_code) : '';
+                    return '<span class="my-reservation-date-line"><i class="fa-regular fa-calendar" aria-hidden="true"></i> ' + escapeText(date) + code + '</span>';
+                }).join('');
+                const timeText = block.querySelector('.temporary-reservation-time')?.textContent.trim() || '';
+                const room = items[0].room_name || '';
+                block.innerHTML = '<div class="temporary-reservation-header"><div class="temporary-reservation-badge"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Reserved</div><div class="temporary-reservation-time">' + timeText + '</div></div>'
+                    + '<div class="temporary-reservation-time"><i class="fa-solid fa-door-open" aria-hidden="true"></i> ' + escapeText(room) + '</div>'
+                    + dateLines
+                    + (popupAllowed ? '<button type="button" class="my-reservation-details-trigger">' + items.length + ' reservations · View details</button>' : '');
+                const detailsTrigger = block.querySelector('.my-reservation-details-trigger');
+                if (detailsTrigger) {
+                    detailsTrigger._reservationItems = items;
+                    detailsTrigger.setAttribute('aria-haspopup', 'dialog');
+                    detailsTrigger.setAttribute('aria-label', 'View details for ' + items.length + ' instructors’ reservations.');
+                }
             }
             const sourceDay = String(cell.dataset.day || '').toUpperCase().slice(0, 3);
             const span = Math.max(1, Number(cell.colSpan || 1));
             const sideDays = daysBySide[side] || [sourceDay];
             const firstDayIndex = Math.max(0, sideDays.indexOf(sourceDay));
             const cellDays = sideDays.slice(firstDayIndex, firstDayIndex + span);
-            const sameRoom = selectedOverride && String(source.dataset.classRoomId || '') === String(selectedOverride.roomId || '');
-            const overlapsSelectedTime = selectedOverride && range.start < selectedOverride.end && range.end > selectedOverride.start;
-            if (selectedOverride && sameRoom && overlapsSelectedTime && cellDays.includes(selectedOverride.day)) {
-                if (cellDays.length <= 1) {
-                    block.classList.add('my-schedule-override-overlap');
-                } else {
-                    const dayIndex = cellDays.indexOf(selectedOverride.day);
+            const dayIndex = cellDays.indexOf(String(selectedOverride?.day || '').toUpperCase());
+            const matchesOverride = selectedOverride
+                && !isReservation
+                && String(source.dataset.classRoomId || '') === String(selectedOverride.roomId || '')
+                && dayIndex >= 0
+                && Number.isFinite(selectedOverride.start)
+                && Number.isFinite(selectedOverride.end)
+                && range.start < selectedOverride.end
+                && range.end > selectedOverride.start;
+            if (matchesOverride) {
+                const overlapStart = Math.max(range.start, selectedOverride.start);
+                const overlapEnd = Math.min(range.end, selectedOverride.end);
+                const overlapTop = yAtMinute(side, overlapStart, 'start', scheduleDay, sourceRoomId);
+                const overlapBottom = yAtMinute(side, overlapEnd, 'end', scheduleDay, sourceRoomId);
+                if (overlapTop !== null && overlapBottom !== null && overlapBottom > overlapTop) {
                     const segment = document.createElement('span');
                     segment.className = 'my-schedule-override-day-highlight';
                     segment.style.left = (dayIndex * 100 / cellDays.length) + '%';
+                    segment.style.top = (overlapTop - top) + 'px';
+                    segment.style.bottom = 'auto';
                     segment.style.width = (100 / cellDays.length) + '%';
+                    segment.style.height = (overlapBottom - overlapTop) + 'px';
+                    block.dataset.overrideHighlight = '1';
                     block.appendChild(segment);
                 }
             }
@@ -2413,7 +2700,8 @@ document.addEventListener('DOMContentLoaded', function () {
             block.style.width = cellRect.width + 'px';
             block.style.height = (bottom - top) + 'px';
             layer.appendChild(block);
-            reservationSources.forEach(item => item.classList.add('my-schedule-source-hidden'));
+            if (isReservation) reservationSources.forEach(item => item.classList.add('my-schedule-source-hidden'));
+            else source.classList.add('my-schedule-source-hidden');
         });
     }
 
@@ -2424,6 +2712,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const alreadySelected = button.getAttribute('aria-pressed') === 'true';
             document.querySelectorAll('.faculty-my-schedules-view .my-schedule-override-entry').forEach(function(item) {
                 item.setAttribute('aria-pressed', 'false');
+                if (item !== button) {
+                    const previousStatus = item.querySelector('.my-schedule-override-match-status');
+                    if (previousStatus) previousStatus.textContent = 'Select to locate matching schedule blocks.';
+                }
             });
             if (alreadySelected) {
                 wrapper._selectedOverride = null;
@@ -2437,11 +2729,82 @@ document.addEventListener('DOMContentLoaded', function () {
                 };
             }
             renderMyScheduleDurationBlocks();
+            const matches = Array.from(wrapper.querySelectorAll('.my-schedule-duration-block[data-override-highlight="1"]'));
+            const status = button.querySelector('.my-schedule-override-match-status');
+            if (status) status.textContent = alreadySelected
+                ? 'Highlight cleared.'
+                : matches.length
+                    ? `Highlighted ${matches.length} affected schedule ${matches.length === 1 ? 'block' : 'blocks'}.`
+                    : 'No matching schedule block found for the saved room, day, and time.';
+            if (!alreadySelected) matches[0]?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
         });
     });
 
     renderMyScheduleDurationBlocks();
     window.addEventListener('resize', renderMyScheduleDurationBlocks);
+
+    function myReservationEscape(value)
+    {
+        return String(value || '').replace(/[&<>"']/g, function(char) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char];
+        });
+    }
+
+    function myReservationClock(value)
+    {
+        const match = String(value || '').match(/^(\d{1,2}):(\d{2})/);
+        if (!match) return String(value || '');
+        const hour = Number(match[1]);
+        return (hour % 12 || 12) + ':' + match[2] + ' ' + (hour >= 12 ? 'PM' : 'AM');
+    }
+
+    function openMyReservationDetails(trigger)
+    {
+        const reservations = trigger._reservationItems || [];
+        const cards = reservations.slice().sort(function(a, b) { return String(a.date || '').localeCompare(String(b.date || '')); }).map(function(item) {
+            const date = item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, {year:'numeric',month:'long',day:'numeric'}) : 'Date unavailable';
+            const time = [myReservationClock(item.start_time), myReservationClock(item.end_time)].filter(Boolean).join(' – ');
+            return '<article class="my-reservation-detail-card"><strong><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> ' + myReservationEscape(date) + '</strong>'
+                + (item.course_code ? '<span>' + myReservationEscape(item.course_code) + '</span>' : '')
+                + '<span><i class="fa-solid fa-door-open" aria-hidden="true"></i> ' + myReservationEscape(item.room_name || 'Room unavailable') + '</span>'
+                + '<span><i class="fa-regular fa-clock" aria-hidden="true"></i> ' + myReservationEscape(time) + '</span>'
+                + '<span><i class="fa-solid fa-user" aria-hidden="true"></i> ' + myReservationEscape(item.user_name || 'Instructor') + '</span></article>';
+        }).join('');
+        let modal = document.getElementById('myReservationDetailsModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'myReservationDetailsModal';
+            modal.className = 'my-reservation-details-overlay';
+            modal.innerHTML = '<section class="my-reservation-details-dialog" role="dialog" aria-modal="true" aria-labelledby="myReservationDetailsTitle"><header><h2 id="myReservationDetailsTitle">Reservations for this schedule slot</h2><button type="button" data-close-my-reservation-details aria-label="Close">×</button></header><div class="my-reservation-details-list"></div></section>';
+            document.body.appendChild(modal);
+        }
+        modal._returnFocus = trigger;
+        modal.querySelector('.my-reservation-details-list').innerHTML = cards;
+        modal.hidden = false;
+        modal.querySelector('[data-close-my-reservation-details]')?.focus();
+    }
+
+    document.addEventListener('click', function(event) {
+        const target = event.target instanceof Element ? event.target : null;
+        if (!target) return;
+        const modal = document.getElementById('myReservationDetailsModal');
+        if (target.closest('[data-close-my-reservation-details]') || (modal && target === modal)) {
+            const returnFocus = modal?._returnFocus;
+            modal?.remove();
+            returnFocus?.focus();
+            return;
+        }
+        const trigger = target.closest('.my-reservation-details-trigger');
+        if (trigger) openMyReservationDetails(trigger);
+    });
+
+    document.addEventListener('keydown', function(event) {
+        const modal = document.getElementById('myReservationDetailsModal');
+        if (event.key !== 'Escape' || !modal) return;
+        const returnFocus = modal._returnFocus;
+        modal.remove();
+        returnFocus?.focus();
+    });
 
     const swapTransitions = Array.from(document.querySelectorAll('.my-room-swap-entry'))
         .flatMap(function (entry) {

@@ -512,6 +512,7 @@
                                                 <form method="POST"
                                                       action="{{ route('chair.academic.terms.delete', $term->id) }}"
                                                       data-term-delete
+                                                      data-skip-system-confirm
                                                       data-term-name="{{ $term->academic_year }} • {{ $term->semester }}"
                                                       data-schedule-count="{{ (int) $term->total_schedule_count }}">
                                                     @csrf

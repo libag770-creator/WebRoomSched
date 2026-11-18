@@ -1129,6 +1129,42 @@ body.chair-excel-clay {
     overflow-wrap: anywhere;
 }
 
+.cell-shared-cohort-summary {
+    margin-top: 4px;
+    font-size: 9px;
+    line-height: 1.25;
+}
+
+.cell-shared-cohort-summary summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    padding: 3px 6px;
+    border: 1px solid #d7e5d5;
+    border-radius: 6px;
+    background: rgb(255 255 255 / 82%);
+    color: #315b43;
+    font-size: 9px;
+    font-weight: 800;
+    cursor: pointer;
+    list-style: none;
+}
+
+.cell-shared-cohort-summary summary::-webkit-details-marker { display: none; }
+.cell-shared-cohort-summary summary::before { content: "+"; font-size: 12px; line-height: 1; }
+.cell-shared-cohort-summary[open] summary::before { content: "−"; }
+.cell-shared-cohort-list {
+    display: block;
+    margin-top: 3px;
+    padding: 4px 6px;
+    border-left: 2px solid #568468;
+    border-radius: 0 4px 4px 0;
+    background: rgb(255 255 255 / 82%);
+    color: #40584a;
+    overflow-wrap: anywhere;
+}
+
 .schedule-resizable-block[data-duration="30"] {
     padding: 3px 5px;
 }
@@ -1475,6 +1511,23 @@ body.chair-excel-clay {
 .reservation-cell-note {
     color: #8a5555;
 }
+
+.reservation-cell-details {
+    display: grid;
+    gap: 5px;
+    padding: 7px 8px;
+    border: 1px solid #d9bd76;
+    border-left: 4px solid #c99736;
+    border-radius: 6px;
+    background: linear-gradient(145deg, #fff8e8, #fffdf8);
+    color: #536153;
+    font-size: 10px;
+    line-height: 1.25;
+}
+.reservation-cell-detail { display: grid; gap: 2px; overflow-wrap: anywhere; }
+.reservation-cell-detail strong { color: #79551a; font-size: 11px; }
+.reservation-cell-detail > span { color: #59685d; }
+#scheduleTable td.schedule-cell.schedule-reservation-source .reservation-cell-details { visibility: hidden; }
 
 .table-footer,
 .editor-actions {
@@ -1898,6 +1951,7 @@ body.chair-excel-clay {
 .schedule-resizable-block.schedule-content-fit .cell-program,
 .schedule-resizable-block.schedule-content-fit .cell-subject-type,
 .schedule-resizable-block.schedule-content-fit .cell-shared-majors,
+.schedule-resizable-block.schedule-content-fit .cell-shared-cohort-summary,
 .schedule-resizable-block.schedule-content-fit .cell-merged-courses,
 .schedule-resizable-block.schedule-content-fit .schedule-merge-pending-label {
     display: block !important;
@@ -1928,9 +1982,32 @@ body.chair-excel-clay {
 .schedule-resizable-block.schedule-content-fit .cell-program,
 .schedule-resizable-block.schedule-content-fit .cell-subject-type,
 .schedule-resizable-block.schedule-content-fit .cell-shared-majors,
+.schedule-resizable-block.schedule-content-fit .cell-shared-cohort-summary,
+.schedule-resizable-block.schedule-content-fit .cell-shared-cohort-summary summary,
+.schedule-resizable-block.schedule-content-fit .cell-shared-cohort-list,
 .schedule-resizable-block.schedule-content-fit .cell-merged-courses,
 .schedule-resizable-block.schedule-content-fit .schedule-merge-pending-label {
     font-size: calc(9px * var(--schedule-fit-scale, 1)) !important;
+}
+.schedule-resizable-block.schedule-content-fit .cell-shared-cohort-summary {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.schedule-resizable-block.schedule-content-fit .cell-shared-cohort-summary summary {
+    display: inline-flex;
+    box-sizing: border-box;
+    max-width: 100%;
+    padding: 2px 4px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.05 !important;
+}
+.schedule-resizable-block.schedule-content-fit .cell-shared-cohort-list {
+    box-sizing: border-box;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 .schedule-resizable-block.schedule-content-fit .cell-shared-majors strong,
 .schedule-resizable-block.schedule-content-fit .cell-merged-courses strong {

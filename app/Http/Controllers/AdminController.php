@@ -445,6 +445,8 @@ public function viewSchedule(Room $room)
                     'course_title' => $subject->course_title ?? $merge->facultySubject?->subject,
                     'program' => $program,
                     'major' => $subject->program?->major ?? $merge->facultySubject?->major,
+                    'year_level' => $subject->year_level ?? $merge->facultySubject?->year_level,
+                    'semester' => $subject->semester ?? $merge->facultySubject?->semester,
                     'share_type' => $merge->share_type ?? 'merge',
                 ];
             }
@@ -468,7 +470,9 @@ public function viewSchedule(Room $room)
                     ->orWhere('room_id', $room->id);
             })
             ->where('status', 'active')
-            ->whereDate('override_date', '>=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereDate('override_date', '>=', $today)->orWhereNull('override_date');
+            })
             ->where('expires_at', '>', now())
             ->orderBy('override_date')
             ->orderBy('start_time')
@@ -524,6 +528,7 @@ public function viewSchedule(Room $room)
                     return [
                         'id' => (int) $override->id,
                         'room_id' => (int) ($override->room_id ?: $room->id),
+                        'room_name' => $room->room_name,
                         'day' => strtoupper($override->override_date?->format('D') ?? ''),
                         'date' => $override->override_date?->format('Y-m-d'),
                         'start_time' => $override->start_time ? Carbon::parse($override->start_time)->format('H:i') : null,
@@ -595,18 +600,24 @@ public function viewSchedule(Room $room)
             ->values();
 
         $roomOverrides = ScheduleOverride::query()
-            ->where('room_id', $room->id)
-            ->whereNull('schedule_id')
+            ->with(['room', 'schedule.room'])
+            ->where(function ($query) use ($room, $schedules) {
+                $query->where('room_id', $room->id)
+                    ->orWhereIn('schedule_id', $schedules->pluck('id')->unique());
+            })
             ->where('status', 'active')
-            ->whereDate('override_date', '>=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereDate('override_date', '>=', $today)->orWhereNull('override_date');
+            })
             ->where('expires_at', '>', now())
             ->orderBy('override_date')
             ->orderBy('start_time')
             ->get()
-            ->map(function (ScheduleOverride $override) {
+            ->map(function (ScheduleOverride $override) use ($room) {
                 return [
                     'id' => (int) $override->id,
                     'room_id' => (int) $override->room_id,
+                    'room_name' => $override->room?->room_name ?: ($override->schedule?->room?->room_name ?: $room->room_name),
                     'day' => strtoupper($override->override_date?->format('D') ?? ''),
                     'date' => $override->override_date?->format('Y-m-d'),
                     'start_time' => $override->start_time ? Carbon::parse($override->start_time)->format('H:i') : null,

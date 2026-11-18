@@ -40,6 +40,14 @@
     .audit-empty { padding:52px 20px; text-align:center; color:#6b786e; }
     .audit-empty i { display:block; margin-bottom:12px; color:#a4b0a6; font-size:25px; }
     .audit-pagination { padding:14px 17px; border-top:1px solid #edf0eb; }
+    .audit-row-actions { display:flex; align-items:center; justify-content:flex-end; gap:7px; }
+    .audit-icon-action { display:grid; width:34px; height:34px; place-items:center; border:1px solid #dfe7dd; border-radius:9px; background:#fff; color:#486452; font-size:12px; text-decoration:none; cursor:pointer; transition:background .15s ease,border-color .15s ease,color .15s ease; }
+    .audit-icon-action:hover { border-color:#b9cdbb; background:#f3f8f2; color:#214d36; }
+    .audit-icon-action.delete { border-color:#f0d9d5; background:#fff8f7; color:#a94740; }
+    .audit-icon-action.delete:hover { border-color:#dfaaa3; background:#fff0ee; color:#8f332d; }
+    .audit-icon-action:focus-visible { outline:3px solid rgba(49,104,76,.2); outline-offset:2px; }
+    .audit-delete-form { margin:0; }
+    .audit-sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
     @media(max-width:1050px) { .audit-filters { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media(max-width:680px) { .audit-content { padding:88px 12px 26px; } .audit-hero { display:block; padding:22px; } .audit-count { display:inline-flex; margin-top:14px; } .audit-tabs { overflow:auto; white-space:nowrap; } .audit-tabs a { padding:12px 13px; } .audit-filters { grid-template-columns:repeat(2,minmax(0,1fr)); padding:13px; } .audit-filters > div:first-child { grid-column:1 / -1; } }
 </style>
@@ -85,7 +93,7 @@
                     @else
                         <div class="audit-table-wrap">
                             <table class="audit-table">
-                                <thead><tr><th>Date &amp; time</th><th>Action</th><th>Academic term</th><th>Room</th><th>Actor</th><th>Status</th><th></th></tr></thead>
+                                <thead><tr><th>Date &amp; time</th><th>Action</th><th>Academic term</th><th>Room</th><th>Actor</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     @foreach($logs as $log)
                                         <tr>
@@ -95,7 +103,16 @@
                                             <td>{{ $log->room?->room_name ?? ($log->snapshot_after['rooms'][0]['name'] ?? 'Room unavailable') }}<span class="audit-sub">{{ $log->room?->department?->name ?? ($log->snapshot_after['rooms'][0]['department'] ?? '') }}</span></td>
                                             <td>{{ $log->actor_name }}<span class="audit-sub">{{ ucfirst($log->actor_role) }}</span></td>
                                             <td><span class="audit-badge">{{ $log->status_after ?? $log->status_before ?? 'Recorded' }}</span></td>
-                                            <td><a class="audit-action" href="{{ route('audit-logs.show', $log) }}" aria-label="Open audit details"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a></td>
+                                            <td>
+                                                <div class="audit-row-actions">
+                                                    <a class="audit-icon-action" href="{{ route('audit-logs.show', $log) }}" aria-label="Open audit details" title="View details"><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                                                    <form class="audit-delete-form" action="{{ route('audit-logs.destroy', $log) }}" method="POST" data-confirm-delete="Permanently delete this {{ str_replace('_', ' ', $log->event_type) }} audit log? This removes the record from the database and cannot be undone.">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button class="audit-icon-action delete" type="submit" aria-label="Delete {{ str_replace('_', ' ', $log->event_type) }} audit log" title="Delete audit log"><i class="fa-solid fa-trash-can" aria-hidden="true"></i><span class="audit-sr-only">Delete audit log</span></button>
+                                                    </form>
+                                                </div>
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>

@@ -7,6 +7,7 @@ use App\Models\AcademicTerm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Services\AuditLogRecorder;
 use Carbon\Carbon;
 
@@ -274,6 +275,28 @@ class AuditLogController extends Controller
             ?? ($academicTerm ? trim(implode(' · ', array_filter([$academicTerm->academic_year, $academicTerm->semester]))) : null);
 
         return view('audit-logs.show', compact('auditLog', 'statusHistory', 'snapshotReconstructed', 'academicTermId', 'academicTermLabel'));
+    }
+
+    public function destroy(AuditLog $auditLog)
+    {
+        $user = $this->authorizedUser();
+        $eventType = $auditLog->event_type;
+
+        DB::transaction(function () use ($user, $auditLog) {
+            $authorizedLog = $this->visibleLogs($user)
+                ->whereKey($auditLog->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // AuditLog intentionally blocks model deletion to keep records immutable.
+            // This explicit, authorized action removes only the selected row;
+            // audit_log_access rows are removed by the foreign-key cascade.
+            DB::table('audit_logs')->where('id', $authorizedLog->getKey())->delete();
+        });
+
+        return redirect()
+            ->route('audit-logs.index', ['type' => $eventType])
+            ->with('success', 'Audit log deleted permanently.');
     }
 
     private function authorizedUser()

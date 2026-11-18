@@ -31,6 +31,7 @@
     {{-- Shared WebRoomSched visual system --}}
     <link rel="stylesheet" href="{{ asset('css/brand-system.css') }}?v=20261020-global-canvas-v2">
     <link rel="stylesheet" href="{{ asset('css/schedule-sheet-controls.css') }}?v=20261023-fit-controls-v1">
+    <link rel="stylesheet" href="{{ asset('css/schedule-details-popup.css') }}?v=20261118-schedule-details-v1">
 
     <style>
         :root { --department-theme-color: #276747; }
@@ -73,6 +74,8 @@
         .header-notification-item { display:block; padding:13px 16px; border-bottom:1px solid #f0f3f1; color:#34443a; text-decoration:none; }
         .header-notification-item:last-child { border-bottom:0; }
         .header-notification-item:hover { background:#f5faf6; }
+        .published-schedule-block.class-entry { pointer-events:auto; cursor:pointer; }
+        .published-schedule-block.class-entry:focus-visible { outline:3px solid #718846; outline-offset:1px; }
         .header-notification-item.unread { background:#f0f8f2; box-shadow:inset 3px 0 var(--department-theme-color); }
         .header-notification-item strong { display:block; color:#1f3e2c; font-size:12px; }
         .header-notification-item span { display:block; margin-top:4px; color:#64736a; font-size:11px; line-height:1.45; }
@@ -759,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function shouldConfirm(control, form) {
-        if (control?.hasAttribute('data-skip-system-confirm')) return false;
+        if (form?.hasAttribute('data-skip-system-confirm') || control?.hasAttribute('data-skip-system-confirm')) return false;
         if (hiddenMethod(form) === 'DELETE') return true;
         if (form?.hasAttribute('data-confirm-delete') || form?.hasAttribute('data-confirm-remove')) return true;
         if (control?.hasAttribute('data-delete') || control?.hasAttribute('data-remove')

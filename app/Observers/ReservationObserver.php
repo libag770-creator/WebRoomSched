@@ -60,7 +60,10 @@ class ReservationObserver
             'actor' => strtolower((string) $newStatus) === 'expired' ? null : auth()->user(),
             'room_id' => $roomId,
             'schedule_id' => $reservation->schedule_id,
-            'reservation_id' => $reservation->id,
+            // The reservation is deleted before this observer records the
+            // history event. Keep its immutable details in the snapshots,
+            // while leaving the nullable FK empty so the audit row survives.
+            'reservation_id' => $action === 'deleted' ? null : $reservation->id,
             'room_ids' => [$roomId],
             'schedule_ids' => $scheduleIds,
             'department_ids' => array_filter([(int) $room?->department_id, (int) $reservation->schedule?->department_id]),

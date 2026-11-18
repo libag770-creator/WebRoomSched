@@ -66,6 +66,12 @@
     .audit-detail-content { min-width:0; padding:124px clamp(18px,3vw,40px) 42px; min-height:100vh; background:radial-gradient(ellipse at 90% 2%,rgba(214,194,143,.2),transparent 28%),linear-gradient(145deg,#eef2ec,#f8f7f2 58%,#f1f0e8); }
     .audit-detail { width:min(100%,1480px); margin:0 auto; color:#20372a; }
     .audit-back { display:inline-flex; align-items:center; gap:8px; margin:0 0 15px; color:#356047; font-size:12px; font-weight:800; text-decoration:none; }
+    .audit-detail-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:15px; }
+    .audit-detail-toolbar .audit-back { margin:0; }
+    .audit-delete-form { margin:0; }
+    .audit-delete-button { display:inline-flex; align-items:center; gap:7px; min-height:36px; padding:0 11px; border:1px solid #f0d9d5; border-radius:9px; background:#fff8f7; color:#a94740; font:800 11px/1 var(--wr-body,Arial,sans-serif); cursor:pointer; }
+    .audit-delete-button:hover { border-color:#dfaaa3; background:#fff0ee; color:#8f332d; }
+    .audit-delete-button:focus-visible { outline:3px solid rgba(169,71,64,.2); outline-offset:2px; }
     .audit-detail-hero { margin-bottom:17px; padding:25px 29px; border-radius:20px; background:linear-gradient(118deg,#163b33,#245543 60%,#37664d); color:#fff; box-shadow:0 15px 34px rgba(28,65,48,.13); }
     .audit-detail-hero h1 { margin:0; color:#fff; font:800 clamp(25px,3vw,35px)/1.15 var(--wr-display,Arial,sans-serif); letter-spacing:-.03em; text-transform:capitalize; }
     .audit-detail-hero p { margin:9px 0 0; color:#dfe8df; font-size:13px; line-height:1.55; }
@@ -109,7 +115,14 @@
         @include($role . '.sidebar')
         <main class="content audit-detail-content">
             <article class="audit-detail">
-                <a class="audit-back" href="{{ route('audit-logs.index', ['type' => $auditLog->event_type]) }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to {{ $auditLog->event_type === 'room_swap' ? 'Room Swaps' : ucfirst($auditLog->event_type) . 's' }}</a>
+                <div class="audit-detail-toolbar">
+                    <a class="audit-back" href="{{ route('audit-logs.index', ['type' => $auditLog->event_type]) }}"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to {{ $auditLog->event_type === 'room_swap' ? 'Room Swaps' : ucfirst($auditLog->event_type) . 's' }}</a>
+                    <form class="audit-delete-form" action="{{ route('audit-logs.destroy', $auditLog) }}" method="POST" data-confirm-delete="Permanently delete this {{ str_replace('_', ' ', $auditLog->event_type) }} audit log? This removes the record from the database and cannot be undone.">
+                        @csrf
+                        @method('DELETE')
+                        <button class="audit-delete-button" type="submit" aria-label="Delete audit log"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Delete log</button>
+                    </form>
+                </div>
                 <header class="audit-detail-hero">
                     <h1>{{ ucfirst(str_replace('_', ' ', $auditLog->action)) }}</h1>
                     <p>{{ $auditLog->description ?: 'Recorded schedule and room action.' }}</p>

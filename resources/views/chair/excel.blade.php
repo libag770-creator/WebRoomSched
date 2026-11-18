@@ -17,7 +17,8 @@
         Class Program - {{ $room->room_name }}
     </title>
 
-    <link rel="stylesheet" href="{{ asset('css/chair-excel.css') }}?v=20261115-schedule-cell-sync-v1">
+    <link rel="stylesheet" href="{{ asset('css/chair-excel.css') }}?v=20261119-reservation-details-v1">
+    <link rel="stylesheet" href="{{ asset('css/schedule-details-popup.css') }}?v=20261118-schedule-details-v1">
     <link rel="stylesheet" href="{{ asset('css/schedule-sheet-controls.css') }}?v=20261023-fixed-cells-v2">
     <script src="{{ asset('js/schedule-sheet-controls.js') }}?v=20261023-fit-controls-v1" defer></script>
 
@@ -80,8 +81,10 @@
         .published-override-button { display:grid; width:100%; gap:4px; padding:10px 12px; border:1px solid #efc4c1; border-left:4px solid #c63f3a; border-radius:9px; background:#fff; color:#63302d; font:500 12px/1.4 Arial,sans-serif; text-align:left; cursor:pointer; }
         .published-override-button:hover,.published-override-button[aria-pressed="true"] { border-color:#c63f3a; background:#ffe9e7; box-shadow:0 0 0 2px rgba(198,63,58,.12); }
         .published-override-button strong { color:#b33330; font-weight:850; }
-        .published-override-highlight { border-color:#c63f3a !important; border-left:5px solid #c63f3a !important; background:#ffe7e5 !important; box-shadow:inset 0 0 0 1px rgba(198,63,58,.24),0 2px 8px rgba(138,36,32,.12) !important; }
-        .published-schedule-readonly #scheduleTable .schedule-cell.published-override-cell-highlight { background:#ffe7e5 !important; box-shadow:inset 0 0 0 2px rgba(198,63,58,.38) !important; }
+        .published-override-time-highlight { position:absolute; z-index:0; box-sizing:border-box; border-left:5px solid #c63f3a; background:rgba(198,63,58,.25); pointer-events:none; }
+        .published-schedule-block > .published-override-time-highlight { z-index:0; }
+        .published-schedule-block > .schedule-cell-content,
+        .published-schedule-block > .schedule-resize-time { position:relative; z-index:1; }
         #scheduleTable .room-overview-focused-cell { position:relative; z-index:4; outline:3px solid #c8872c !important; outline-offset:-3px; background:#fff8e8 !important; }
         @media(max-width:640px) { .excel-sheet-export-button { flex:1 1 auto; min-width:110px; } }
 
@@ -125,6 +128,33 @@
             })
             ->filter()
             ->values();
+    };
+    $sharedCohortLabelsForAssignment = static function ($facultySubject) {
+        return collect($facultySubject?->sharedCohorts ?? [])
+            ->map(fn ($cohort) => trim(($cohort->program?->code ?: $cohort->program?->name ?: 'Program')
+                . ($cohort->program?->major ? ' · Major: ' . $cohort->program->major : '')
+                . ($cohort->year_level ? ' · ' . $cohort->year_level : '')
+                . ($cohort->semester ? ' · ' . $cohort->semester : '')))
+            ->filter()
+            ->unique()
+            ->values();
+    };
+    $sharedCohortLabelsForSchedule = static function ($schedule) use ($facultySubjects, $sharedCohortLabelsForAssignment) {
+        $assignment = $schedule?->facultySubject;
+        if (!$assignment && $schedule) {
+            $scheduleCode = strtoupper(trim((string) ($schedule->course_code ?: $schedule->course ?: '')));
+            $scheduleTitle = mb_strtolower(trim((string) ($schedule->subject ?? '')));
+            $scheduleFacultyId = (int) ($schedule->faculty_id ?? 0);
+            $scheduleInstructor = mb_strtolower(trim((string) ($schedule->instructor ?? '')));
+            $assignment = $facultySubjects->first(function ($candidate) use ($scheduleCode, $scheduleTitle, $scheduleFacultyId, $scheduleInstructor) {
+                if (strtoupper(trim((string) $candidate->course_code)) !== $scheduleCode) return false;
+                if ($scheduleTitle !== '' && mb_strtolower(trim((string) $candidate->subject)) !== $scheduleTitle) return false;
+                if ($scheduleFacultyId > 0) return (int) $candidate->faculty_id === $scheduleFacultyId;
+                return $scheduleInstructor === '' || mb_strtolower(trim((string) $candidate->faculty?->name)) === $scheduleInstructor;
+            });
+        }
+
+        return $sharedCohortLabelsForAssignment($assignment);
     };
 @endphp
 
@@ -1187,6 +1217,10 @@ $rowCount = max(
                     ->filter(fn ($item) => $reservationStartsInSlot($item, $leftTime))
                     ->sortBy('date')
                     ->first();
+                $reservationsStartingInThisRow = $reservationsForSlot
+                    ->filter(fn ($item) => $reservationStartsInSlot($item, $leftTime))
+                    ->sortBy(fn ($item) => (string) $item->date . ' ' . (string) $item->start_time)
+                    ->values();
                 if ($reservationStartingInThisRow) $reservation = $reservationStartingInThisRow;
                 $reservationStartsHere = (bool) $reservationStartingInThisRow;
 
@@ -1443,6 +1477,16 @@ $rowCount = max(
     </div>
 @endif
 
+@php
+    $assignmentSharedCohorts = $sharedCohortLabelsForSchedule($schedule);
+@endphp
+@if($assignmentSharedCohorts->isNotEmpty())
+    <details class="cell-shared-cohort-summary">
+        <summary>Shared with {{ $assignmentSharedCohorts->count() }} additional {{ $assignmentSharedCohorts->count() === 1 ? 'group' : 'groups' }}</summary>
+        <span class="cell-shared-cohort-list">{{ $assignmentSharedCohorts->implode(' · ') }}</span>
+    </details>
+@endif
+
 @if($pendingMergeCourses->isNotEmpty())
     <span class="schedule-merge-pending-label">Your merge request is waiting for approval</span>
 @endif
@@ -1485,9 +1529,20 @@ $rowCount = max(
 
                 @else
 
-                    <span class="empty-cell">
-                        Empty
-                    </span>
+                    @if($reservationsStartingInThisRow->isNotEmpty())
+                        <div class="reservation-cell-details" aria-label="Room reservation details">
+                            @foreach($reservationsStartingInThisRow as $startingReservation)
+                                <div class="reservation-cell-detail">
+                                    <strong><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> {{ $startingReservation->subject?->course_code ?? $startingReservation->facultySubject?->course_code ?? 'Room reservation' }}</strong>
+                                    <span>{{ $startingReservation->date ? \Carbon\Carbon::parse($startingReservation->date)->format('M d, Y') : 'Date unavailable' }}</span>
+                                    <span>{{ $startingReservation->purpose ?? $startingReservation->subject?->course_title ?? $startingReservation->facultySubject?->subject ?? 'Reserved room use' }}</span>
+                                    <span>{{ $startingReservation->user?->name ?? 'Instructor' }} · {{ \Carbon\Carbon::parse($startingReservation->start_time)->format('g:i A') }}–{{ \Carbon\Carbon::parse($startingReservation->end_time)->format('g:i A') }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <span class="empty-cell">Empty</span>
+                    @endif
 
                 @endif
 
@@ -1569,6 +1624,10 @@ $rowCount = max(
                     ->filter(fn ($item) => $reservationStartsInSlot($item, $cellTime))
                     ->sortBy('date')
                     ->first();
+                $reservationsStartingInThisRow = $reservationsForSlot
+                    ->filter(fn ($item) => $reservationStartsInSlot($item, $cellTime))
+                    ->sortBy(fn ($item) => (string) $item->date . ' ' . (string) $item->start_time)
+                    ->values();
                 if ($reservationStartingInThisRow) $reservation = $reservationStartingInThisRow;
                 $reservationStartsHere = (bool) $reservationStartingInThisRow;
 
@@ -1774,6 +1833,15 @@ $rowCount = max(
                             <span>{{ $sharedMajors->implode(' · ') }}</span>
                         </div>
                     @endif
+                    @php
+                        $assignmentSharedCohorts = $sharedCohortLabelsForSchedule($schedule);
+                    @endphp
+                    @if($assignmentSharedCohorts->isNotEmpty())
+                        <details class="cell-shared-cohort-summary">
+                            <summary>Shared with {{ $assignmentSharedCohorts->count() }} additional {{ $assignmentSharedCohorts->count() === 1 ? 'group' : 'groups' }}</summary>
+                            <span class="cell-shared-cohort-list">{{ $assignmentSharedCohorts->implode(' · ') }}</span>
+                        </details>
+                    @endif
                     @if($pendingMergeCourses->isNotEmpty())
                         <span class="schedule-merge-pending-label">Your merge request is waiting for approval</span>
                     @endif
@@ -1816,9 +1884,20 @@ $rowCount = max(
 
                 @else
 
-                    <span class="empty-cell">
-                        Empty
-                    </span>
+                    @if($reservationsStartingInThisRow->isNotEmpty())
+                        <div class="reservation-cell-details" aria-label="Room reservation details">
+                            @foreach($reservationsStartingInThisRow as $startingReservation)
+                                <div class="reservation-cell-detail">
+                                    <strong><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> {{ $startingReservation->subject?->course_code ?? $startingReservation->facultySubject?->course_code ?? 'Room reservation' }}</strong>
+                                    <span>{{ $startingReservation->date ? \Carbon\Carbon::parse($startingReservation->date)->format('M d, Y') : 'Date unavailable' }}</span>
+                                    <span>{{ $startingReservation->purpose ?? $startingReservation->subject?->course_title ?? $startingReservation->facultySubject?->subject ?? 'Reserved room use' }}</span>
+                                    <span>{{ $startingReservation->user?->name ?? 'Instructor' }} · {{ \Carbon\Carbon::parse($startingReservation->start_time)->format('g:i A') }}–{{ \Carbon\Carbon::parse($startingReservation->end_time)->format('g:i A') }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <span class="empty-cell">Empty</span>
+                    @endif
 
                 @endif
 
@@ -1908,6 +1987,16 @@ $rowCount = max(
 
 
     </form>
+
+    <div class="schedule-details-overlay" id="scheduleDetailsPopup" hidden>
+        <section class="schedule-details-dialog" role="dialog" aria-modal="true" aria-labelledby="scheduleDetailsTitle" tabindex="-1">
+            <header class="schedule-details-header">
+                <div><span class="schedule-details-kicker">SCHEDULE DETAILS</span><h2 id="scheduleDetailsTitle">Class schedule</h2></div>
+                <button type="button" class="schedule-details-close" data-close-schedule-details aria-label="Close schedule details">×</button>
+            </header>
+            <div class="schedule-details-list" id="scheduleDetailsList"></div>
+        </section>
+    </div>
 
 
 </div>
@@ -2572,7 +2661,7 @@ subjectTypeInput.value =
             sharedAudiencePicker.hidden = true;
             return;
         }
-        const cohorts = Array.isArray(primary.shared_cohorts) ? primary.shared_cohorts : [];
+        const cohorts = sharedCohortsForAssignment(primary.id, primary);
         sharedAudiencePicker.hidden = cohorts.length === 0;
         cohorts.forEach(item => {
             const details = document.createElement('div');
@@ -2882,8 +2971,84 @@ subjectTypeInput.value =
     const persistedManualCellMerges = @json($manualCellMerges ?? []);
     const persistedScheduleEntriesByCell = @json($scheduleEntriesByCell ?? []);
 
+    function sharedCohortsForAssignment(assignmentId, context = {})
+    {
+        const id = String(assignmentId || '').trim();
+        const assignment = id ? facultySubjects.find(function(item) {
+            return (item.assignment_ids || [item.id]).map(String).includes(id);
+        }) : null;
+        const courseCode = String(context.course_code || assignment?.course_code || '').trim().toUpperCase();
+        const facultyId = String(context.faculty_id || assignment?.faculty_id || '').trim();
+        const subject = String(context.subject || assignment?.subject || '').trim().toLowerCase();
+        const matchingAssignments = facultySubjects.filter(function(item) {
+            if (String(item.course_code || '').trim().toUpperCase() !== courseCode) return false;
+            if (facultyId && String(item.faculty_id || '').trim() !== facultyId) return false;
+            return !subject || String(item.subject || '').trim().toLowerCase() === subject;
+        });
+        const candidates = [assignment, ...matchingAssignments].filter(Boolean);
+        const cohorts = new Map();
+
+        candidates.forEach(function(item) {
+            (Array.isArray(item.shared_cohorts) ? item.shared_cohorts : []).forEach(function(cohort) {
+                const key = [cohort.program_code || cohort.program, cohort.major, cohort.year_level, cohort.semester]
+                    .map(value => String(value || '').trim().toLowerCase()).join('|');
+                if (key !== '|||') cohorts.set(key, { ...cohort });
+            });
+        });
+
+        return Array.from(cohorts.values());
+    }
+
+    function sharedCohortButtonMarkup(cohorts)
+    {
+        if (cohorts && !Array.isArray(cohorts) && cohorts.summary) {
+            return '<details class="cell-shared-cohort-summary">'
+                + '<summary aria-label="' + escapeHtml(cohorts.summary + '. Click to show the included majors and programs.') + '">' + escapeHtml(cohorts.summary) + '</summary>'
+                + '<span class="cell-shared-cohort-list">' + escapeHtml(cohorts.details || '') + '</span>'
+                + '</details>';
+        }
+
+        const labels = (Array.isArray(cohorts) ? cohorts : []).map(function(item) {
+            return [item.program_code || item.program, item.major ? 'Major: ' + item.major : '', item.year_level, item.semester]
+                .filter(Boolean).join(' · ');
+        }).filter(Boolean);
+        if (!labels.length) return '';
+
+        const label = 'Shared with ' + labels.length + ' additional ' + (labels.length === 1 ? 'group' : 'groups');
+        return '<details class="cell-shared-cohort-summary">'
+            + '<summary aria-label="' + escapeHtml(label + '. Click to show the included majors and programs.') + '">' + escapeHtml(label) + '</summary>'
+            + '<span class="cell-shared-cohort-list">' + escapeHtml(labels.join(' · ')) + '</span>'
+            + '</details>';
+    }
+
+    function sharedCohortPresentationForEntry(assignmentId, context = {})
+    {
+        const cohorts = sharedCohortsForAssignment(assignmentId, context);
+        if (cohorts.length) return cohorts;
+
+        const courseCode = String(context.course_code || '').trim().toUpperCase();
+        const facultyId = String(context.faculty_id || '').trim();
+        const subject = String(context.subject || '').trim().toLowerCase();
+        const instructor = String(context.instructor || '').trim().toLowerCase();
+        const existingCell = Array.from(document.querySelectorAll('#scheduleTable .schedule-cell')).find(function(cell) {
+            if (String(cell.dataset.course || '').trim().toUpperCase() !== courseCode) return false;
+            if (facultyId && String(cell.dataset.facultyId || '').trim() !== facultyId) return false;
+            if (subject && String(cell.dataset.subject || '').trim().toLowerCase() !== subject) return false;
+            if (!facultyId && instructor && String(cell.dataset.instructor || '').trim().toLowerCase() !== instructor) return false;
+            return Boolean(cell.querySelector('.cell-shared-cohort-summary'));
+        });
+        const savedDetails = existingCell?.querySelector('.cell-shared-cohort-summary');
+        if (!savedDetails) return [];
+
+        return {
+            summary: savedDetails.querySelector('summary')?.textContent?.trim() || 'Shared groups',
+            details: savedDetails.querySelector('.cell-shared-cohort-list')?.textContent?.trim() || '',
+        };
+    }
+
     function scheduleEntryFromCell(cell)
     {
+        const facultySubjectId = String(cell.dataset.facultySubjectId || '');
         return {
             schedule_id: String(cell.dataset.scheduleId || ''),
             day: String(cell.dataset.day || '').toUpperCase(),
@@ -2897,7 +3062,12 @@ subjectTypeInput.value =
             program: String(cell.dataset.program || ''),
             instructor: String(cell.dataset.instructor || ''),
             faculty_id: String(cell.dataset.facultyId || ''),
-            faculty_subject_id: String(cell.dataset.facultySubjectId || ''),
+            faculty_subject_id: facultySubjectId,
+            shared_cohorts: sharedCohortsForAssignment(facultySubjectId, {
+                course_code: cell.dataset.course,
+                subject: cell.dataset.subject,
+                faculty_id: cell.dataset.facultyId,
+            }),
             shared_offering_ids: String(cell.dataset.sharedOfferingIds || '').split(',').filter(Boolean),
             department_id: String(cell.dataset.departmentId || ''),
             color: String(cell.dataset.color || '#ffffff'),
@@ -2948,6 +3118,11 @@ subjectTypeInput.value =
         cell.dataset.instructor = entry.instructor || '';
         cell.dataset.facultyId = entry.faculty_id || '';
         cell.dataset.facultySubjectId = entry.faculty_subject_id || '';
+        cell.dataset.sharedCohorts = JSON.stringify(
+            Array.isArray(entry.shared_cohorts)
+                ? entry.shared_cohorts
+                : sharedCohortsForAssignment(entry.faculty_subject_id)
+        );
         cell.dataset.sharedOfferingIds = Array.isArray(entry.shared_offering_ids)
             ? entry.shared_offering_ids.join(',')
             : String(entry.shared_offering_ids || '');
@@ -2962,6 +3137,7 @@ subjectTypeInput.value =
         const subjectType = entry.subject_type
             ? '<div class="cell-subject-type">' + escapeHtml(entry.subject_type) + '</div>'
             : '';
+        const sharedCohorts = sharedCohortPresentationForEntry(entry.faculty_subject_id, entry);
         cell.innerHTML = '<div class="schedule-cell-content">'
             + '<div class="cell-course">' + escapeHtml(entry.course || '') + '</div>'
             + '<div class="cell-subject">' + escapeHtml(entry.subject || '') + '</div>'
@@ -2969,7 +3145,7 @@ subjectTypeInput.value =
             + '<div class="cell-year">' + escapeHtml(entry.year || '') + '</div>'
             + '<div class="cell-major">' + escapeHtml(entry.major || '') + '</div>'
             + '<div class="cell-program">' + escapeHtml(displayProgramCode(entry.program || '')) + '</div>'
-            + subjectType + '</div>';
+            + subjectType + sharedCohortButtonMarkup(sharedCohorts) + '</div>';
     }
 
     document.querySelectorAll('#scheduleTable .schedule-cell').forEach(function(cell) {
@@ -3592,6 +3768,7 @@ async function saveCell(allowSameCourseConflict = false, allowCapacityOverride =
                     instructor: match.instructor,
                     faculty_id: match.faculty_id || '',
                     faculty_subject_id: match.id || '',
+                    shared_cohorts: sharedCohortsForAssignment(match.id, match),
                     shared_offering_ids: sharedOfferingIds,
                     department_id: chairDepartmentId,
                     color: color,
@@ -3620,6 +3797,7 @@ async function saveCell(allowSameCourseConflict = false, allowCapacityOverride =
                     instructor: match.instructor,
                     faculty_id: match.faculty_id || '',
                     faculty_subject_id: match.id || '',
+                    shared_cohorts: sharedCohortsForAssignment(match.id, match),
                     shared_offering_ids: sharedOfferingIds,
                     department_id: chairDepartmentId,
                     color: color,
@@ -3667,6 +3845,10 @@ async function saveCell(allowSameCourseConflict = false, allowCapacityOverride =
 
             cell.dataset.facultySubjectId =
                 match.id || '';
+
+            cell.dataset.sharedCohorts = JSON.stringify(
+                sharedCohortsForAssignment(match.id, match)
+            );
 
             cell.dataset.sharedOfferingIds = sharedOfferingIds.join(',');
 
@@ -3766,6 +3948,7 @@ async function saveCell(allowSameCourseConflict = false, allowCapacityOverride =
                 '</div>' +
 
                 subjectTypeDisplay +
+                sharedCohortButtonMarkup(sharedCohortPresentationForEntry(match.id, match)) +
                 '</div>';
 
 
@@ -7024,6 +7207,28 @@ if (confirmMergeProgram) {
         return { start: start, end: end };
     }
 
+    // Override values are serialized by the server as 24-hour HH:mm. Keep
+    // them out of the timetable parser, where bare hours 1–6 mean afternoon.
+    function parsePublishedOverrideRange(startValue, endValue)
+    {
+        const parseOverrideClock = function(value) {
+            const raw = String(value || '').trim();
+            const match = raw.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+            if (!match) return null;
+            const hour = Number(match[1]);
+            const minute = Number(match[2]);
+            if (minute > 59) return null;
+            if (match[3]) return parseScheduleClockMinutes(raw);
+            return hour <= 23 ? hour * 60 + minute : null;
+        };
+
+        const start = parseOverrideClock(startValue);
+        const end = parseOverrideClock(endValue);
+        return start !== null && end !== null && end > start
+            ? { start: start, end: end }
+            : null;
+    }
+
     function formatScheduleClock(minutes)
     {
         const normalized = ((minutes % 1440) + 1440) % 1440;
@@ -7331,6 +7536,208 @@ if (confirmMergeProgram) {
             entry.year, entry.major, entry.program, entry.department_id, entry.color, entry.subject_type,
             range.start, range.end, sharedIds
         ].map(value => String(value ?? '').trim().toLowerCase()));
+    }
+
+    const scheduleDetailsPopup = document.getElementById('scheduleDetailsPopup');
+    const scheduleDetailsList = document.getElementById('scheduleDetailsList');
+    let lastScheduleDetailsClick = null;
+    let scheduleDetailsReturnFocus = null;
+
+    function closeScheduleDetailsPopup()
+    {
+        if (!scheduleDetailsPopup || scheduleDetailsPopup.hidden) return;
+        scheduleDetailsPopup.hidden = true;
+        document.body.classList.remove('schedule-details-open');
+        const target = scheduleDetailsReturnFocus;
+        scheduleDetailsReturnFocus = null;
+        if (target?.isConnected) target.focus({ preventScroll: true });
+    }
+
+    function openScheduleDetailsPopup(entries, focusTarget)
+    {
+        if (!scheduleDetailsPopup || !scheduleDetailsList) return;
+        const validEntries = entries.filter(function(item) {
+            return String(item.entry?.course || '').trim() || String(item.entry?.subject || '').trim();
+        });
+        if (!validEntries.length) return;
+
+        const groups = new Map();
+        validEntries.forEach(function(item) {
+            const entry = item.entry;
+            const cell = item.cell;
+            const assignmentId = String(entry.faculty_subject_id || cell.dataset.facultySubjectId || '');
+            const assignment = facultySubjects.find(function(candidate) {
+                return (candidate.assignment_ids || [candidate.id]).map(String).includes(assignmentId);
+            }) || null;
+            const range = parseScheduleRange(entry.time || cell.dataset.scheduleTime || cell.dataset.time || '');
+            const sharedPresentation = sharedCohortPresentationForEntry(assignmentId, {
+                course_code: entry.course,
+                subject: entry.subject,
+                faculty_id: entry.faculty_id,
+                instructor: entry.instructor,
+            });
+            let sharedGroupLabels = Array.isArray(sharedPresentation)
+                ? sharedPresentation.map(function(cohort) {
+                    return {
+                        program: cohort.program_code || cohort.program || '',
+                        major: cohort.major || '',
+                        year_level: cohort.year_level || cohort.year || '',
+                        semester: cohort.semester || '',
+                    };
+                }).filter(group => group.program || group.major || group.year_level || group.semester)
+                : [];
+            sharedGroupLabels = Array.from(new Map(sharedGroupLabels.map(function(group) {
+                const key = JSON.stringify(group, Object.keys(group).sort());
+                return [key, group];
+            })).values());
+            if (!sharedGroupLabels.length) {
+                const sharedMajorText = cell.querySelector('.cell-shared-majors span')?.textContent?.trim() || '';
+                sharedMajorText.split(/\s*[·•]\s*/).map(value => value.trim()).filter(Boolean).forEach(function(major) {
+                    sharedGroupLabels.push({ major: major });
+                });
+            }
+            let approvedMergedCourses = [];
+            try {
+                const parsedMerges = JSON.parse(cell.dataset.approvedMergedCourses || '[]');
+                approvedMergedCourses = Array.isArray(parsedMerges) ? parsedMerges : [];
+            } catch (error) {}
+            const activeMergedClasses = approvedMergedCourses.map(function(merge) {
+                return [
+                    [merge.course_code || '', merge.course_title || ''].filter(Boolean).join(' — '),
+                    merge.program_code || merge.program || '',
+                    merge.major ? 'Major: ' + merge.major : '',
+                    merge.year_level || merge.year || '',
+                ].filter(Boolean).join(' · ');
+            }).filter(Boolean).join(' / ');
+            const details = {
+                course: String(entry.course || ''),
+                subject: String(entry.subject || ''),
+                instructor: String(entry.instructor || ''),
+                day: String(entry.day || cell.dataset.day || '').toUpperCase(),
+                time: range ? formatScheduleRangeLabel(range.start, range.end) : String(entry.time || ''),
+                room: String(cell.dataset.roomName || @json($room->room_name ?? '')),
+                building: String(cell.dataset.buildingName || @json($room->building->name ?? $room->building ?? '')),
+                program: String(entry.program || ''),
+                year: String(entry.year || ''),
+                major: String(entry.major || ''),
+                type: String(entry.subject_type || ''),
+                studentCount: assignment && Number.isFinite(Number(assignment.student_count))
+                    ? String(assignment.student_count)
+                    : '',
+                sharedGroups: sharedGroupLabels,
+                activeMergedClasses: activeMergedClasses,
+            };
+            const key = JSON.stringify([
+                details.course, details.subject, details.instructor, details.time, details.room,
+                details.building, details.program, details.year, details.major, details.type,
+                details.studentCount, details.sharedGroups, details.activeMergedClasses,
+            ]);
+            if (!groups.has(key)) groups.set(key, { details: details, days: new Set() });
+            if (details.day) groups.get(key).days.add(details.day);
+        });
+
+        scheduleDetailsList.replaceChildren();
+        groups.forEach(function(group) {
+            const details = group.details;
+            const article = document.createElement('article');
+            article.className = 'schedule-details-entry';
+            const heading = document.createElement('div');
+            heading.className = 'schedule-details-entry-title';
+            heading.textContent = [details.course, details.subject].filter(Boolean).join(' · ') || 'Scheduled class';
+            const instructor = document.createElement('span');
+            instructor.className = 'schedule-details-entry-subtitle';
+            instructor.textContent = details.instructor || 'Instructor not listed';
+            heading.appendChild(instructor);
+
+            const fields = document.createElement('dl');
+            fields.className = 'schedule-details-fields';
+            const values = [
+                ['Day', Array.from(group.days).join(', ')], ['Time', details.time],
+                ['Room', details.room], ['Building', details.building],
+                ['Program', details.program], ['Year level', details.year],
+                ['Major', details.major], ['Class type', details.type],
+                ['Enrolled students', details.studentCount],
+                ['Active merged classes', details.activeMergedClasses],
+            ].filter(([, value]) => String(value || '').trim());
+            values.forEach(function([label, value]) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'schedule-details-field';
+                const term = document.createElement('dt');
+                term.textContent = label;
+                const description = document.createElement('dd');
+                description.textContent = value;
+                wrapper.append(term, description);
+                fields.appendChild(wrapper);
+            });
+            if (Array.isArray(details.sharedGroups) && details.sharedGroups.length) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'schedule-details-field';
+                const term = document.createElement('dt');
+                term.textContent = 'Additional majors / groups';
+                const description = document.createElement('dd');
+                const list = document.createElement('ul');
+                list.className = 'schedule-details-group-list';
+                details.sharedGroups.forEach(function(group) {
+                    const label = [group.program || '', group.major ? 'Major: ' + group.major : '', group.year_level || '', group.semester || '']
+                        .filter(Boolean).join(' · ');
+                    if (!label) return;
+                    const item = document.createElement('li');
+                    item.textContent = label;
+                    list.appendChild(item);
+                });
+                if (list.childElementCount) {
+                    description.appendChild(list);
+                    wrapper.append(term, description);
+                    fields.appendChild(wrapper);
+                }
+            }
+            article.append(heading, fields);
+            scheduleDetailsList.appendChild(article);
+        });
+
+        scheduleDetailsReturnFocus = focusTarget?.isConnected ? focusTarget : null;
+        scheduleDetailsPopup.hidden = false;
+        document.body.classList.add('schedule-details-open');
+        scheduleDetailsPopup.querySelector('[data-close-schedule-details]')?.focus({ preventScroll: true });
+    }
+
+    scheduleDetailsPopup?.addEventListener('click', function(event) {
+        if (event.target === scheduleDetailsPopup || event.target.closest('[data-close-schedule-details]')) {
+            closeScheduleDetailsPopup();
+        }
+    });
+    document.addEventListener('keydown', function(event) {
+        if (scheduleDetailsPopup && !scheduleDetailsPopup.hidden && event.key === 'Escape') {
+            event.preventDefault();
+            closeScheduleDetailsPopup();
+        }
+    });
+
+    function scheduleDetailsEntriesForBlock(entry, cell, mergeMembers, autoMergedCells, sourceEntries = [], visibleRange = null)
+    {
+        const manualMergeId = String(cell.dataset.manualMergeId || '');
+        if (!manualMergeId && autoMergedCells.length === 1) {
+            const representedEntries = sourceEntries.length > 1 ? sourceEntries : [entry];
+            const displayTime = visibleRange
+                ? formatScheduleRange(visibleRange.start, visibleRange.end)
+                : String(entry.time || '');
+            return representedEntries.map(function(candidate) {
+                return { entry: { ...candidate, time: displayTime }, cell: cell };
+            });
+        }
+        const sourceCells = manualMergeId
+            ? mergeMembers
+            : (autoMergedCells.length > 1 ? autoMergedCells : [cell]);
+        let items = sourceCells.flatMap(function(sourceCell) {
+            return getCellScheduleEntries(sourceCell).map(candidate => ({ entry: candidate, cell: sourceCell }));
+        }).filter(function(item) {
+            return String(item.entry.course || '').trim() || String(item.entry.subject || '').trim();
+        });
+        if (!manualMergeId && autoMergedCells.length > 1) {
+            const signature = scheduleEntrySignature(entry, cell);
+            items = items.filter(item => scheduleEntrySignature(item.entry, item.cell) === signature);
+        }
+        return items.length ? items : [{ entry: entry, cell: cell }];
     }
 
     function exactCellScheduleSignature(cell)
@@ -7729,21 +8136,6 @@ if (confirmMergeProgram) {
             }
         }
 
-        if (isPublishedScheduleView) {
-            allCells.forEach(function(cell) {
-                cell.classList.remove('published-override-cell-highlight');
-                if (!selectedPublishedOverride || String(selectedPublishedOverride.roomId || '') !== String(publishedRoomId)) return;
-                if (String(cell.dataset.day || '').trim().toUpperCase().slice(0, 3) !== selectedPublishedOverride.day) return;
-                const targetRange = selectedPublishedOverride.range;
-                if (!targetRange) return;
-                const hasMatchingClass = getCellScheduleEntries(cell).some(function(entry) {
-                    const range = parseScheduleRange(entry.time || cell.dataset.scheduleTime || cell.dataset.time || '');
-                    return range && range.start < targetRange.end && range.end > targetRange.start;
-                });
-                if (hasMatchingClass) cell.classList.add('published-override-cell-highlight');
-            });
-        }
-
         const handledAutoMergedCells = new Set();
         allCells.forEach(function(visualCell) {
             if (handledAutoMergedCells.has(visualCell)) return;
@@ -7795,6 +8187,8 @@ if (confirmMergeProgram) {
                 } else {
                     block.classList.add('published-schedule-block');
                     block.style.cursor = 'default';
+                    block.tabIndex = 0;
+                    block.setAttribute('role', 'button');
                 }
                 block.dataset.scheduleId = String(entry.schedule_id || '');
                 block.dataset.entryIndex = String(entryIndex);
@@ -7813,6 +8207,17 @@ if (confirmMergeProgram) {
                         + (entry.subject_type ? '<div class="cell-subject-type">' + escapeHtml(entry.subject_type) + '</div>' : '')
                         + '</div>';
                 block.innerHTML = content || '';
+                const entryAssignmentId = String(entry.faculty_subject_id || cell.dataset.facultySubjectId || '');
+                const cohortItems = sharedCohortPresentationForEntry(entryAssignmentId, {
+                    course_code: entry.course,
+                    subject: entry.subject,
+                    faculty_id: entry.faculty_id,
+                    instructor: entry.instructor,
+                });
+                const contentRootForCohorts = block.querySelector('.schedule-cell-content');
+                if (contentRootForCohorts && !contentRootForCohorts.querySelector('.cell-shared-cohort-summary')) {
+                    contentRootForCohorts.insertAdjacentHTML('beforeend', sharedCohortButtonMarkup(cohortItems));
+                }
                 if (!mergeId && autoMergedCells.length > 1) {
                     const daysLabel = autoMergedCells.map(function(member) {
                         return String(member.dataset.day || '').trim().toUpperCase().slice(0, 3);
@@ -7826,14 +8231,26 @@ if (confirmMergeProgram) {
                     }
                 }
 
+                let publishedOverrideIntersection = null;
                 if (isPublishedScheduleView && selectedPublishedOverride) {
-                    const targetDay = String(cell.dataset.day || '').trim().toUpperCase().slice(0, 3);
+                    const targetDay = String(selectedPublishedOverride.day || '').trim().toUpperCase().slice(0, 3);
                     const targetRange = selectedPublishedOverride.range;
                     const correctRoom = String(selectedPublishedOverride.roomId || '') === String(publishedRoomId);
-                    const correctDay = targetDay === selectedPublishedOverride.day;
+                    const displayDays = mergeId ? mergeMembers : autoMergedCells;
+                    const targetDayCell = displayDays.find(function(member) {
+                        return String(member.dataset.day || '').trim().toUpperCase().slice(0, 3) === targetDay;
+                    }) || (String(cell.dataset.day || '').trim().toUpperCase().slice(0, 3) === targetDay ? cell : null);
                     const overlaps = targetRange && range.start < targetRange.end && range.end > targetRange.start;
-                    if (correctRoom && correctDay && overlaps) {
-                        block.classList.add('published-override-highlight');
+                    if (correctRoom && targetDayCell && overlaps) {
+                        publishedOverrideIntersection = {
+                            day: targetDay,
+                            dayCell: targetDayCell,
+                            start: Math.max(range.start, targetRange.start),
+                            end: Math.min(range.end, targetRange.end),
+                            displayDays: displayDays,
+                            spansDays: (mergeId && visualCell.dataset.manualMergeAxis === 'horizontal')
+                                || (!mergeId && autoMergedCells.length > 1),
+                        };
                     }
                 }
 
@@ -7842,7 +8259,8 @@ if (confirmMergeProgram) {
                 timeLabel.textContent = formatScheduleRangeBadge(range.start, range.end);
                 block.appendChild(timeLabel);
 
-                if (!isPublishedScheduleView && cell.dataset.locked !== '1') block.addEventListener('click', function(event) {
+                block.addEventListener('click', function(event) {
+                    if (event.target.closest('.cell-shared-cohort-summary')) return;
                     if (Date.now() < suppressScheduleBlockClickUntil) {
                         event.preventDefault();
                         event.stopPropagation();
@@ -7851,12 +8269,26 @@ if (confirmMergeProgram) {
                     if (event.target.closest('.schedule-resize-handle')) return;
                     event.preventDefault();
                     event.stopPropagation();
-                    const groupSelected = autoMergedCells.length > 1
-                        ? selectAutoMergedScheduleCells(autoMergedCells, visualCell)
-                        : (visualCell.click(), visualCell.classList.contains('selected-cell'));
-                    selectedScheduleEntry = groupSelected ? entry : null;
-                    selectedScheduleInterval = null;
-                    renderScheduleBlocks();
+                    if (!isPublishedScheduleView && cell.dataset.locked !== '1') {
+                        const groupSelected = autoMergedCells.length > 1
+                            ? selectAutoMergedScheduleCells(autoMergedCells, visualCell)
+                            : (visualCell.click(), visualCell.classList.contains('selected-cell'));
+                        selectedScheduleEntry = groupSelected ? entry : null;
+                        selectedScheduleInterval = null;
+                        renderScheduleBlocks();
+                    }
+                    const now = Date.now();
+                    const clickKey = [entry.schedule_id || '', entry.course || '', entry.day || cell.dataset.day || '', range.start, range.end].join('|');
+                    const isSecondClick = lastScheduleDetailsClick
+                        && lastScheduleDetailsClick.key === clickKey
+                        && now - lastScheduleDetailsClick.at <= 700;
+                    lastScheduleDetailsClick = isSecondClick ? null : { key: clickKey, at: now };
+                    if (isSecondClick) {
+                        openScheduleDetailsPopup(
+                            scheduleDetailsEntriesForBlock(entry, cell, mergeMembers, autoMergedCells, sourceEntries, range),
+                            visualCell
+                        );
+                    }
                 });
 
                 if (!isPublishedScheduleView) block.addEventListener('contextmenu', function(event) {
@@ -7871,14 +8303,21 @@ if (confirmMergeProgram) {
                     openScheduleEntryPopup(visualCell, entry, null);
                 });
 
-                if (!isPublishedScheduleView && cell.dataset.locked !== '1') block.addEventListener('keydown', function(event) {
+                block.addEventListener('keydown', function(event) {
+                    if (event.target.closest('.cell-shared-cohort-summary')) return;
                     if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault();
-                        if (autoMergedCells.length > 1) selectAutoMergedScheduleCells(autoMergedCells, visualCell);
-                        else visualCell.click();
-                        selectedScheduleEntry = entry;
-                        selectedScheduleInterval = null;
-                        renderScheduleBlocks();
+                        if (!isPublishedScheduleView && cell.dataset.locked !== '1') {
+                            if (autoMergedCells.length > 1) selectAutoMergedScheduleCells(autoMergedCells, visualCell);
+                            else visualCell.click();
+                            selectedScheduleEntry = entry;
+                            selectedScheduleInterval = null;
+                            renderScheduleBlocks();
+                        }
+                        openScheduleDetailsPopup(
+                            scheduleDetailsEntriesForBlock(entry, cell, mergeMembers, autoMergedCells, sourceEntries, range),
+                            visualCell
+                        );
                     }
                 });
 
@@ -7919,6 +8358,34 @@ if (confirmMergeProgram) {
                     block.remove();
                     return;
                 }
+                if (publishedOverrideIntersection) {
+                    const intersection = publishedOverrideIntersection;
+                    const overlayTop = scheduleYAtMinute(intersection.day, intersection.dayCell.dataset.side, intersection.start, 'start');
+                    const overlayBottom = scheduleYAtMinute(intersection.day, intersection.dayCell.dataset.side, intersection.end, 'end');
+                    if (overlayTop !== null && overlayBottom !== null && overlayBottom > overlayTop) {
+                        const blockRect = block.getBoundingClientRect();
+                        const segment = document.createElement('span');
+                        segment.className = 'published-override-time-highlight';
+                        segment.setAttribute('aria-hidden', 'true');
+                        segment.style.top = Math.max(0, overlayTop - blockRect.top - block.clientTop) + 'px';
+                        segment.style.height = (overlayBottom - overlayTop) + 'px';
+                        segment.style.left = '0px';
+                        segment.style.width = block.clientWidth + 'px';
+
+                        if (intersection.spansDays && intersection.displayDays.length > 1) {
+                            const dayIndex = intersection.displayDays.findIndex(function(member) {
+                                return String(member.dataset.day || '').trim().toUpperCase().slice(0, 3) === intersection.day;
+                            });
+                            if (dayIndex >= 0) {
+                                const dayWidth = block.clientWidth / intersection.displayDays.length;
+                                segment.style.left = (dayWidth * dayIndex) + 'px';
+                                segment.style.width = dayWidth + 'px';
+                            }
+                        }
+
+                        block.prepend(segment);
+                    }
+                }
                 fitScheduleBlockContent(block);
                 const blockActionHint = isPublishedScheduleView
                     ? 'Published schedule'
@@ -7949,7 +8416,7 @@ if (confirmMergeProgram) {
                     selectedPublishedOverride = null;
                 } else {
                     button.setAttribute('aria-pressed', 'true');
-                    const range = parseScheduleRange(button.dataset.overrideStart + '-' + button.dataset.overrideEnd);
+                    const range = parsePublishedOverrideRange(button.dataset.overrideStart, button.dataset.overrideEnd);
                     selectedPublishedOverride = {
                         roomId: String(button.dataset.overrideRoomId || ''),
                         day: String(button.dataset.overrideDay || '').toUpperCase().slice(0, 3),

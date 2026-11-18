@@ -168,6 +168,19 @@
     .chair-faculty-view .subject-form input[readonly],.chair-faculty-view .modal-content input[readonly] { background:#f0f4ee; color:#51675a; }
     .chair-faculty-view .subject-form input:focus,.chair-faculty-view .subject-form select:focus,.chair-faculty-view .modal-content input:focus,.chair-faculty-view .modal-content select:focus,.chair-faculty-view .faculty-import-dialog select:focus { outline:3px solid rgba(49,104,76,.15); border-color:#648a70; }
     .chair-faculty-view #facultyCourseSearchStatus { color:#40574a; font-size:13px; font-weight:600; }
+    .chair-faculty-view .faculty-cohort-help { margin:0 0 10px; color:#64746a; font-size:12px; line-height:1.45; }
+    .chair-faculty-view .faculty-cohort-options { display:grid; gap:7px; max-height:190px; overflow:auto; }
+    .chair-faculty-view .faculty-cohort-option { display:grid; grid-template-columns:18px minmax(0,1fr); align-items:start; gap:10px; padding:9px 11px; border:1px solid #e2eae2; border-radius:9px; background:#fff; color:#34483b; font-size:12px; line-height:1.45; cursor:pointer; }
+    .chair-faculty-view .faculty-cohort-option:hover { border-color:#adc5b0; background:#fbfdf9; }
+    .chair-faculty-view .faculty-cohort-option input[type="checkbox"] { appearance:auto; width:17px !important; min-width:17px; height:17px !important; min-height:17px !important; margin:1px 0 0 !important; padding:0 !important; accent-color:#28583f; cursor:pointer; }
+    .chair-faculty-view .faculty-cohort-option span { min-width:0; }
+    .chair-faculty-view .faculty-shared-cohorts { margin-top:7px; }
+    .chair-faculty-view .faculty-shared-cohorts summary { display:inline-flex; align-items:center; gap:6px; min-height:27px; padding:4px 9px; border:1px solid #d7e5d5; border-radius:7px; background:#f3f8f1; color:#315b43; font-size:10px; font-weight:800; line-height:1.3; cursor:pointer; list-style:none; }
+    .chair-faculty-view .faculty-shared-cohorts summary::-webkit-details-marker { display:none; }
+    .chair-faculty-view .faculty-shared-cohorts summary::before { content:"+"; font-size:14px; line-height:1; }
+    .chair-faculty-view .faculty-shared-cohorts[open] summary::before { content:"−"; }
+    .chair-faculty-view .faculty-shared-cohort-list { display:grid; gap:5px; margin:7px 0 0; padding:0; list-style:none; }
+    .chair-faculty-view .faculty-shared-cohort-list li { padding:6px 8px; border:1px solid #e8eee6; border-radius:7px; background:#fbfcfa; color:#596b5f; font-size:10px; line-height:1.4; }
     .chair-faculty-view .schedule-link-wrapper { margin-top:14px; }
 
     .chair-faculty-view .modal,.chair-faculty-view .faculty-import-modal,.chair-faculty-view .faculty-feedback-overlay { position:fixed; inset:0; z-index:13000; align-items:center; justify-content:center; padding:20px; background:rgba(15,32,25,.55); backdrop-filter:blur(4px); }
@@ -626,9 +639,26 @@
 <td>
     {{ $facultySubject->program ?? '-' }}
     @if($facultySubject->sharedCohorts->isNotEmpty())
-        <div style="margin-top:5px;color:#557060;font-size:11px;line-height:1.45;">
-            Also serves: {{ $facultySubject->sharedCohorts->map(fn ($cohort) => trim(($cohort->program?->code ?: $cohort->program?->name ?: '') . ($cohort->program?->major ? ' · ' . $cohort->program->major : '') . ($cohort->year_level ? ' · ' . $cohort->year_level : '')))->filter()->unique()->implode('; ') }}
-        </div>
+        @php
+            $sharedCohortLabels = $facultySubject->sharedCohorts
+                ->map(fn ($cohort) => trim(($cohort->program?->code ?: $cohort->program?->name ?: 'Program')
+                    . ($cohort->program?->major ? ' · Major: ' . $cohort->program->major : '')
+                    . ($cohort->year_level ? ' · ' . $cohort->year_level : '')
+                    . ($cohort->semester ? ' · ' . $cohort->semester : '')))
+                ->filter()
+                ->unique()
+                ->values();
+        @endphp
+        @if($sharedCohortLabels->isNotEmpty())
+            <details class="faculty-shared-cohorts">
+                <summary>Shared with {{ $sharedCohortLabels->count() }} additional {{ $sharedCohortLabels->count() === 1 ? 'group' : 'groups' }}</summary>
+                <ul class="faculty-shared-cohort-list">
+                    @foreach($sharedCohortLabels as $cohortLabel)
+                        <li>{{ $cohortLabel }}</li>
+                    @endforeach
+                </ul>
+            </details>
+        @endif
     @endif
 </td>
 
@@ -743,7 +773,7 @@
 
 <div style="grid-column:1 / -1;">
     <label for="facultyCourseCode">Course code</label>
-    <input type="text" name="course_code" id="facultyCourseCode" placeholder="Example: IT 101" autocomplete="off" required>
+    <input type="text" name="course_code" id="facultyCourseCode" placeholder="Type a course code to search" autocomplete="off" required>
     <input type="hidden" name="subject_id" id="facultySubjectId">
     <div id="facultySubjectChoiceWrap" hidden style="margin-top:14px;">
         <label for="facultySubjectChoice">Choose the correct subject</label>
@@ -753,8 +783,8 @@
     </div>
     <div id="facultyCohortChoiceWrap" hidden style="margin-top:14px;padding:14px;border:1px solid #d9e5da;border-radius:12px;background:#f7faf7;">
         <strong style="display:block;color:#294533;font-size:13px;margin-bottom:5px;">Also assign this course to these groups</strong>
-        <p id="facultyCohortChoiceHelp" style="margin:0 0 10px;color:#68776c;font-size:12px;line-height:1.45;">The selected course above is the primary group. Check any other matching programs or majors taught by this instructor.</p>
-        <div id="facultyCohortChoices" style="display:grid;gap:7px;max-height:190px;overflow:auto;"></div>
+        <p id="facultyCohortChoiceHelp" class="faculty-cohort-help">Also assign this same course to any additional groups this instructor teaches.</p>
+        <div id="facultyCohortChoices" class="faculty-cohort-options"></div>
     </div>
     <p id="facultyCourseSearchStatus" role="status" aria-live="polite" style="margin:8px 0;color:#40566c;font-size:14px;min-height:20px;">Enter a course code already added in Manage Subjects.</p>
     <div style="max-width:260px;margin-top:12px;">
@@ -1143,6 +1173,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!codeInput || !subjectId || !status) return;
 
     let timer = null;
+    let lookupController = null;
+    let lookupSequence = 0;
     let matches = [];
     const clearSelection = () => {
         subjectId.value = '';
@@ -1162,12 +1194,11 @@ document.addEventListener('DOMContentLoaded', () => {
         cohortChoiceWrap.hidden = alternatives.length === 0;
         alternatives.forEach(item => {
             const label = document.createElement('label');
-            label.style.cssText = 'display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border:1px solid #e2eae2;border-radius:9px;background:#fff;color:#34483b;font-size:12px;line-height:1.45;cursor:pointer;';
+            label.className = 'faculty-cohort-option';
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.name = 'cohort_subject_ids[]';
             checkbox.value = String(item.id);
-            checkbox.style.cssText = 'margin:2px 0 0;accent-color:#28583f;';
             const detail = document.createElement('span');
             detail.textContent = [item.program, item.major ? 'Major: ' + item.major : '', item.year_level, item.semester, item.memorandum ? 'Memorandum: ' + item.memorandum : ''].filter(Boolean).join(' · ');
             label.append(checkbox, detail);
@@ -1176,6 +1207,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const selectSubject = item => {
         if (!item) return clearSelection();
+        codeInput.value = item.course_code || codeInput.value;
         subjectId.value = item.id;
         fields.title.value = item.course_title || '';
         fields.year.value = item.year_level || '';
@@ -1196,6 +1228,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     codeInput.addEventListener('input', () => {
         window.clearTimeout(timer);
+        if (lookupController) lookupController.abort();
+        const requestId = ++lookupSequence;
         clearSelection();
         resetChoice();
         const code = codeInput.value.trim();
@@ -1204,42 +1238,45 @@ document.addEventListener('DOMContentLoaded', () => {
             status.style.color = '#40566c';
             return;
         }
-        status.textContent = 'Looking up this course code…';
+        status.textContent = 'Searching course codes…';
         status.style.color = '#40566c';
         timer = window.setTimeout(async () => {
+            lookupController = new AbortController();
             try {
                 const url = new URL(@json(route('chair.subjects.lookup')), window.location.origin);
                 url.searchParams.set('course_code', code);
-                const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: lookupController.signal });
+                if (requestId !== lookupSequence) return;
                 if (!response.ok) throw new Error('lookup failed');
                 const data = await response.json();
+                if (requestId !== lookupSequence) return;
                 matches = data.subjects || [];
                 if (!matches.length) {
-                    status.textContent = 'No matching subject was found. Add it in Manage Subjects first.';
+                    status.textContent = 'No course codes start with “' + code + '”. Check the spelling or add it in Manage Subjects.';
                     status.style.color = '#9b2c2c';
                     return;
                 }
-                if (matches.length === 1) {
-                    selectSubject(matches[0]);
+                const exactMatches = matches.filter(item => String(item.course_code || '').trim().toUpperCase() === code.toUpperCase());
+                if (exactMatches.length === 1) {
+                    selectSubject(exactMatches[0]);
                     return;
                 }
-                const yearLevels = [...new Set(matches.map(item => item.year_level))];
-                const semesters = [...new Set(matches.map(item => item.semester).filter(Boolean))];
-                status.textContent = yearLevels.length > 1 || semesters.length > 1
-                    ? 'This course code appears in more than one year level or semester. Choose the correct year, semester, and program below.'
-                    : 'More than one program or major uses this course code. Choose the correct entry below.';
-                status.style.color = '#8a5a13';
+                status.textContent = exactMatches.length > 1
+                    ? 'This course code has more than one subject assignment. Choose the correct group below.'
+                    : 'Matching course codes appear below. Choose the exact course to continue.';
+                status.style.color = '#52654f';
                 choice.replaceChildren(new Option('Choose the correct subject', ''));
                 matches.forEach(item => {
-                    const details = [item.year_level, item.semester, item.program, item.major ? `Major: ${item.major}` : 'No major'];
-                    choice.add(new Option(details.join(' · '), String(item.id)));
+                    const details = [item.course_code, item.course_title, item.year_level, item.semester, item.program, item.major ? `Major: ${item.major}` : 'No major'];
+                    choice.add(new Option(details.filter(Boolean).join(' · '), String(item.id)));
                 });
                 choiceWrap.hidden = false;
             } catch (error) {
+                if (error.name === 'AbortError' || requestId !== lookupSequence) return;
                 status.textContent = 'Could not check the course code. Please try again.';
                 status.style.color = '#9b2c2c';
             }
-        }, 250);
+        }, 100);
     });
 
     choice?.addEventListener('change', () => {

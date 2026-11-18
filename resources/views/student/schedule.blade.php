@@ -18,6 +18,7 @@
     <title>Student Schedule</title>
 
     <link rel="stylesheet" href="{{ asset('css/professional.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/schedule-details-popup.css') }}?v=20261118-schedule-details-v1">
     <link rel="stylesheet" href="{{ asset('css/schedule-sheet-controls.css') }}?v=20261023-fit-controls-v1">
     <script src="{{ asset('js/schedule-sheet-controls.js') }}?v=20261023-fit-controls-v1" defer></script>
 
@@ -1623,12 +1624,7 @@
         .student-schedule-body .page-header-content { width:100%; align-items:center; gap:24px; }
         .student-schedule-body .header-left { gap:16px; }
         .student-schedule-body .header-icon { width:54px; height:54px; flex:0 0 54px; border:1px solid rgba(255,255,255,.16); border-radius:15px; background:rgba(255,255,255,.12); color:#e6d39f; font-size:23px; }
-      .student-schedule-body .page-header h1 {
-    margin-bottom: 10px;
-    color: #fff !important;
-    font: 800 clamp(31px,3vw,42px)/1.12 'Manrope','DM Sans',sans-serif !important;
-    letter-spacing: -.045em !important;
-}
+        .student-schedule-body .page-header h1 { margin-bottom:10px; color:#fff; font:800 clamp(31px,3vw,42px)/1.12 'Manrope','DM Sans',sans-serif; letter-spacing:-.045em; }
         .student-schedule-body .page-header p { max-width:660px; color:#e0e9e1; font-size:14px; font-weight:550; line-height:1.6; }
         .student-schedule-body .academic-info { position:relative; z-index:1; align-items:flex-end; gap:5px; color:#d6e1d7; font-size:12px; font-weight:650; }
         .student-schedule-body .academic-info strong { color:#fff; font-size:16px; font-weight:850; }
@@ -3762,6 +3758,43 @@
                 block.classList.add('student-reservation-block');
             } else if (item.id) block.id = 'student-schedule-' + Number(item.id);
             block.dataset.durationMinutes = String(range.end - range.start);
+            block.dataset.detailCourse = String(item.course_code || '');
+            block.dataset.detailSubject = String(item.subject || '');
+            block.dataset.detailInstructor = instructorName;
+            block.dataset.detailDays = run.map(entry => entry.day).join(',');
+            block.dataset.detailTime = String(item.time || '');
+            block.dataset.detailRoom = roomLabel;
+            block.dataset.detailBuilding = String(item.building || item.building_name || '').trim();
+            block.dataset.detailProgram = String(item.program || '');
+            block.dataset.detailYear = String(item.year_level || '');
+            block.dataset.detailMajor = String(item.major || '');
+            block.dataset.detailType = String(item.subject_type || '');
+            const approvedMergesForDetails = (Array.isArray(item.merges) ? item.merges : [])
+                .filter(merge => String(merge.status || '').toLowerCase() === 'approved');
+            block.dataset.detailSharedGroups = approvedMergesForDetails
+                .filter(merge => String(merge.share_type || '').toLowerCase() === 'same_faculty')
+                .map(function(merge) {
+                    const subject = merge.subject || merge.faculty_subject?.subject_catalog || {};
+                    const program = subject.program || {};
+                    return {
+                        program: program.code || program.name || '',
+                        major: subject.major || program.major || merge.faculty_subject?.major || '',
+                        year_level: subject.year_level || merge.faculty_subject?.year_level || '',
+                    };
+                }).filter(group => group.program || group.major || group.year_level)
+                .filter((group, index, groups) => groups.findIndex(candidate => JSON.stringify(candidate) === JSON.stringify(group)) === index);
+            block.dataset.detailMergedClasses = approvedMergesForDetails
+                .filter(merge => String(merge.share_type || '').toLowerCase() !== 'same_faculty')
+                .map(function(merge) {
+                    const subject = merge.subject || merge.faculty_subject?.subject_catalog || {};
+                    const program = subject.program || {};
+                    return [[subject.course_code || merge.faculty_subject?.course_code, subject.course_title || merge.faculty_subject?.subject].filter(Boolean).join(' — '), program.code || program.name || merge.faculty_subject?.program || '']
+                        .filter(Boolean).join(' · ');
+                }).filter(Boolean).join(' / ');
+            if (!item.is_reservation) {
+                block.tabIndex = 0;
+                block.setAttribute('role', 'button');
+            }
             block.setAttribute('aria-label', [run.map(entry => entry.day).join(', '), item.course_code, item.subject, item.instructor, item.time, roomNames.join(', ')].filter(Boolean).join(' · '));
             block.style.left = (firstRect.left - wrapperRect.left - wrapper.clientLeft + wrapper.scrollLeft) + 'px';
             block.style.top = (first.top - wrapperRect.top - wrapper.clientTop + wrapper.scrollTop) + 'px';
@@ -4216,6 +4249,8 @@
 
 
 </script>
+
+<script src="{{ asset('js/schedule-details-popup.js') }}?v=20261118-schedule-details-v1"></script>
 
     
 </body>
