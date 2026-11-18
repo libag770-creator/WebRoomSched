@@ -22,7 +22,7 @@
     .audit-tabs a { display:inline-flex; align-items:center; gap:8px; margin-bottom:-1px; padding:13px 17px; border:1px solid transparent; border-bottom-color:#e8ede7; border-radius:10px 10px 0 0; color:#66746a; font-size:12px; font-weight:800; text-decoration:none; }
     .audit-tabs a:hover { color:#234b37; background:#f3f7f2; }
     .audit-tabs a.active { border-color:#e1e9df; border-bottom-color:#fff; background:#fff; color:#214d36; }
-    .audit-filters { display:grid; grid-template-columns:minmax(180px,1.4fr) repeat(4,minmax(120px,1fr)) auto auto; gap:10px; padding:17px; border-bottom:1px solid #edf0eb; }
+    .audit-filters { display:grid; grid-template-columns:minmax(180px,1.4fr) repeat(5,minmax(120px,1fr)) auto auto; gap:10px; padding:17px; border-bottom:1px solid #edf0eb; }
     .audit-filters label { display:block; margin:0 0 5px; color:#6b786e; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
     .audit-filters input,.audit-filters select { width:100%; min-height:40px; padding:0 11px; border:1px solid #dfe6de; border-radius:9px; background:#fff; color:#27382d; font-size:12px; }
     .audit-filters button,.audit-clear { display:inline-flex; align-items:center; justify-content:center; align-self:end; min-height:40px; padding:0 14px; border:1px solid #214d36; border-radius:9px; background:#214d36; color:#fff; font-size:12px; font-weight:800; text-decoration:none; cursor:pointer; }
@@ -73,6 +73,7 @@
                         <div><label for="audit-room">Room</label><input id="audit-room" name="room" value="{{ $filters['room'] ?? '' }}" placeholder="Room name"></div>
                         <div><label for="audit-actor">Actor</label><input id="audit-actor" name="actor" value="{{ $filters['actor'] ?? '' }}" placeholder="Name or role"></div>
                         <div><label for="audit-status">Status</label><select id="audit-status" name="status"><option value="">Any status</option>@foreach($statusOptions as $status)<option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ $status }}</option>@endforeach</select></div>
+                        <div><label for="audit-term">Academic term</label><select id="audit-term" name="academic_term_id"><option value="">Any term</option>@foreach($academicTermOptions as $term)<option value="{{ $term['id'] }}" @selected((string) ($filters['academic_term_id'] ?? '') === (string) $term['id'])>{{ $term['label'] }}</option>@endforeach</select></div>
                         <div><label for="audit-from">From</label><input id="audit-from" type="date" name="from" value="{{ $filters['from'] ?? '' }}"></div>
                         <div><label for="audit-to">To</label><input id="audit-to" type="date" name="to" value="{{ $filters['to'] ?? '' }}"></div>
                         <button type="submit"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>&nbsp; Filter</button>
@@ -84,12 +85,13 @@
                     @else
                         <div class="audit-table-wrap">
                             <table class="audit-table">
-                                <thead><tr><th>Date &amp; time</th><th>Action</th><th>Room</th><th>Actor</th><th>Status</th><th></th></tr></thead>
+                                <thead><tr><th>Date &amp; time</th><th>Action</th><th>Academic term</th><th>Room</th><th>Actor</th><th>Status</th><th></th></tr></thead>
                                 <tbody>
                                     @foreach($logs as $log)
                                         <tr>
                                             <td>{{ $log->occurred_at?->format('M j, Y') }}<span class="audit-sub">{{ $log->occurred_at?->format('g:i:s A') }}</span></td>
                                             <td><a class="audit-action" href="{{ route('audit-logs.show', $log) }}">{{ ucfirst(str_replace('_', ' ', $log->action)) }}</a><span class="audit-sub">{{ $log->description ?: $log->reason ?: 'Saved action' }}</span></td>
+                                            <td>{{ $log->academic_term_label ?: 'Term not recorded' }}</td>
                                             <td>{{ $log->room?->room_name ?? ($log->snapshot_after['rooms'][0]['name'] ?? 'Room unavailable') }}<span class="audit-sub">{{ $log->room?->department?->name ?? ($log->snapshot_after['rooms'][0]['department'] ?? '') }}</span></td>
                                             <td>{{ $log->actor_name }}<span class="audit-sub">{{ ucfirst($log->actor_role) }}</span></td>
                                             <td><span class="audit-badge">{{ $log->status_after ?? $log->status_before ?? 'Recorded' }}</span></td>

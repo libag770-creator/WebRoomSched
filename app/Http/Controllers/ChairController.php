@@ -313,12 +313,20 @@ public function index(Request $request, $roomId)
     */
 
     $reservations =
-        Reservation::with('user')
+        Reservation::with([
+            'user',
+            'room',
+            'facultySubject.subjectCatalog.program',
+            'subject.program',
+        ])
         ->where(
             'room_id',
             $room->id
         )
-        ->where('status', 'Reserved')
+        ->where('academic_term_id', $activeTerm->id)
+        ->whereRaw('LOWER(TRIM(status)) = ?', ['reserved'])
+        ->whereNotNull('start_time')
+        ->whereNotNull('end_time')
         ->where(function ($query) {
 
             $today =
@@ -364,7 +372,12 @@ public function index(Request $request, $roomId)
         ->orderBy(
             'start_time'
         )
-        ->get();
+        ->get()
+        ->each(function (Reservation $reservation) {
+            if ($reservation->date) {
+                $reservation->setAttribute('day', strtoupper(Carbon::parse($reservation->date)->format('D')));
+            }
+        });
 
     $publishedScheduleOverrides = collect();
     if ($isPublishedScheduleView) {

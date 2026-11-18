@@ -578,8 +578,10 @@ public function viewSchedule(Room $room)
                     'user_id' => $reservation->user_id,
                     'status' => $reservation->status,
                     'date' => $reservation->date ? Carbon::parse($reservation->date)->format('Y-m-d') : null,
-                    'day' => strtoupper(trim((string) ($reservation->day ?? Carbon::parse($reservation->date)->format('D')))),
-                    'time' => trim((string) $reservation->time),
+                    'day' => strtoupper(Carbon::parse($reservation->date)->format('D')),
+                    'time' => ($reservation->start_time && $reservation->end_time)
+                        ? Carbon::parse($reservation->start_time)->format('H:i') . '-' . Carbon::parse($reservation->end_time)->format('H:i')
+                        : trim((string) $reservation->time),
                     'start_time' => $reservation->start_time ? Carbon::parse($reservation->start_time)->format('H:i') : null,
                     'end_time' => $reservation->end_time ? Carbon::parse($reservation->end_time)->format('H:i') : null,
                     'purpose' => $reservation->purpose ?? 'Room Reservation',

@@ -1194,6 +1194,15 @@ $rowCount = max(
                     'id' => (int) $item->id,
                     'start' => \Carbon\Carbon::parse($item->start_time)->format('H:i'),
                     'end' => \Carbon\Carbon::parse($item->end_time)->format('H:i'),
+                    'date' => $item->date ? \Carbon\Carbon::parse($item->date)->format('Y-m-d') : null,
+                    'day' => strtoupper(\Carbon\Carbon::parse($item->date)->format('D')),
+                    'room_id' => (int) $item->room_id,
+                    'room_name' => $item->room?->room_name ?? '',
+                    'course_code' => $item->subject?->course_code ?? $item->facultySubject?->course_code ?? '',
+                    'subject' => $item->subject?->course_title ?? $item->facultySubject?->subject ?? '',
+                    'purpose' => $item->purpose ?? 'Reserved room use',
+                    'user_name' => $item->user?->name ?? 'Instructor',
+                    'status' => $item->status,
                 ])->values();
                 $leftSlotParts = preg_split('/\s*-\s*/', trim((string) $leftTime), 2);
                 $leftSlotStart = $timeToMinutes($leftSlotParts[0] ?? '');
@@ -1567,6 +1576,15 @@ $rowCount = max(
                     'id' => (int) $item->id,
                     'start' => \Carbon\Carbon::parse($item->start_time)->format('H:i'),
                     'end' => \Carbon\Carbon::parse($item->end_time)->format('H:i'),
+                    'date' => $item->date ? \Carbon\Carbon::parse($item->date)->format('Y-m-d') : null,
+                    'day' => strtoupper(\Carbon\Carbon::parse($item->date)->format('D')),
+                    'room_id' => (int) $item->room_id,
+                    'room_name' => $item->room?->room_name ?? '',
+                    'course_code' => $item->subject?->course_code ?? $item->facultySubject?->course_code ?? '',
+                    'subject' => $item->subject?->course_title ?? $item->facultySubject?->subject ?? '',
+                    'purpose' => $item->purpose ?? 'Reserved room use',
+                    'user_name' => $item->user?->name ?? 'Instructor',
+                    'status' => $item->status,
                 ])->values();
                 $cellSlotParts = preg_split('/\s*-\s*/', trim((string) $cellTime), 2);
                 $cellSlotStart = $timeToMinutes($cellSlotParts[0] ?? '');
@@ -7031,6 +7049,24 @@ if (confirmMergeProgram) {
         return label(start) + '–' + label(end);
     }
 
+    function formatScheduleRangeBadge(start, end)
+    {
+        const label = function(minutes) {
+            const hour24 = Math.floor(minutes / 60) % 24;
+            const hour12 = hour24 % 12 || 12;
+            const minute = minutes % 60;
+            return {
+                clock: String(hour12) + (minute ? ':' + String(minute).padStart(2, '0') : ''),
+                meridiem: hour24 < 12 ? 'AM' : 'PM'
+            };
+        };
+        const startLabel = label(start);
+        const endLabel = label(end);
+        return startLabel.meridiem === endLabel.meridiem
+            ? startLabel.clock + '–' + endLabel.clock + ' ' + endLabel.meridiem
+            : startLabel.clock + ' ' + startLabel.meridiem + '–' + endLabel.clock + ' ' + endLabel.meridiem;
+    }
+
     function formatScheduleTimeForDisplay(value)
     {
         const range = parseScheduleRange(value);
@@ -7146,17 +7182,26 @@ if (confirmMergeProgram) {
         const day = sourceCell.dataset.day;
         const roomId = String(sourceCell.dataset.roomId || '');
         const targets = new Set(targetEntries);
+        const facultyIds = new Set([
+            sourceCell.dataset.facultyId,
+            ...targetEntries.map(entry => entry?.faculty_id),
+        ].map(value => String(value || '').trim()).filter(Boolean));
         const otherCells = Array.from(document.querySelectorAll('#scheduleTable .schedule-cell'));
 
         for (const other of otherCells) {
-            if (other.dataset.day !== day) continue;
-            if (roomId && String(other.dataset.roomId || '') !== roomId) continue;
+            if (String(other.dataset.day || '').trim().toUpperCase().slice(0, 3)
+                !== String(day || '').trim().toUpperCase().slice(0, 3)) continue;
             for (const entry of getCellScheduleEntries(other)) {
                 if (targets.has(entry)) continue;
                 const otherRange = parseScheduleRange(entry.time || '');
-                if (entry.course && otherRange && start < otherRange.end && end > otherRange.start) return true;
+                if (!entry.course || !otherRange || start >= otherRange.end || end <= otherRange.start) continue;
+
+                const otherFacultyId = String(entry.faculty_id || other.dataset.facultyId || '').trim();
+                if (otherFacultyId && facultyIds.has(otherFacultyId)) return true;
+                if (roomId && String(other.dataset.roomId || '') === roomId) return true;
             }
 
+            if (roomId && String(other.dataset.roomId || '') !== roomId) continue;
             try {
                 const ranges = JSON.parse(other.dataset.reservationRanges || '[]');
                 if (ranges.some(function(item) {
@@ -7467,8 +7512,9 @@ if (confirmMergeProgram) {
                 || getCellScheduleEntries(cell)[0]
                 || null;
             resizeGestureActive = true;
-            if (event.pointerId !== undefined && handle.setPointerCapture) {
-                try { handle.setPointerCapture(event.pointerId); } catch (error) { /* Window-level tracking remains available. */ }
+            const captureTarget = event.currentTarget?.setPointerCapture ? event.currentTarget : handle;
+            if (event.pointerId !== undefined && captureTarget.setPointerCapture) {
+                try { captureTarget.setPointerCapture(event.pointerId); } catch (error) { /* Window-level tracking remains available. */ }
             }
             const pointerId = event.pointerId;
 
@@ -7481,24 +7527,6 @@ if (confirmMergeProgram) {
             }
 
             const original = { start: initial.start, end: initial.end };
-            const entrySnapshots = new Map(targetEntries.map(function(entry) {
-                return [entry, {
-                    time: entry.time || '',
-                    base_time: entry.base_time || '',
-                    row_position: entry.row_position,
-                }];
-            }));
-            const cellSnapshots = new Map(targetEntries.map(entry => entry.cell || cell)
-                .filter((item, index, items) => items.indexOf(item) === index)
-                .map(function(item) {
-                    return [item, {
-                        scheduleTime: item.dataset.scheduleTime || item.dataset.time || '',
-                        startMinute: item.dataset.scheduleStartMinute || '',
-                        endMinute: item.dataset.scheduleEndMinute || '',
-                        baseTime: item.dataset.scheduleBaseTime || item.dataset.time || '',
-                        rowPosition: item.dataset.rowPosition || '',
-                    }];
-                }));
             let current = { start: initial.start, end: initial.end };
             let lastError = '';
             let didResize = false;
@@ -7514,22 +7542,10 @@ if (confirmMergeProgram) {
                     end: edge === 'end' ? minute : original.end
                 };
 
-                entrySnapshots.forEach(function(snapshot, entry) {
-                    entry.time = snapshot.time;
-                    entry.base_time = snapshot.base_time;
-                    entry.row_position = snapshot.row_position;
-                });
-                cellSnapshots.forEach(function(snapshot, targetCell) {
-                    targetCell.dataset.scheduleTime = snapshot.scheduleTime;
-                    targetCell.dataset.scheduleStartMinute = snapshot.startMinute;
-                    targetCell.dataset.scheduleEndMinute = snapshot.endMinute;
-                    targetCell.dataset.scheduleBaseTime = snapshot.baseTime;
-                    targetCell.dataset.rowPosition = snapshot.rowPosition;
-                });
-
                 const plan = buildScheduleResizePlan(cell, candidate, targetEntries);
                 if (!plan) {
-                    lastError = 'A class must be at least 30 minutes long, stay outside the lunch break, and avoid other classes and room reservations.';
+                    lastError = 'That resize would overlap another class taught by this faculty member, occupy the room, or cross a break. The schedule stays at its last valid time.';
+                    cell.dataset.resizeConflict = '1';
                     block.classList.add('resize-conflict');
                     return;
                 }
@@ -7543,7 +7559,12 @@ if (confirmMergeProgram) {
                         entry.base_time = position.time;
                     }
 
-                    if (getCellScheduleEntries(entryCell)[0] === entry) {
+                    // Do not call getCellScheduleEntries() here: it refreshes
+                    // the primary entry from the cell's old dataset values,
+                    // undoing the time we just assigned above. The entry list
+                    // is already loaded for this cell, so inspect it directly.
+                    if (Array.isArray(entryCell._scheduleEntries)
+                        && entryCell._scheduleEntries[0] === entry) {
                         entryCell.dataset.scheduleTime = entry.time;
                         entryCell.dataset.scheduleStartMinute = String(range.start);
                         entryCell.dataset.scheduleEndMinute = String(range.end);
@@ -7553,12 +7574,13 @@ if (confirmMergeProgram) {
                 });
 
                 lastError = '';
+                delete cell.dataset.resizeConflict;
                 block.classList.remove('resize-conflict');
                 current = candidate;
                 didResize = current.start !== original.start || current.end !== original.end;
                 const timeLabel = block.querySelector('.schedule-resize-time');
                 if (timeLabel) {
-                    timeLabel.textContent = formatScheduleRangeLabel(current.start, current.end);
+                    timeLabel.textContent = formatScheduleRangeBadge(current.start, current.end);
                 }
                 positionScheduleBlock(block, cell, current.start, current.end, visualCell, spanCells, targetEntries.find(entry => entry.cell === cell) || targetEntries[0]);
             };
@@ -7583,15 +7605,18 @@ if (confirmMergeProgram) {
                 renderScheduleBlocks();
             };
 
-            window.addEventListener('pointermove', move);
-            window.addEventListener('mousemove', move);
-            window.addEventListener('pointerup', finish, { once: true });
-            window.addEventListener('pointercancel', finish, { once: true });
-            window.addEventListener('mouseup', finish, { once: true });
+            if (event.type === 'pointerdown') {
+                window.addEventListener('pointermove', move);
+                window.addEventListener('pointerup', finish, { once: true });
+                window.addEventListener('pointercancel', finish, { once: true });
+            } else {
+                window.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', finish, { once: true });
+            }
         }
 
-        handle.addEventListener('pointerdown', beginResize);
-        handle.addEventListener('mousedown', beginResize);
+        if (window.PointerEvent) handle.addEventListener('pointerdown', beginResize);
+        else handle.addEventListener('mousedown', beginResize);
         block.appendChild(handle);
         return beginResize;
     }
@@ -7605,7 +7630,84 @@ if (confirmMergeProgram) {
         const allCells = Array.from(document.querySelectorAll('#scheduleTable .schedule-cell'));
         allCells.forEach(function(cell) {
             cell.classList.remove('schedule-block-source');
+            cell.classList.remove('schedule-reservation-source');
             cell.classList.toggle('half-hour-interval-cell', selectedScheduleInterval?.cell === cell);
+        });
+
+        // Reservation ranges are repeated on every timetable cell they block.
+        // Collect each saved booking once, then draw one exact-duration block.
+        const reservationsById = new Map();
+        allCells.forEach(function(cell) {
+            let ranges = [];
+            try { ranges = JSON.parse(cell.dataset.reservationRanges || '[]'); } catch (_) {}
+            ranges.forEach(function(reservation) {
+                const id = String(reservation.id || '').trim();
+                if (id && !reservationsById.has(id)) reservationsById.set(id, reservation);
+            });
+        });
+
+        const reservationBlocks = new Map();
+        reservationsById.forEach(function(reservation) {
+            const day = String(reservation.day || '').trim().toUpperCase().slice(0, 3);
+            const range = parseScheduleRange(String(reservation.start || '') + '-' + String(reservation.end || ''));
+            if (!day || !range) return;
+            const key = [day, range.start, range.end].join('|');
+            if (!reservationBlocks.has(key)) reservationBlocks.set(key, { day: day, range: range, reservations: [] });
+            reservationBlocks.get(key).reservations.push(reservation);
+        });
+
+        const sideByDay = { MON: 'left', WED: 'left', FRI: 'left', TUE: 'right', THU: 'right', SAT: 'sat' };
+        const wrapper = document.querySelector('[data-schedule-sheet]');
+        const wrapperRect = wrapper?.getBoundingClientRect();
+        reservationBlocks.forEach(function(group) {
+            const side = sideByDay[group.day];
+            if (!side || !wrapper || !wrapperRect) return;
+            const sourceCell = allCells.find(function(cell) {
+                if (String(cell.dataset.day || '').trim().toUpperCase().slice(0, 3) !== group.day
+                    || String(cell.dataset.side || '') !== side) return false;
+                const cellRange = parseScheduleRange(cell.dataset.time || '');
+                return cellRange && group.range.start >= cellRange.start && group.range.start < cellRange.end;
+            });
+            if (!sourceCell) return;
+
+            const startY = scheduleYAtMinute(group.day, side, group.range.start, 'start');
+            const endY = scheduleYAtMinute(group.day, side, group.range.end, 'end');
+            if (startY === null || endY === null || endY <= startY) return;
+
+            const cellRect = sourceCell.getBoundingClientRect();
+            const block = document.createElement('div');
+            block.className = 'schedule-reservation-overlay';
+            block.dataset.durationMinutes = String(group.range.end - group.range.start);
+            block.setAttribute('role', 'note');
+            block.setAttribute('aria-label', 'Room reservation. ' + group.day + '. '
+                + formatScheduleRangeLabel(group.range.start, group.range.end) + '. '
+                + group.reservations.map(function(item) {
+                    return [item.course_code, item.subject || item.purpose, item.user_name, item.date].filter(Boolean).join(', ');
+                }).join('. '));
+            block.style.left = (cellRect.left - wrapperRect.left - wrapper.clientLeft + wrapper.scrollLeft) + 'px';
+            block.style.top = (startY - wrapperRect.top - wrapper.clientTop + wrapper.scrollTop) + 'px';
+            block.style.width = cellRect.width + 'px';
+            block.style.height = (endY - startY) + 'px';
+
+            const first = group.reservations[0] || {};
+            const dateLabels = [...new Set(group.reservations.map(function(item) {
+                return item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+            }).filter(Boolean))];
+            const requesterLabels = [...new Set(group.reservations.map(item => String(item.user_name || '').trim()).filter(Boolean))];
+            const dateLabel = dateLabels.length > 1 ? dateLabels.length + ' reservation dates' : (dateLabels[0] || 'Date unavailable');
+            const courseLabel = group.reservations.length > 1 ? 'Room reservations' : (first.course_code || 'Room reservation');
+            const purposeLabel = group.reservations.length > 1
+                ? 'Multiple bookings at this time'
+                : (first.subject || first.purpose || 'Reserved room use');
+            block.innerHTML = '<span class="schedule-reservation-badge">ROOM RESERVED · ' + escapeHtml(first.status || 'Reserved') + '</span>'
+                + '<strong>' + escapeHtml(courseLabel) + '</strong>'
+                + '<span>' + escapeHtml(purposeLabel) + '</span>'
+                + '<span>' + escapeHtml(requesterLabels.join(', ') || 'Instructor') + ' · ' + escapeHtml(dateLabel) + '</span>'
+                + '<time>' + escapeHtml(formatScheduleRangeLabel(group.range.start, group.range.end)) + '</time>';
+            block.title = [courseLabel, purposeLabel, requesterLabels.join(', '), dateLabel,
+                formatScheduleRangeLabel(group.range.start, group.range.end)].filter(Boolean).join(' · ');
+            sourceCell.classList.add('schedule-reservation-source');
+            layer.appendChild(block);
         });
 
         if (selectedScheduleInterval?.cell?.isConnected) {
@@ -7684,6 +7786,7 @@ if (confirmMergeProgram) {
                 const block = document.createElement('div');
                 block.className = 'schedule-resizable-block'
                     + (range.end - range.start <= 30 ? ' schedule-half-hour-entry' : '')
+                    + (cell.dataset.resizeConflict === '1' ? ' resize-conflict' : '')
                     + (cell.dataset.locked === '1' ? ' schedule-merge-requestable' : '');
                 if (cell.dataset.locked === '1') block.title = 'Right-click to request a course merge';
                 if (!isPublishedScheduleView) {
@@ -7736,7 +7839,7 @@ if (confirmMergeProgram) {
 
                 const timeLabel = document.createElement('span');
                 timeLabel.className = 'schedule-resize-time';
-                timeLabel.textContent = formatScheduleRangeLabel(range.start, range.end);
+                timeLabel.textContent = formatScheduleRangeBadge(range.start, range.end);
                 block.appendChild(timeLabel);
 
                 if (!isPublishedScheduleView && cell.dataset.locked !== '1') block.addEventListener('click', function(event) {
@@ -7800,13 +7903,15 @@ if (confirmMergeProgram) {
                 if (canResize) {
                     resizeStart = addScheduleResizeHandle(block, cell, 'start', visualCell, autoMergedCells, resizeEntries);
                     resizeEnd = addScheduleResizeHandle(block, cell, 'end', visualCell, autoMergedCells, resizeEntries);
-                    block.addEventListener('pointerdown', function(event) {
+                    const startResizeFromBlockEdge = function(event) {
                         if (event.target.closest('.schedule-resize-handle')) return;
                         const rect = block.getBoundingClientRect();
                         const edgeSize = Math.min(28, Math.max(18, rect.height * 0.22));
                         if (event.clientY - rect.top <= edgeSize) resizeStart(event);
                         else if (rect.bottom - event.clientY <= edgeSize) resizeEnd(event);
-                    });
+                    };
+                    if (window.PointerEvent) block.addEventListener('pointerdown', startResizeFromBlockEdge);
+                    else block.addEventListener('mousedown', startResizeFromBlockEdge);
                 }
 
                 layer.appendChild(block);

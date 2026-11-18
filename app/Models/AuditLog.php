@@ -9,7 +9,7 @@ class AuditLog extends Model
 {
     protected $fillable = [
         'actor_user_id', 'actor_name', 'actor_role', 'event_type', 'action', 'occurred_at',
-        'room_id', 'schedule_id', 'reservation_id', 'department_ids', 'related_user_ids',
+        'room_id', 'schedule_id', 'reservation_id', 'academic_term_id', 'academic_term_label', 'department_ids', 'related_user_ids',
         'related_room_ids', 'related_schedule_ids', 'status_before', 'status_after', 'reason',
         'description', 'before_data', 'after_data', 'snapshot_before', 'snapshot_after',
     ];
@@ -50,6 +50,11 @@ class AuditLog extends Model
     public function reservation()
     {
         return $this->belongsTo(Reservation::class);
+    }
+
+    public function academicTerm()
+    {
+        return $this->belongsTo(AcademicTerm::class);
     }
 
     public function accessGrants()

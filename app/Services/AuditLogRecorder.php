@@ -63,6 +63,16 @@ class AuditLogRecorder
         if (!$termId) {
             $termId = AcademicTerm::where('is_active', true)->orderByDesc('id')->value('id');
         }
+        if ($termId) {
+            $focus['academic_term_id'] = (int) $termId;
+            $term = AcademicTerm::find($termId);
+            if ($term) {
+                $focus['academic_term_label'] = trim(implode(' · ', array_filter([
+                    $term->academic_year,
+                    $term->semester,
+                ])));
+            }
+        }
 
         $schedules = Schedule::query()
             ->where(function ($query) use ($roomIds, $scheduleIds) {
@@ -180,8 +190,23 @@ class AuditLogRecorder
 
         $roomId = $data['room_id'] ?? ($roomIds[0] ?? null);
         $scheduleId = $data['schedule_id'] ?? ($scheduleIds[0] ?? null);
+        $academicTermId = $data['academic_term_id']
+            ?? ($snapshotAfter['focus']['academic_term_id'] ?? $snapshotBefore['focus']['academic_term_id'] ?? null);
+        if (!$academicTermId && $scheduleIds) {
+            $academicTermId = Schedule::whereIn('id', $scheduleIds)->value('academic_term_id');
+        }
+        if (!$academicTermId && $scheduleId) {
+            $academicTermId = Schedule::whereKey($scheduleId)->value('academic_term_id');
+        }
+        if (!$academicTermId && !empty($data['reservation_id'])) {
+            $academicTermId = DB::table('reservations')->where('id', $data['reservation_id'])->value('academic_term_id');
+        }
+        $academicTerm = $academicTermId ? AcademicTerm::find($academicTermId) : null;
+        $academicTermLabel = $data['academic_term_label']
+            ?? ($snapshotAfter['focus']['academic_term_label'] ?? $snapshotBefore['focus']['academic_term_label'] ?? null)
+            ?? ($academicTerm ? trim(implode(' · ', array_filter([$academicTerm->academic_year, $academicTerm->semester]))) : null);
 
-        return DB::transaction(function () use ($actor, $eventType, $action, $data, $roomId, $scheduleId, $roomIds, $scheduleIds, $departmentIds, $relatedUsers, $before, $after, $snapshotBefore, $snapshotAfter): AuditLog {
+        return DB::transaction(function () use ($actor, $eventType, $action, $data, $roomId, $scheduleId, $academicTermId, $academicTermLabel, $roomIds, $scheduleIds, $departmentIds, $relatedUsers, $before, $after, $snapshotBefore, $snapshotAfter): AuditLog {
             $log = AuditLog::create([
                 'actor_user_id' => $actor?->id,
                 'actor_name' => $actor?->name ?? 'System',
@@ -192,6 +217,8 @@ class AuditLogRecorder
                 'room_id' => $roomId,
                 'schedule_id' => $scheduleId,
                 'reservation_id' => $data['reservation_id'] ?? null,
+                'academic_term_id' => $academicTermId,
+                'academic_term_label' => $academicTermLabel,
                 'department_ids' => array_values(array_unique($departmentIds)),
                 'related_user_ids' => array_values(array_unique($relatedUsers)),
                 'related_room_ids' => $roomIds,

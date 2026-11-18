@@ -55,6 +55,12 @@
         .student-code-toast.is-error { border-color:#f2c9c5; color:#8f302b; }
         .student-code-toast.is-error i { color:#c24138; }
         @media(max-width:480px) { .student-code-toast { top:16px; width:max-content; max-width:calc(100vw - 32px); justify-content:center; } }
+        .system-success-toast { position:fixed; top:20px; left:50%; z-index:1000600; display:flex; align-items:center; gap:10px; width:max-content; max-width:calc(100vw - 32px); padding:13px 17px; border:1px solid #cde4d2; border-radius:12px; background:#fff; color:#244a32; box-shadow:0 14px 38px rgba(20,55,32,.2); font-size:13px; font-weight:750; opacity:0; transform:translate(-50%,-12px); pointer-events:none; transition:opacity .18s ease,transform .18s ease; }
+        .system-success-toast.is-visible { opacity:1; transform:translate(-50%,0); }
+        .system-success-toast[hidden] { display:none !important; }
+        .system-success-toast i { flex:0 0 auto; color:#168044; font-size:16px; }
+        .system-success-toast span { overflow-wrap:anywhere; }
+        @media(max-width:480px) { .system-success-toast { top:16px; } }
         @media(max-width:480px) { .header-help-button,.header-student-code-button { min-width:38px; padding:0 9px; } .header-help-button span,.header-student-code-button span { display:none; } }
         .header-department-logo { display:block; flex:0 0 44px; width:44px; height:44px; padding:4px; border:1px solid #e0e8e1; border-radius:11px; background:#fff; object-fit:contain; }
         .header-notification-wrap { position:relative; }
@@ -294,6 +300,13 @@
 
 </header>
 
+@if(session('success'))
+    <div id="systemSuccessToast" class="system-success-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
+        <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+        <span>{{ session('success') }}</span>
+    </div>
+@endif
+
 @if(in_array($headerRole, ['chair', 'faculty'], true) && $headerDepartment)
     <div id="studentCodeToast" class="student-code-toast" role="status" aria-live="polite" aria-atomic="true" hidden>
         <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
@@ -439,14 +452,13 @@
 </div>
 @endauth
 
-@if((session('success') || session('error') || $errors->any()) && !$accountProfileShouldOpen && !(request()->routeIs('chair.setFaculty') && session('success') && !session('error') && !$errors->any()))
+@if((session('error') || $errors->any()) && !$accountProfileShouldOpen)
     <div id="globalMessageOverlay" class="global-message-overlay" role="dialog" aria-modal="true">
-        <div class="global-message-dialog {{ session('success') ? 'success' : 'error' }}">
-            <div class="global-message-icon">{{ session('success') ? '✓' : '!' }}</div>
-            <h2>{{ session('success') ? 'Successful!' : (session('error') ? 'Action Failed' : 'Please Check') }}</h2>
+        <div class="global-message-dialog error">
+            <div class="global-message-icon">!</div>
+            <h2>{{ session('error') ? 'Action Failed' : 'Please Check' }}</h2>
             <p>
-                @if(session('success')) {{ session('success') }}
-                @elseif(session('error')) {{ session('error') }}
+                @if(session('error')) {{ session('error') }}
                 @else {{ $errors->first() }}
                 @endif
             </p>
@@ -676,6 +688,29 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
         message.addEventListener('click', function (event) { if (event.target === message) closeGlobalMessage(); });
+    }
+    const successToast = document.getElementById('systemSuccessToast');
+    if (successToast) {
+        const successText = (successToast.querySelector('span')?.textContent || '').trim().replace(/\s+/g, ' ');
+        if (successText) {
+            const duplicateSelectors = [
+                '.message.success', '.alert-success', '.success-message', '.success-alert',
+                '.alert.success-alert', '.swap-inbox-alert.success', '.chair-requests-alert',
+                '.subjects-alert.success', '.so-alert.success', '.mu-alert-success',
+                '.faculty-assignment-toast'
+            ];
+            document.querySelectorAll(duplicateSelectors.join(',')).forEach(function (item) {
+                if (item === successToast || item.closest('#systemSuccessToast')) return;
+                const itemText = (item.textContent || '').trim().replace(/\s+/g, ' ');
+                if (itemText && (itemText.includes(successText) || successText.includes(itemText))) item.remove();
+            });
+        }
+        successToast.hidden = false;
+        requestAnimationFrame(() => successToast.classList.add('is-visible'));
+        window.setTimeout(() => {
+            successToast.classList.remove('is-visible');
+            window.setTimeout(() => { successToast.hidden = true; }, 220);
+        }, 3000);
     }
 });
 </script>

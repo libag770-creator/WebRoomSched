@@ -1304,10 +1304,11 @@
 
                                             return '
                                                 <div class="temporary-reservation-entry" data-class-time="' . e($reservationBlockTime) . '" data-class-room-id="' . e((string) ($reservation->room_id ?? '')) . '">
-                                                    <div class="temporary-reservation-header"><div class="temporary-reservation-badge"><i class="fa-solid fa-calendar-check"></i> Room reserved</div><div class="temporary-reservation-time">' . e($time) . '</div></div>
+                                                    <div class="temporary-reservation-header"><div class="temporary-reservation-badge"><i class="fa-solid fa-calendar-check"></i> ' . e($reservation->status ?: 'Reserved') . '</div><div class="temporary-reservation-time">' . e($time) . '</div></div>
                                                     <div class="temporary-reservation-course">' . e($course) . '</div>
                                                     <div class="temporary-reservation-detail">' . e($subject) . '</div>
                                                     ' . ($reservationMeta !== '' ? '<div class="temporary-reservation-meta">' . $reservationMeta . '</div>' : '') . '
+                                                    <div class="temporary-reservation-time"><i class="fa-solid fa-user"></i> Requested by ' . e($reservation->user?->name ?? 'Instructor') . '</div>
                                                     <div class="temporary-reservation-time"><i class="fa-regular fa-calendar"></i> ' . e($reservationDate) . '</div>
                                                 </div>
                                             ';
@@ -2333,14 +2334,33 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedOverride = wrapper._selectedOverride;
         const daysBySide = { left: ['MON', 'WED', 'FRI'], right: ['TUE', 'THU'], sat: ['SAT'] };
 
-        table.querySelectorAll('.schedule-cell-stack > .class-entry[data-class-time], .schedule-cell-stack > .temporary-reservation-entry[data-class-time]').forEach(function(source) {
+        const durationSources = Array.from(table.querySelectorAll('.schedule-cell-stack > .class-entry[data-class-time], .schedule-cell-stack > .temporary-reservation-entry[data-class-time]'));
+        const reservationSourceGroups = new Map();
+        durationSources.filter(source => source.matches('.temporary-reservation-entry')).forEach(function(source) {
+            const cell = source.closest('td[data-day]');
+            const range = myScheduleRange(source.dataset.classTime);
+            if (!cell || !range) return;
+            const key = [cell.dataset.day, source.dataset.classRoomId, range.start, range.end].join('|');
+            if (!reservationSourceGroups.has(key)) reservationSourceGroups.set(key, []);
+            reservationSourceGroups.get(key).push(source);
+        });
+        const renderedReservationGroups = new Set();
+
+        durationSources.forEach(function(source) {
             const cell = source.closest('td[data-day]');
             const range = myScheduleRange(source.dataset.classTime);
             const side = sideByDay[String(cell?.dataset.day || '').toUpperCase().slice(0, 3)];
             const isReservation = source.matches('.temporary-reservation-entry');
             if (!cell || !range || !side) return;
-            if (isReservation && cell.querySelectorAll('.temporary-reservation-entry[data-class-time]').length !== 1) return;
             if (!isReservation && (cell.querySelectorAll('.class-entry[data-class-time]').length !== 1 || cell.querySelector('.temporary-reservation-entry[data-class-time]'))) return;
+
+            let reservationSources = [source];
+            if (isReservation) {
+                const groupKey = [cell.dataset.day, source.dataset.classRoomId, range.start, range.end].join('|');
+                if (renderedReservationGroups.has(groupKey)) return;
+                renderedReservationGroups.add(groupKey);
+                reservationSources = reservationSourceGroups.get(groupKey) || reservationSources;
+            }
 
             const top = yAtMinute(side, range.start, 'start');
             const bottom = yAtMinute(side, range.end, 'end');
@@ -2350,6 +2370,23 @@ document.addEventListener('DOMContentLoaded', function () {
             const block = source.cloneNode(true);
             block.classList.add('my-schedule-duration-block');
             block.classList.remove('my-schedule-source-hidden');
+            if (isReservation && reservationSources.length > 1) {
+                const summaries = reservationSources.map(function(item) {
+                    const date = item.querySelector('.fa-calendar')?.parentElement?.textContent.trim() || 'Date unavailable';
+                    const requester = (item.querySelector('.fa-user')?.parentElement?.textContent.trim() || 'Requested by Instructor')
+                        .replace(/^Requested by\s*/i, '');
+                    const details = item.querySelector('.temporary-reservation-detail')?.textContent.trim() || 'Reserved room use';
+                    return [date, 'Requested by ' + requester, details].filter(Boolean).join(' — ');
+                });
+                const dateLine = block.querySelector('.fa-calendar')?.parentElement;
+                const requesterLine = block.querySelector('.fa-user')?.parentElement;
+                if (dateLine) dateLine.textContent = [...new Set(summaries.map(item => item.split(' — ')[0]))].join('  /  ');
+                if (requesterLine) requesterLine.textContent = [...new Set(summaries.map(item => item.split(' — ')[1]))].join(', ');
+                const more = document.createElement('div');
+                more.className = 'temporary-reservation-more';
+                more.textContent = summaries.length + ' reservations: ' + summaries.join(' · ');
+                block.appendChild(more);
+            }
             const sourceDay = String(cell.dataset.day || '').toUpperCase().slice(0, 3);
             const span = Math.max(1, Number(cell.colSpan || 1));
             const sideDays = daysBySide[side] || [sourceDay];
@@ -2376,7 +2413,7 @@ document.addEventListener('DOMContentLoaded', function () {
             block.style.width = cellRect.width + 'px';
             block.style.height = (bottom - top) + 'px';
             layer.appendChild(block);
-            source.classList.add('my-schedule-source-hidden');
+            reservationSources.forEach(item => item.classList.add('my-schedule-source-hidden'));
         });
     }
 

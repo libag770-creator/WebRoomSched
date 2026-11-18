@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
+use App\Models\AcademicTerm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,7 @@ class AuditLogController extends Controller
             'status' => ['nullable', 'string', 'max:50'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'academic_term_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
         if (!empty($filters['search'])) {
@@ -63,12 +65,25 @@ class AuditLogController extends Controller
         }
         if (!empty($filters['from'])) $query->whereDate('occurred_at', '>=', $filters['from']);
         if (!empty($filters['to'])) $query->whereDate('occurred_at', '<=', $filters['to']);
+        if (!empty($filters['academic_term_id'])) $query->where('academic_term_id', $filters['academic_term_id']);
 
         $logs = $query->with(['room', 'schedule'])->latest('occurred_at')->paginate(20)->withQueryString();
         $statusOptions = $this->visibleLogs($user)->where('event_type', $type)
             ->whereNotNull('status_after')->orderBy('status_after')->distinct()->pluck('status_after');
+        $academicTermRows = $this->visibleLogs($user)->where('event_type', $type)
+            ->whereNotNull('academic_term_id')
+            ->select('academic_term_id', 'academic_term_label')->distinct()
+            ->orderBy('academic_term_label')->get()
+            ->groupBy('academic_term_id');
+        $termRecords = AcademicTerm::whereIn('id', $academicTermRows->keys())->get()->keyBy('id');
+        $academicTermOptions = $academicTermRows->map(function ($rows, $id) use ($termRecords) {
+            $label = $rows->pluck('academic_term_label')->filter()->first();
+            $term = $termRecords->get((int) $id);
+            $label = $label ?: ($term ? trim(implode(' · ', array_filter([$term->academic_year, $term->semester]))) : 'Term #' . $id);
+            return ['id' => (int) $id, 'label' => $label];
+        })->values();
 
-        return view('audit-logs.index', compact('logs', 'type', 'filters', 'statusOptions'));
+        return view('audit-logs.index', compact('logs', 'type', 'filters', 'statusOptions', 'academicTermOptions'));
     }
 
     public function show(AuditLog $auditLog)
@@ -76,6 +91,19 @@ class AuditLogController extends Controller
         $user = $this->authorizedUser();
         abort_unless($this->visibleLogs($user)->whereKey($auditLog->id)->exists(), 404);
         $auditLog->load(['room.buildingRelation', 'room.department', 'schedule', 'reservation']);
+
+        $snapshotTermId = $auditLog->snapshot_after['focus']['academic_term_id']
+            ?? $auditLog->snapshot_before['focus']['academic_term_id']
+            ?? null;
+        $academicTermId = $auditLog->academic_term_id
+            ?? $snapshotTermId
+            ?? $auditLog->after_data['academic_term_id']
+            ?? $auditLog->before_data['academic_term_id']
+            ?? $auditLog->schedule?->academic_term_id;
+        $academicTerm = $auditLog->academicTerm ?: ($academicTermId ? AcademicTerm::find($academicTermId) : null);
+        $academicTermLabel = $auditLog->academic_term_label
+            ?: ($auditLog->snapshot_after['focus']['academic_term_label'] ?? $auditLog->snapshot_before['focus']['academic_term_label'] ?? null)
+            ?: ($academicTerm ? trim(implode(' · ', array_filter([$academicTerm->academic_year, $academicTerm->semester]))) : null);
 
         // Older migrated records predate immutable snapshots. Reconstruct a
         // labelled fallback from saved action details and current room schedules.
@@ -234,7 +262,18 @@ class AuditLogController extends Controller
                 ->latest('occurred_at')->get();
         }
 
-        return view('audit-logs.show', compact('auditLog', 'statusHistory', 'snapshotReconstructed'));
+        // Legacy snapshots can reveal the term only after their fallback has
+        // been reconstructed above; keep that context visible without editing
+        // the immutable audit row.
+        $academicTermId ??= $auditLog->snapshot_after['focus']['academic_term_id']
+            ?? $auditLog->snapshot_before['focus']['academic_term_id']
+            ?? null;
+        $academicTerm ??= $academicTermId ? AcademicTerm::find($academicTermId) : null;
+        $academicTermLabel ??= $auditLog->snapshot_after['focus']['academic_term_label']
+            ?? $auditLog->snapshot_before['focus']['academic_term_label']
+            ?? ($academicTerm ? trim(implode(' · ', array_filter([$academicTerm->academic_year, $academicTerm->semester]))) : null);
+
+        return view('audit-logs.show', compact('auditLog', 'statusHistory', 'snapshotReconstructed', 'academicTermId', 'academicTermLabel'));
     }
 
     private function authorizedUser()

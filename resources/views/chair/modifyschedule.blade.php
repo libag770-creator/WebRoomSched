@@ -79,6 +79,16 @@
     .chair-modify-view .room-selection-icon { display:grid; flex:0 0 40px; width:40px; height:40px; place-items:center; border-radius:12px; background:#edf3eb; color:#285940; font-size:16px; }
     .chair-modify-view .room-selection-name { color:#203d30; font-size:15px; font-weight:800; line-height:1.35; }
     .chair-modify-view .room-selection-label { margin-top:4px; color:#68776d; font-size:12px; font-weight:600; }
+    .chair-modify-view .room-selection-features { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+    .chair-modify-view .room-selection-feature { display:flex; min-width:0; align-items:center; gap:8px; padding:8px 9px; border:1px solid #e4eae2; border-radius:9px; background:#f8faf7; color:#4c5f52; }
+    .chair-modify-view .room-selection-feature > i { flex:0 0 15px; color:#54705c; text-align:center; }
+    .chair-modify-view .room-selection-feature span { display:grid; min-width:0; gap:2px; }
+    .chair-modify-view .room-selection-feature strong { color:#758177; font-size:9px; letter-spacing:.04em; text-transform:uppercase; }
+    .chair-modify-view .room-selection-feature small { overflow-wrap:anywhere; color:#294435; font-size:11px; font-weight:750; }
+    .chair-modify-view .room-selection-feature.available { border-color:#dce9dd; background:#f1f7f0; }
+    .chair-modify-view .room-selection-feature.unavailable small { color:#7c665e; }
+    .chair-modify-view .room-selection-purpose { padding:0 2px; color:#596b5e; font-size:11px; line-height:1.45; }
+    .chair-modify-view .room-selection-purpose strong { color:#294435; }
     .chair-modify-view .open-room-button,.chair-modify-view .change-room-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:41px; padding:0 14px; border:1px solid #24543e; border-radius:10px; background:#24543e; color:#fff; font:800 12px/1.2 var(--wr-body); cursor:pointer; transition:transform .16s ease,background .16s ease; }
     .chair-modify-view .open-room-button:hover,.chair-modify-view .change-room-button:hover { transform:translateY(-1px); background:#173b33; }
     .chair-modify-view .empty { grid-column:1/-1; padding:17px; border:1px dashed #d7e1d7; border-radius:12px; background:#f8faf6; color:#637268; font-size:13px; font-weight:600; }
@@ -885,6 +895,26 @@ const crossScheduleTermId = @json($activeTerm->id);
 const initialModifyRoomId = @json($initialRoomId);
 const isModifyRoomPage = Boolean(initialModifyRoomId);
 
+function roomDetailsMarkup(room)
+{
+    const features = [
+        { icon: 'fa-users', label: 'Capacity', value: room.capacity === null || room.capacity === undefined || room.capacity === '' ? 'Not specified' : `${room.capacity} students` },
+        { icon: 'fa-computer', label: 'Computers', value: room.computers === null || room.computers === undefined ? '0' : String(room.computers) },
+        { icon: 'fa-tv', label: 'TV', value: room.has_tv ? 'Available' : 'No', available: Boolean(room.has_tv) },
+        { icon: 'fa-video', label: 'Projector', value: room.has_projector ? 'Available' : 'No', available: Boolean(room.has_projector) },
+    ];
+
+    const featureMarkup = features.map(function(feature) {
+        const stateClass = feature.available === undefined ? '' : (feature.available ? ' available' : ' unavailable');
+        return `<div class="room-selection-feature${stateClass}"><i class="fa-solid ${feature.icon}" aria-hidden="true"></i><span><strong>${escapeHtml(feature.label)}</strong><small>${escapeHtml(feature.value)}</small></span></div>`;
+    }).join('');
+    const purposeMarkup = room.purpose
+        ? `<div class="room-selection-purpose"><strong>Purpose:</strong> ${escapeHtml(room.purpose)}</div>`
+        : '';
+
+    return `<div class="room-selection-features" aria-label="Room facilities and capacity">${featureMarkup}</div>${purposeMarkup}`;
+}
+
 const crossScheduleRoomSearch = document.getElementById('crossScheduleRoomSearch');
 const clearCrossScheduleRoomSearch = document.getElementById('clearCrossScheduleRoomSearch');
 const crossScheduleRoomSearchStatus = document.getElementById('crossScheduleRoomSearchStatus');
@@ -946,6 +976,8 @@ function filterCrossScheduleRooms()
                     <div class="room-selection-label">${escapeHtml(match.department.name || 'College')} · ${escapeHtml(match.building.name || 'Building')}</div>
                 </div>
             </div>
+            ${roomDetailsMarkup(match.room)}
+            <div class="room-selection-label">${(match.room.schedules || []).length} scheduled classes · ${match.room.allow_other_departments ? 'You can add to open slots' : 'View only — permission is off'}</div>
             <button type="button" class="open-room-button"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> ${match.room.allow_other_departments ? 'Open Excel editor' : 'View schedule'}</button>
         `;
         card.querySelector('.open-room-button').addEventListener('click', function() {
@@ -1204,6 +1236,8 @@ function selectBuilding(buildingId)
                         </div>
 
                     </div>
+
+                    ${roomDetailsMarkup(room)}
 
 
                     <button

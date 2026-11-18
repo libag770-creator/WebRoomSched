@@ -3734,7 +3734,7 @@ $schedules = $schedulesQuery
 
                             : null;
 
-                    $reservationDay = strtoupper(trim((string) ($reservation->day ?? Carbon::parse($reservation->date)->format('D'))));
+                    $reservationDay = strtoupper(Carbon::parse($reservation->date)->format('D'));
                     $reservationDay = substr($reservationDay, 0, 3);
                     $roomTimeSlot = $roomTimeSlotRows->first(function ($slot) use ($reservationDay, $startTime, $endTime) {
                         return substr(strtoupper(trim((string) $slot->day)), 0, 3) === $reservationDay
@@ -3776,43 +3776,13 @@ $schedules = $schedulesQuery
 
 
 
-                        'day' =>
-
-                            strtoupper(
-
-                                trim(
-
-                                    (string)
-
-                                    (
-
-                                        $reservation->day
-
-                                        ??
-
-                                        Carbon::parse(
-
-                                            $reservation->date
-
-                                        )->format('D')
-
-                                    )
-
-                                )
-
-                            ),
+                        'day' => strtoupper(Carbon::parse($reservation->date)->format('D')),
 
 
 
-                        'time' =>
-
-                            trim(
-
-                                (string)
-
-                                $reservation->time
-
-                            ),
+                        'time' => $startTime && $endTime
+                            ? $startTime . '-' . $endTime
+                            : trim((string) $reservation->time),
 
 
 
@@ -4376,15 +4346,23 @@ public function mySchedules()
 
 
 
+    $myRoomIdsForReservations = $mySchedules->pluck('room_id')->filter()->unique()->values();
+
     $temporaryReservations = Reservation::with([
+        'user',
         'room.building',
         'facultySubject',
         'facultySubject.subjectCatalog.program',
         'subject.program',
     ])
-        ->where('user_id', $faculty->id)
+        ->where(function ($query) use ($faculty, $myRoomIdsForReservations) {
+            $query->where('user_id', $faculty->id);
+            if ($myRoomIdsForReservations->isNotEmpty()) {
+                $query->orWhereIn('room_id', $myRoomIdsForReservations);
+            }
+        })
         ->where('academic_term_id', $activeTerm?->id ?? 0)
-        ->where('status', 'Reserved')
+        ->whereRaw('LOWER(TRIM(status)) = ?', ['reserved'])
         ->whereDate('date', '>=', Carbon::today()->toDateString())
         ->orderBy('date')
         ->orderBy('start_time')

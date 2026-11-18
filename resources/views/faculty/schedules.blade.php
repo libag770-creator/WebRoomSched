@@ -732,6 +732,7 @@
     border-width: 0 !important;
     overflow: hidden !important;
 }
+.shared-reservation-cell > .shared-reservation-entry:not(.published-schedule-block) { position:absolute; width:1px; height:1px; min-height:0; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 
 .published-schedule-block {
     position: absolute !important;
@@ -3855,7 +3856,7 @@ function renderPublishedScheduleBlocks(content, manualMerges = null)
         block.style.height = (bottom - top) + 'px';
         const selectedOverride = wrapper._selectedOverride;
         const cellDays = (cell.dataset.manualDays || day).split(',').map(function(value) { return value.trim().toUpperCase(); }).filter(Boolean);
-        if (selectedOverride && String(cell.dataset.viewScheduleRoomId || '') === String(selectedOverride.roomId || '')
+        if (selectedOverride && String(source.dataset.viewScheduleRoomId || cell.dataset.viewScheduleRoomId || '') === String(selectedOverride.roomId || '')
             && cellDays.includes(selectedOverride.day)
             && range.start < selectedOverride.end && range.end > selectedOverride.start) {
             const matchingDayCell = mergedCells.find(function(candidate) {
@@ -3872,7 +3873,7 @@ function renderPublishedScheduleBlocks(content, manualMerges = null)
                 block.classList.add('schedule-override-highlight');
             }
         }
-        block.title = [cell.dataset.viewScheduleTime || '', source.innerText || ''].filter(Boolean).join(' · ');
+        block.title = [source.dataset.viewScheduleTime || cell.dataset.viewScheduleTime || '', source.innerText || ''].filter(Boolean).join(' · ');
         layer.appendChild(block);
         source.classList.add('published-schedule-source-hidden');
     });
@@ -3889,35 +3890,44 @@ window.addEventListener('resize', function() {
 
 function buildReservationCell(reservations)
 {
-    const first = reservations[0] || {};
-    // Keep JSON safe inside the generated HTML attribute. Text escaping does
-    // not escape quotes for an attribute, while URI encoding does.
-    const encoded = encodeURIComponent(JSON.stringify(reservations));
-    const dateLabel = reservations.length === 1 && first.date
-        ? new Date(first.date + 'T12:00:00').toLocaleDateString(undefined, {month:'short',day:'numeric',year:'numeric'})
-        : reservations.length + ' reservation dates';
-    const timeLabel = [formatReservationClock(first.start_time), formatReservationClock(first.end_time)].filter(Boolean).join(' – ');
-    const courseCode = first.course_code || 'Room reservation';
-    const courseTitle = first.subject || (reservations.length > 1 ? 'Open to review all reserved dates' : (first.purpose || 'Room reservation'));
-    const roomName = first.room_name || 'Selected room';
+    const groups = new Map();
+    (reservations || []).forEach(function(item) {
+        const start = String(item.start_time || '').slice(0, 5);
+        const end = String(item.end_time || '').slice(0, 5);
+        if (!start || !end) return;
+        const key = start + '|' + end;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+    });
 
-    return `
-        <td class="shared-reservation-cell" data-view-schedule-time="${escapeHtml([first.start_time, first.end_time].filter(Boolean).join('-'))}" data-view-schedule-day="${escapeHtml(first.day || '')}" data-view-schedule-room-id="${escapeHtml(first.room_id || '')}">
+    const entries = [...groups.values()].map(function(items) {
+        const first = items[0] || {};
+        const encoded = encodeURIComponent(JSON.stringify(items));
+        const dateLabel = items.length === 1 && first.date
+            ? new Date(first.date + 'T12:00:00').toLocaleDateString(undefined, {month:'short',day:'numeric',year:'numeric'})
+            : items.length + ' reservation dates';
+        const timeLabel = [formatReservationClock(first.start_time), formatReservationClock(first.end_time)].filter(Boolean).join(' – ');
+        const courseCode = first.course_code || 'Room reservation';
+        const courseTitle = first.subject || first.purpose || 'Reserved room use';
+        const roomName = first.room_name || 'Selected room';
+        return `
             <button type="button" class="temporary-reservation-entry shared-reservation-entry"
                 data-view-schedule-time="${escapeHtml([first.start_time, first.end_time].filter(Boolean).join('-'))}"
                 data-view-schedule-day="${escapeHtml(first.day || '')}"
                 data-view-schedule-room-id="${escapeHtml(first.room_id || '')}"
                 data-reservations="${encoded}"
-                aria-label="${escapeHtml(courseCode)}. ${escapeHtml(dateLabel)}. Open reservation details.">
-                <span class="reservation-entry-top"><span class="reservation-badge"><i class="fa-solid fa-calendar-check"></i> One-day booking</span><time class="reservation-time">${escapeHtml(timeLabel)}</time></span>
+                aria-label="${escapeHtml(courseCode)}. ${escapeHtml(dateLabel)}. ${escapeHtml(timeLabel)}. Open reservation details.">
+                <span class="reservation-entry-top"><span class="reservation-badge"><i class="fa-solid fa-calendar-check"></i> ${escapeHtml(first.status || 'Reserved')}</span><time class="reservation-time">${escapeHtml(timeLabel)}</time></span>
                 <span class="reservation-course">${escapeHtml(courseCode)}</span>
                 <span class="reservation-purpose">${escapeHtml(courseTitle)}</span>
                 <span class="reservation-purpose"><i class="fa-solid fa-door-open"></i> ${escapeHtml(roomName)}</span>
                 <span class="reservation-requester">${escapeHtml(dateLabel)}</span>
                 <span class="reservation-expiration"><i class="fa-solid fa-arrow-up-right-from-square"></i> View details</span>
             </button>
-        </td>
-    `;
+        `;
+    }).join('');
+
+    return `<td class="shared-reservation-cell">${entries}</td>`;
 }
 
 function formatReservationClock(value)

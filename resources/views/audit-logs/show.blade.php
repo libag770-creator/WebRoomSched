@@ -122,6 +122,7 @@
                     <div class="audit-meta"><span>Status</span><strong>{{ $auditLog->status_before ?? '—' }}{{ $auditLog->status_after ? ' → ' . $auditLog->status_after : '' }}</strong></div>
                     <div class="audit-meta"><span>Day &amp; date</span><strong>{{ $day ? strtoupper($day) : '—' }}{{ $dateLabel ? ' · ' . $dateLabel : '' }}</strong></div>
                     <div class="audit-meta"><span>Time range</span><strong>{{ $start && $end ? $formatClock($start) . '–' . $formatClock($end) : '—' }}</strong></div>
+                    <div class="audit-meta"><span>Academic term</span><strong>{{ $academicTermLabel ?: ($academicTermId ? 'Term #' . $academicTermId : 'Term not recorded') }}</strong></div>
                     <div class="audit-meta"><span>Reason / purpose</span><strong>{{ $auditLog->reason ?: 'No reason was saved' }}</strong></div>
                     <div class="audit-meta"><span>Record</span><strong>{{ ucfirst(str_replace('_', ' ', $auditLog->event_type)) }}{{ $auditLog->schedule_id ? ' · Schedule #' . $auditLog->schedule_id : '' }}</strong></div>
                 </section>
@@ -156,19 +157,48 @@
                     </section>
                 @endif
 
-                <section class="audit-detail-panel">
-                    <h2>Before and after</h2>
-                    @if($auditLog->before_data || $auditLog->after_data)
-                        <div class="audit-change-grid">
-                            <div class="audit-change"><h3>Before</h3><pre>{{ $formatChange($auditLog->before_data) }}</pre></div>
-                            <div class="audit-change"><h3>After</h3><pre>{{ $formatChange($auditLog->after_data) }}</pre></div>
-                        </div>
-                    @else
-                        <div class="audit-note">Before and after details are unavailable for this older record.</div>
-                    @endif
-                </section>
+                @if($auditLog->event_type !== 'reservation')
+                    <section class="audit-detail-panel">
+                        <h2>Before and after</h2>
+                        @if($auditLog->before_data || $auditLog->after_data)
+                            <div class="audit-change-grid">
+                                <div class="audit-change"><h3>Before</h3><pre>{{ $formatChange($auditLog->before_data) }}</pre></div>
+                                <div class="audit-change"><h3>After</h3><pre>{{ $formatChange($auditLog->after_data) }}</pre></div>
+                            </div>
+                        @else
+                            <div class="audit-note">Before and after details are unavailable for this older record.</div>
+                        @endif
+                    </section>
+                @endif
 
-                @foreach(['Before' => $snapshotBefore, 'After' => $snapshotAfter] as $snapshotLabel => $snapshot)
+                @php
+                    // Use one shared time axis for before/after schedule actions.
+                    // Reservation entries render only their saved after snapshot.
+                    $snapshotPeriodsByRoom = collect([$snapshotBefore, $snapshotAfter])
+                        ->flatMap(fn($snapshot) => $snapshot['rooms'] ?? [])
+                        ->groupBy(fn($roomSheet) => (int) ($roomSheet['id'] ?? 0))
+                        ->map(function ($roomSheets) {
+                            return collect($roomSheets)->flatMap(fn($roomSheet) => $roomSheet['entries'] ?? [])
+                                ->map(function ($entry) {
+                                    $start = $entry['start_time'] ?? null;
+                                    $end = $entry['end_time'] ?? null;
+                                    $key = $start && $end
+                                        ? $start . '|' . $end
+                                        : 'legacy|' . ($entry['time'] ?? '');
+                                    return [
+                                        'key' => $key,
+                                        'time' => $entry['time'] ?: trim(($start ?? '') . '–' . ($end ?? '')),
+                                        'start' => $start,
+                                        'end' => $end,
+                                    ];
+                                })
+                                ->unique('key')->sortBy('start')->values();
+                        });
+                    $snapshotsToRender = $auditLog->event_type === 'reservation'
+                        ? ['After' => $snapshotAfter]
+                        : ['Before' => $snapshotBefore, 'After' => $snapshotAfter];
+                @endphp
+                @foreach($snapshotsToRender as $snapshotLabel => $snapshot)
                     @if(!empty($snapshot['rooms']))
                         <section class="audit-detail-panel">
                             <h2>{{ $snapshotLabel }} room schedule snapshot</h2>
@@ -176,12 +206,7 @@
                                 @foreach($snapshot['rooms'] as $roomSheet)
                                     @php
                                         $entries = collect($roomSheet['entries'] ?? []);
-                                        $periods = $entries->map(fn($entry) => [
-                                            'key' => ($entry['start_time'] ?? '') . '|' . ($entry['end_time'] ?? '') . '|' . ($entry['time'] ?? ''),
-                                            'time' => $entry['time'] ?: trim(($entry['start_time'] ?? '') . '–' . ($entry['end_time'] ?? '')),
-                                            'start' => $entry['start_time'] ?? null,
-                                            'end' => $entry['end_time'] ?? null,
-                                        ])->unique('key')->sortBy('start')->values();
+                                        $periods = $snapshotPeriodsByRoom->get((int) ($roomSheet['id'] ?? 0), collect());
                                         $days = ['MON' => 'Monday', 'TUE' => 'Tuesday', 'WED' => 'Wednesday', 'THU' => 'Thursday', 'FRI' => 'Friday', 'SAT' => 'Saturday', 'SUN' => 'Sunday'];
                                         $focusIds = collect($snapshot['focus']['schedule_ids'] ?? [])->map(fn($id) => (int) $id);
                                         $focusDay = strtoupper(substr((string) ($snapshot['focus']['day'] ?? ''), 0, 3));
@@ -190,7 +215,7 @@
                                     @endphp
                                     <div class="audit-sheet">
                                         <div class="audit-sheet-head"><strong>{{ $roomSheet['name'] }}</strong><span>{{ collect([$roomSheet['building'] ?? null, $roomSheet['department'] ?? null])->filter()->implode(' · ') ?: 'Room details unavailable' }}</span></div>
-                                        @if($entries->isEmpty())
+                                        @if($periods->isEmpty())
                                             <div class="audit-note">No schedule rows were available in this snapshot.</div>
                                         @else
                                             <table>
@@ -200,8 +225,17 @@
                                                         <tr><td class="audit-time">{{ $period['time'] ? $formatTimeRange($period['time']) : 'Time unavailable' }}</td>
                                                             @foreach($days as $short => $long)
                                                                 @php
-                                                                    $cellEntries = $entries->filter(fn($entry) => strtoupper(substr((string) ($entry['day'] ?? ''), 0, 3)) === $short && (($entry['start_time'] ?? '') . '|' . ($entry['end_time'] ?? '') . '|' . ($entry['time'] ?? '')) === $period['key']);
-                                                                    $affected = $cellEntries->contains(function($entry) use ($focusIds, $focusDay, $focusStart, $focusEnd, $short) {
+                                                                    $cellEntries = $entries->filter(function($entry) use ($short, $period) {
+                                                                        $sameDay = strtoupper(substr((string) ($entry['day'] ?? ''), 0, 3)) === $short;
+                                                                        if (!$sameDay) return false;
+                                                                        if (!empty($entry['start_time']) && !empty($entry['end_time']) && !empty($period['start']) && !empty($period['end'])) {
+                                                                            return $entry['start_time'] === $period['start'] && $entry['end_time'] === $period['end'];
+                                                                        }
+                                                                        return (($entry['time'] ?? '') === ($period['time'] ?? ''));
+                                                                    });
+                                                                    $affected = ($focusDay === $short && $focusStart && $focusEnd && !empty($period['start']) && !empty($period['end'])
+                                                                            && $period['start'] < $focusEnd && $period['end'] > $focusStart)
+                                                                        || $cellEntries->contains(function($entry) use ($focusIds, $focusDay, $focusStart, $focusEnd, $short) {
                                                                         if (!empty($entry['highlight']) || ($entry['kind'] ?? '') === 'reservation') return true;
                                                                         if (isset($entry['id']) && is_numeric($entry['id']) && $focusIds->contains((int) $entry['id'])) return true;
                                                                         if ($focusDay !== $short || !$focusStart || !$focusEnd || empty($entry['start_time']) || empty($entry['end_time'])) return false;
