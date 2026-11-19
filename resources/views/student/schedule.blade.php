@@ -3757,6 +3757,8 @@
                 block.id = 'student-reservation-' + String(item.reservation_id);
                 block.classList.add('student-reservation-block');
             } else if (item.id) block.id = 'student-schedule-' + Number(item.id);
+            const instructorName = String(item.instructor || item.faculty?.name || '').trim();
+            const roomLabel = roomNames.length ? roomNames.join(' · ') : String(item.room || item.room_name || '').trim();
             block.dataset.durationMinutes = String(range.end - range.start);
             block.dataset.detailCourse = String(item.course_code || '');
             block.dataset.detailSubject = String(item.subject || '');
@@ -3801,8 +3803,6 @@
             block.style.width = (lastRect.right - firstRect.left) + 'px';
             block.style.height = (first.bottom - first.top) + 'px';
 
-            const instructorName = String(item.instructor || item.faculty?.name || '').trim();
-            const roomLabel = roomNames.length ? roomNames.join(' · ') : String(item.room || item.room_name || '').trim();
             block.title = [
                 run.map(entry => entry.day).join(', '),
                 item.course_code,
